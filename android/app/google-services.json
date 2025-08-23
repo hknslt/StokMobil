@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "341210438642",
+    "project_id": "capri-stok",
+    "storage_bucket": "capri-stok.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:341210438642:android:f305483d616d3e4cf7296b",
+        "android_client_info": {
+          "package_name": "com.example.capri"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBX80g1g2RUFK4HYiz0xmxaNGW5dMvaaY4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
