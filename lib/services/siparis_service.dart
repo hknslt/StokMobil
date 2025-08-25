@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/log_service.dart';
 
 class SiparisService {
   static final SiparisService _instance = SiparisService._internal();
@@ -91,15 +92,45 @@ class SiparisService {
     map['brutTutar'] ??= siparis.brutToplam;
 
     final ref = await _col.add(map);
+
+    // LOG: sipariş eklendi
+    await LogService.instance.logSiparis(
+      action: 'siparis_eklendi',
+      siparisId: ref.id,
+      meta: {
+        'musteriId': siparis.musteri.id,
+        'musteriAdi': siparis.musteri.firmaAdi ?? siparis.musteri.yetkili ?? '',
+        'net': map['netTutar'],
+        'kdvOrani': map['kdvOrani'],
+        'kdvTutar': map['kdvTutar'],
+        'brut': map['brutTutar'],
+        'kalemSayisi': siparis.urunler.length,
+      },
+    );
+
     return ref.id;
   }
 
   Future<void> guncelle(String docId, SiparisModel siparis) async {
     await _col.doc(docId).set(siparis.toMap(), SetOptions(merge: true));
+
+    // LOG: sipariş güncellendi (özet)
+    await LogService.instance.logSiparis(
+      action: 'siparis_guncellendi',
+      siparisId: docId,
+      meta: {
+        'durum': siparis.durum.name,
+        'musteriId': siparis.musteri.id,
+      },
+    );
   }
 
   Future<void> sil(String docId) async {
     await _col.doc(docId).delete();
+    await LogService.instance.logSiparis(
+      action: 'siparis_silindi',
+      siparisId: docId,
+    );
   }
 
   /// Tek siparişi canlı dinle (detay)
@@ -129,6 +160,35 @@ class SiparisService {
 
       final durum = ok ? SiparisDurumu.sevkiyat : SiparisDurumu.uretimde;
       await _col.doc(docId).update({'durum': durum.name});
+
+      // LOG: sevkiyata alındı / üretime alındı
+      if (ok) {
+        await LogService.instance.logSiparis(
+          action: 'siparis_sevkiyata_alindi',
+          siparisId: docId,
+          meta: {'urunler': istek}, // {urunId: adet}
+        );
+        // Ayrıntılı stok düşüş logları (her kalem için)
+        for (final su in sip.urunler) {
+          final uid = int.tryParse(su.id);
+          await LogService.instance.logUrun(
+            action: 'stok_azaltildi',
+            urunDocId: null,
+            urunId: uid,
+            urunAdi: su.urunAdi,
+            meta: {
+              'adet': su.adet,
+              'reason': 'sevkiyat',
+              'siparisId': docId,
+            },
+          );
+        }
+      } else {
+        await LogService.instance.logSiparis(
+          action: 'siparis_uretime_alindi',
+          siparisId: docId,
+        );
+      }
       return;
     }
 
@@ -140,10 +200,24 @@ class SiparisService {
             : FieldValue.serverTimestamp();
       }
       await _col.doc(docId).update(data);
+
+      // LOG: tamamlandı
+      await LogService.instance.logSiparis(
+        action: 'siparis_tamamlandi',
+        siparisId: docId,
+        meta: {
+          'islemeTarihi_set': islemeTarihiniAyarla,
+        },
+      );
       return;
     }
 
     await _col.doc(docId).update({'durum': yeni.name});
+    await LogService.instance.logSiparis(
+      action: 'siparis_durum_guncellendi',
+      siparisId: docId,
+      meta: {'yeniDurum': yeni.name},
+    );
   }
 
   // Eski alias'lar
@@ -164,6 +238,26 @@ class SiparisService {
     await _col.doc(docId).update(
       {'durum': ok ? SiparisDurumu.sevkiyat.name : SiparisDurumu.uretimde.name},
     );
+
+    // LOG
+    await LogService.instance.logSiparis(
+      action: ok ? 'siparis_sevkiyata_alindi' : 'siparis_uretime_alindi',
+      siparisId: docId,
+      meta: ok ? {'urunler': istek} : null,
+    );
+    if (ok) {
+      for (final su in sip.urunler) {
+        final uid = int.tryParse(su.id);
+        await LogService.instance.logUrun(
+          action: 'stok_azaltildi',
+          urunDocId: null,
+          urunId: uid,
+          urunAdi: su.urunAdi,
+          meta: {'adet': su.adet, 'reason': 'sevkiyat', 'siparisId': docId},
+        );
+      }
+    }
+
     return ok;
   }
 
@@ -180,6 +274,13 @@ class SiparisService {
       if (ok && s.docId != null) {
         await _col.doc(s.docId!).update({'durum': SiparisDurumu.sevkiyat.name});
         counter++;
+
+        // LOG
+        await LogService.instance.logSiparis(
+          action: 'siparis_sevkiyata_alindi',
+          siparisId: s.docId!,
+          meta: {'urunler': istek, 'mode': 'fifo'},
+        );
       }
     }
     return counter;
@@ -203,6 +304,13 @@ class SiparisService {
     map['brutTutar'] ??= siparis.brutToplam;
 
     final ref = await _col.add(map);
+
+    await LogService.instance.logSiparis(
+      action: 'siparis_tamamlandi',
+      siparisId: ref.id,
+      meta: {'ekleVeTamamla': true},
+    );
+
     return ref.id;
   }
 
@@ -214,6 +322,11 @@ class SiparisService {
           ? Timestamp.fromDate(islemeTarihi)
           : FieldValue.serverTimestamp(),
     });
+
+    await LogService.instance.logSiparis(
+      action: 'siparis_tamamlandi',
+      siparisId: docId,
+    );
   }
 
   Future<void> backfillIslemeTarihiTamamlananlar() async {
@@ -242,10 +355,6 @@ class SiparisService {
   }
 
   // ------------------ ÇEŞİTLİ ------------------
-
-  Future<void> adetArtir(String docId, int delta) async {
-    await _col.doc(docId).update({'adet': FieldValue.increment(delta)});
-  }
 
   Future<List<SiparisModel>> getirByDurumOnce(SiparisDurumu durum) async {
     final qs = await _col.where('durum', isEqualTo: durum.name).get();
