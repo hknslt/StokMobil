@@ -83,7 +83,6 @@ class SiparisService {
 
   // ------------------ CRUD ------------------
 
-  /// ➕ Ekle: Finans alanları yoksa modelin computed değerlerini yazar.
   Future<String> ekle(SiparisModel siparis) async {
     final map = siparis.toMap();
     map['netTutar'] ??= siparis.netToplam;
@@ -103,7 +102,7 @@ class SiparisService {
     await _col.doc(docId).delete();
   }
 
-  /// Tek siparişi canlı dinle (detay sayfası için)
+  /// Tek siparişi canlı dinle (detay)
   Stream<SiparisModel?> tekDinle(String docId) {
     return _col.doc(docId).snapshots().map((d) {
       if (!d.exists) return null;
@@ -111,17 +110,13 @@ class SiparisService {
     });
   }
 
-  /// 👇 DURUM GÜNCELLEME – Stok yönetimi bu katmanda
-  ///
-  /// - `sevkiyat`a geçerken: stok düşmeyi dener; yeterliyse **sevkiyat**, değilse **uretim**.
-  /// - `tamamlandi`ya geçerken: **sadece tarih/durum** güncellenir, stokla oynanmaz.
+  /// 👇 DURUM GÜNCELLEME
   Future<void> guncelleDurum(
     String docId,
     SiparisDurumu yeni, {
     bool islemeTarihiniAyarla = false,
     DateTime? islemeTarihi,
   }) async {
-    // Sevkiyata geçişte stok işlemini burada yap
     if (yeni == SiparisDurumu.sevkiyat) {
       final snap = await _col.doc(docId).get();
       if (!snap.exists) {
@@ -137,7 +132,6 @@ class SiparisService {
       return;
     }
 
-    // Tamamlanırken stok dokunma: sadece tarih (opsiyonel) + durum
     if (yeni == SiparisDurumu.tamamlandi) {
       final data = <String, dynamic>{'durum': yeni.name};
       if (islemeTarihiniAyarla) {
@@ -149,7 +143,6 @@ class SiparisService {
       return;
     }
 
-    // Diğer durumlar: direkt güncelle
     await _col.doc(docId).update({'durum': yeni.name});
   }
 
@@ -159,8 +152,8 @@ class SiparisService {
   Future<void> durumuGuncelle(String docId, SiparisDurumu durum) =>
       guncelleDurum(docId, durum);
 
-  /// ✅ İstersen UI’dan doğrudan çağırabileceğin yardımcı:
-  /// Sevkiyata geçirmeyi dener (stok varsa düşer ve sevkiyat, yoksa üretim).
+  /// 🔹 Sadece bu siparişi sevkiyata geçirmeyi dener.
+  ///    (Stok yeterse düşer ve 'sevkiyat', yetmezse 'uretimde' kalır)
   Future<bool> sevkiyataGecir(String docId) async {
     final snap = await _col.doc(docId).get();
     if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
@@ -172,8 +165,24 @@ class SiparisService {
       {'durum': ok ? SiparisDurumu.sevkiyat.name : SiparisDurumu.uretimde.name},
     );
     return ok;
-    // ok == true  -> sevkiyat
-    // ok == false -> uretim
+  }
+
+  /// 🔹 FIFO: üretimdeki siparişleri sırayla dener; stok yeterli olanlar
+  ///    için stok düşüp 'sevkiyat'a alır. Kaç siparişin geçtiğini döner.
+  Future<int> allocateFIFOAcrossProduction() async {
+    final adaylar = await getirByDurumOnce(SiparisDurumu.uretimde)
+      ..sort((a, b) => a.tarih.compareTo(b.tarih)); // FIFO
+
+    int counter = 0;
+    for (final s in adaylar) {
+      final istek = _istekHaritasi(s);
+      final ok = await UrunService().decrementStocksIfSufficient(istek);
+      if (ok && s.docId != null) {
+        await _col.doc(s.docId!).update({'durum': SiparisDurumu.sevkiyat.name});
+        counter++;
+      }
+    }
+    return counter;
   }
 
   /// ✅ Ekle + Tamamla: finans alanlarını garanti yaz (stokla oynamaz).
