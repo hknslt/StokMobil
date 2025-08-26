@@ -234,7 +234,10 @@ class _UretimSayfasiState extends State<UretimSayfasi> {
   // ---- Dialog: Stok Ekle (firma/sipariş belirtilmeden -> FIFO dağıt) ----
   Future<void> _stokEkleDialog(BuildContext pageContext) async {
     final urunler = await urunServis.onceGetir();
+
+    // Seçim ve alanlar
     final TextEditingController adetController = TextEditingController();
+    final TextEditingController urunAraCtrl = TextEditingController();
     Urun? secilen;
 
     await showDialog(
@@ -249,25 +252,55 @@ class _UretimSayfasiState extends State<UretimSayfasi> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TypeAheadField<Urun>(
-                  suggestionsCallback: (p) => urunler
-                      .where(
-                        (u) =>
-                            u.urunAdi.toLowerCase().contains(p.toLowerCase()),
-                      )
-                      .toList(),
+                  suggestionsCallback: (pattern) {
+                    final p = pattern.trim().toLowerCase();
+                    if (p.isEmpty) return urunler;
+                    return urunler
+                        .where(
+                          (u) =>
+                              u.urunAdi.toLowerCase().contains(p) ||
+                              (u.renk ?? '').toLowerCase().contains(p),
+                        )
+                        .toList();
+                  },
                   itemBuilder: (_, u) => ListTile(
                     title: Text(u.urunAdi),
                     subtitle: Text("Renk: ${u.renk}  |  Stok: ${u.adet}"),
                   ),
-                  onSelected: (u) => secilen = u,
-                  builder: (context, controller, focusNode) => TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(
-                      labelText: "Ürün Ara",
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                  onSelected: (u) {
+                    secilen = u;
+                    // 🔑 Seçim metne yansısın ve öneriler kapansın
+                    urunAraCtrl.text = u.urunAdi;
+                    FocusScope.of(dialogCtx).unfocus();
+                  },
+                  // v5/v6 API: input alanını builder ile veriyoruz
+                  builder: (context, controller, focusNode) {
+                    // Bizim controller'ı kullanalım ki dışarıdan yönetebilelim
+                    controller = urunAraCtrl;
+                    return TextField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      textInputAction: TextInputAction.done,
+                      decoration: const InputDecoration(
+                        labelText: "Ürün Ara",
+                        border: OutlineInputBorder(),
+                      ),
+                      // Enter'a basınca da ilk eşleşeni kapabilsin (opsiyonel)
+                      onSubmitted: (v) {
+                        if (secilen == null) {
+                          final p = v.trim().toLowerCase();
+                          final first = urunler.firstWhereOrNull(
+                            (u) => u.urunAdi.toLowerCase().contains(p),
+                          );
+                          if (first != null) {
+                            secilen = first;
+                            urunAraCtrl.text = first.urunAdi;
+                            FocusScope.of(dialogCtx).unfocus();
+                          }
+                        }
+                      },
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -295,21 +328,43 @@ class _UretimSayfasiState extends State<UretimSayfasi> {
               ),
               onPressed: () async {
                 final ek = int.tryParse(adetController.text.trim()) ?? 0;
-                if (secilen != null && ek > 0 && secilen!.docId != null) {
-                  // 1) Stoğa ekle
-                  await urunServis.adetArtir(secilen!.docId!, ek);
-                  // 2) Firma belirtilmediği için FIFO dağıt
-                  final kac = await siparisServis
-                      .allocateFIFOAcrossProduction();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          "Stok eklendi.$kac sipariş sevkiyata geçti.",
-                        ),
+                if (secilen == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Lütfen ürün seçin.")),
+                  );
+                  return;
+                }
+                if (ek <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Geçerli bir adet girin.")),
+                  );
+                  return;
+                }
+                if (secilen!.docId == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Ürünün belge kimliği yok. Listeyi yenileyin.",
                       ),
-                    );
-                  }
+                    ),
+                  );
+                  return;
+                }
+
+                // 1) Stoğa ekle
+                await urunServis.adetArtir(secilen!.docId!, ek);
+
+                // 2) FIFO dağıt (firma belirtilmedi)
+                final kac = await siparisServis.allocateFIFOAcrossProduction();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        "Stok eklendi. $kac sipariş sevkiyata geçti.",
+                      ),
+                    ),
+                  );
                 }
                 nav.pop();
               },

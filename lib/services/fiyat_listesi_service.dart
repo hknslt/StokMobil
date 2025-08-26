@@ -1,5 +1,7 @@
+// lib/services/fiyat_listesi_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:capri/core/models/fiyat_listesi_model.dart';
+import 'package:capri/services/log_service.dart';
 
 class FiyatListesiService {
   FiyatListesiService._();
@@ -10,19 +12,15 @@ class FiyatListesiService {
       _db.collection('fiyatListeleri');
 
   // ---------------------------------------------------------------------------
-  // Aktif liste (fiyatlandırma adımında set edilir, diğer adımlarda okunur)
+  // Aktif liste
   // ---------------------------------------------------------------------------
   FiyatListesi? _aktif;
 
-  /// Tam nesneye ihtiyaç olursa
   FiyatListesi? get aktif => _aktif;
-
-  /// UI / kayıt için kullanışlı getter’lar
   String? get aktifListeId => _aktif?.id;
   String? get aktifListeAd => _aktif?.ad;
   double get aktifKdv => _aktif?.kdv ?? 0.0;
 
-  /// Fiyatlandırma sayfasında çağırıyorsun (zaten vardı)
   void setAktifListe(FiyatListesi l) {
     _aktif = l;
   }
@@ -31,10 +29,12 @@ class FiyatListesiService {
   // Listeler
   // ---------------------------------------------------------------------------
   Stream<List<FiyatListesi>> listeleriDinle() {
-    return _col.orderBy('createdAt', descending: false).snapshots().map(
-          (qs) => qs.docs
-              .map((d) => FiyatListesi.fromDoc(d.id, d.data()))
-              .toList(),
+    return _col
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map(
+          (qs) =>
+              qs.docs.map((d) => FiyatListesi.fromDoc(d.id, d.data())).toList(),
         );
   }
 
@@ -44,10 +44,19 @@ class FiyatListesiService {
       'kdv': kdv,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    // LOG: fiyat listesi oluşturuldu
+    try {
+      await LogService.instance.log(
+        action: 'fiyat_listesi_olusturuldu',
+        target: {'type': 'fiyat_listesi', 'docId': ref.id},
+        meta: {'ad': ad, 'kdv': kdv},
+      );
+    } catch (_) {}
+
     return ref.id;
   }
 
-  // alias’lar
   Future<String> yeniListe({required String ad, double kdvYuzde = 20}) {
     return listeOlustur(ad: ad, kdv: kdvYuzde);
   }
@@ -56,8 +65,20 @@ class FiyatListesiService {
     return listeOlustur(ad: ad, kdv: kdvYuzde);
   }
 
-  Future<void> kdvGuncelle({required String listeId, required double kdv}) {
-    return _col.doc(listeId).update({'kdv': kdv});
+  Future<void> kdvGuncelle({
+    required String listeId,
+    required double kdv,
+  }) async {
+    await _col.doc(listeId).update({'kdv': kdv});
+
+    // LOG: kdv güncellendi
+    try {
+      await LogService.instance.log(
+        action: 'kdv_guncellendi',
+        target: {'type': 'fiyat_listesi', 'docId': listeId},
+        meta: {'kdv': kdv},
+      );
+    } catch (_) {}
   }
 
   Future<void> setKdv(String listeId, double kdvYuzde) {
@@ -75,11 +96,7 @@ class FiyatListesiService {
   // Ürün fiyatları
   // ---------------------------------------------------------------------------
   Stream<Map<int, double>> urunFiyatlariniDinle(String listeId) {
-    return _col
-        .doc(listeId)
-        .collection('urunFiyatlari')
-        .snapshots()
-        .map((qs) {
+    return _col.doc(listeId).collection('urunFiyatlari').snapshots().map((qs) {
       final m = <int, double>{};
       for (final d in qs.docs) {
         final data = d.data();
@@ -97,10 +114,19 @@ class FiyatListesiService {
     required double netFiyat,
   }) async {
     final doc = _col.doc(listeId).collection('urunFiyatlari').doc('$urunId');
-    await doc.set(
-      {'urunId': urunId, 'netFiyat': netFiyat},
-      SetOptions(merge: true),
-    );
+    await doc.set({
+      'urunId': urunId,
+      'netFiyat': netFiyat,
+    }, SetOptions(merge: true));
+
+    // LOG: tek ürün fiyatı kaydedildi
+    try {
+      await LogService.instance.log(
+        action: 'urun_fiyati_kaydedildi',
+        target: {'type': 'fiyat_listesi', 'docId': listeId},
+        meta: {'urunId': urunId, 'netFiyat': netFiyat},
+      );
+    } catch (_) {}
   }
 
   Future<void> setUrunFiyati({
@@ -123,24 +149,40 @@ class FiyatListesiService {
     final sub = _col.doc(listeId).collection('urunFiyatlari');
     final entries = fiyatlar.entries.toList();
     const chunkSize = 400;
+    var toplamYazilan = 0;
+
     for (var i = 0; i < entries.length; i += chunkSize) {
       final batch = _db.batch();
-      final end = (i + chunkSize < entries.length) ? i + chunkSize : entries.length;
+      final end = (i + chunkSize < entries.length)
+          ? i + chunkSize
+          : entries.length;
       for (final e in entries.sublist(i, end)) {
         final ref = sub.doc('${e.key}');
-        batch.set(
-          ref,
-          {'urunId': e.key, 'netFiyat': e.value},
-          SetOptions(merge: true),
-        );
+        batch.set(ref, {
+          'urunId': e.key,
+          'netFiyat': e.value,
+        }, SetOptions(merge: true));
       }
       await batch.commit();
+      toplamYazilan += (end - i);
     }
+
+    // LOG: toplu ürün fiyat yazımı
+    try {
+      await LogService.instance.log(
+        action: 'urun_fiyatlari_toplu_kaydedildi',
+        target: {'type': 'fiyat_listesi', 'docId': listeId},
+        meta: {'adet': entries.length, 'toplamYazilan': toplamYazilan},
+      );
+    } catch (_) {}
   }
 
   Future<double> getNetFiyatOnce(String listeId, int urunId) async {
-    final snap =
-        await _col.doc(listeId).collection('urunFiyatlari').doc('$urunId').get();
+    final snap = await _col
+        .doc(listeId)
+        .collection('urunFiyatlari')
+        .doc('$urunId')
+        .get();
     if (!snap.exists) return 0.0;
     return (snap.data()?['netFiyat'] as num?)?.toDouble() ?? 0.0;
   }
@@ -168,7 +210,7 @@ class FiyatListesiService {
   }
 
   // ---------------------------------------------------------------------------
-  // Yardımcılar (eksikleri 0 ile doldur vb.)
+  // Yardımcılar
   // ---------------------------------------------------------------------------
   Future<void> eksikleriSifirla({
     required String listeId,
@@ -180,12 +222,22 @@ class FiyatListesiService {
       value: (_) => 0.0,
     );
     await urunFiyatlariniKaydet(listeId, entries);
+
+    // LOG: eksikler sıfırlandı
+    try {
+      await LogService.instance.log(
+        action: 'eksikler_sifirlandi',
+        target: {'type': 'fiyat_listesi', 'docId': listeId},
+        meta: {'urunAdedi': tumUrunIdleri.length},
+      );
+    } catch (_) {}
   }
 
   Future<void> yeniUrunTumListelereSifirEkle(int urunId) async {
     final lists = await _col.get();
     const chunkSize = 400;
     var buffer = <DocumentReference>[];
+    var toplamYazilan = 0;
 
     for (final l in lists.docs) {
       final ref = l.reference.collection('urunFiyatlari').doc('$urunId');
@@ -193,19 +245,36 @@ class FiyatListesiService {
       if (buffer.length >= chunkSize) {
         final batch = _db.batch();
         for (final r in buffer) {
-          batch.set(r, {'urunId': urunId, 'netFiyat': 0.0}, SetOptions(merge: true));
+          batch.set(r, {
+            'urunId': urunId,
+            'netFiyat': 0.0,
+          }, SetOptions(merge: true));
         }
         await batch.commit();
+        toplamYazilan += buffer.length;
         buffer = <DocumentReference>[];
       }
     }
     if (buffer.isNotEmpty) {
       final batch = _db.batch();
       for (final r in buffer) {
-        batch.set(r, {'urunId': urunId, 'netFiyat': 0.0}, SetOptions(merge: true));
+        batch.set(r, {
+          'urunId': urunId,
+          'netFiyat': 0.0,
+        }, SetOptions(merge: true));
       }
       await batch.commit();
+      toplamYazilan += buffer.length;
     }
+
+    // LOG: yeni ürün tüm listelere eklendi (0.0)
+    try {
+      await LogService.instance.log(
+        action: 'yeni_urun_tum_listelere_sifir_ekle',
+        target: {'type': 'fiyat_listesi', 'docId': 'ALL'},
+        meta: {'urunId': urunId, 'toplamYazilan': toplamYazilan},
+      );
+    } catch (_) {}
   }
 
   // ---------------------------------------------------------------------------
@@ -214,7 +283,18 @@ class FiyatListesiService {
   Future<void> listeSil(String listeId) async {
     final ref = _col.doc(listeId);
 
+    // ad & kdv metası (log için)
+    String? ad;
+    double? kdv;
+    try {
+      final snap = await ref.get();
+      final d = snap.data();
+      ad = (d?['ad'] as String?)?.trim();
+      kdv = (d?['kdv'] as num?)?.toDouble();
+    } catch (_) {}
+
     const chunkSize = 400;
+    var silinenSatir = 0;
     while (true) {
       final qs = await ref.collection('urunFiyatlari').limit(chunkSize).get();
       if (qs.docs.isEmpty) break;
@@ -223,8 +303,22 @@ class FiyatListesiService {
         batch.delete(d.reference);
       }
       await batch.commit();
+      silinenSatir += qs.docs.length;
     }
 
     await ref.delete();
+
+    // LOG: liste silindi
+    try {
+      await LogService.instance.log(
+        action: 'fiyat_listesi_silindi',
+        target: {'type': 'fiyat_listesi', 'docId': listeId},
+        meta: {
+          if (ad != null && ad.isNotEmpty) 'ad': ad,
+          if (kdv != null) 'kdv': kdv,
+          'silinenUrunFiyatSatiri': silinenSatir,
+        },
+      );
+    } catch (_) {}
   }
 }

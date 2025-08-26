@@ -9,9 +9,26 @@ class LogService {
   final _db = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
-  /// users/{uid} -> { firstName, lastName, role, username, email } çeker (cache’ler).
   Map<String, dynamic>? _cachedActor;
   String? _cachedUid;
+
+  // --- küçük yardımcılar ---
+  String? _s(dynamic v) {
+    if (v == null) return null;
+    if (v is String) return v;
+    return v.toString();
+  }
+
+  Map<String, dynamic> _sanitizeTarget(Map<String, dynamic> target) {
+    final t = Map<String, dynamic>.from(target);
+    // docId'yi her zaman string'e çevir
+    if (t.containsKey('docId')) {
+      t['docId'] = _s(t['docId']);
+    }
+    // tip güvenliği adına diğer basit alanları da normalize etmek istersen:
+    if (t.containsKey('type')) t['type'] = _s(t['type']) ?? 'unknown';
+    return t;
+  }
 
   Future<Map<String, dynamic>> _getActor() async {
     final u = _auth.currentUser;
@@ -31,13 +48,23 @@ class LogService {
 
     final doc = await _db.collection('users').doc(u.uid).get();
     final d = doc.data() ?? {};
+
+    final emailDb = _s(d['email']);
+    final usernameDb = _s(d['username']);
+    final firstNameDb = _s(d['firstName']);
+    final lastNameDb = _s(d['lastName']);
+    final roleDb = _s(d['role']) ?? 'user';
+
+    final emailAuth = _s(u.email);
+    final usernameFromEmail = emailAuth?.split('@').first;
+
     final actor = {
-      'uid': u.uid,
-      'email': d['email'] ?? u.email,
-      'username': d['username'] ?? (u.email?.split('@').first ?? ''),
-      'firstName': d['firstName'] ?? '',
-      'lastName': d['lastName'] ?? '',
-      'role': d['role'] ?? 'user',
+      'uid': _s(u.uid),
+      'email': emailDb ?? emailAuth,
+      'username': usernameDb ?? usernameFromEmail ?? '',
+      'firstName': firstNameDb ?? '',
+      'lastName': lastNameDb ?? '',
+      'role': roleDb,
     };
     _cachedActor = actor;
     _cachedUid = u.uid;
@@ -51,17 +78,18 @@ class LogService {
     Map<String, dynamic>? meta,
   }) async {
     final actor = await _getActor();
+    final safeTarget = _sanitizeTarget(target);
+
     await _db.collection('logs').add({
       'ts': FieldValue.serverTimestamp(),
-      'action': action,          // ör: "siparis_eklendi"
-      'actor': actor,            // { uid, email, username, firstName, lastName, role }
-      'target': target,          // { type: "siparis"|"urun"|"stok"|..., docId, ... }
-      'meta': meta ?? {},        // serbest ekstra alanlar
+      'action': _s(action) ?? 'unknown',
+      'actor': actor,
+      'target': safeTarget,
+      'meta': meta ?? {},
     });
   }
 
   // --- Sık kullanılan yardımcılar ---
-
   Future<void> logSiparis({
     required String action,
     required String siparisId,
@@ -85,7 +113,7 @@ class LogService {
       action: action,
       target: {
         'type': 'urun',
-        'docId': urunDocId,
+        'docId': urunDocId,            // sanitizeTarget bunu string'e çevirecek
         if (urunId != null) 'urunId': urunId,
         if (urunAdi != null) 'urunAdi': urunAdi,
       },
