@@ -21,13 +21,28 @@ class LogService {
 
   Map<String, dynamic> _sanitizeTarget(Map<String, dynamic> target) {
     final t = Map<String, dynamic>.from(target);
-    // docId'yi her zaman string'e çevir
-    if (t.containsKey('docId')) {
-      t['docId'] = _s(t['docId']);
-    }
-    // tip güvenliği adına diğer basit alanları da normalize etmek istersen:
+    // her zaman string'e çek
+    if (t.containsKey('docId')) t['docId'] = _s(t['docId']);
     if (t.containsKey('type')) t['type'] = _s(t['type']) ?? 'unknown';
     return t;
+  }
+
+  Map<String, dynamic> _sanitizeMeta(Map<String, dynamic>? meta) {
+    if (meta == null) return {};
+    final out = <String, dynamic>{};
+    meta.forEach((k, v) {
+      // sayılar & bool olduğu gibi, diğer her şey .toString()
+      if (v == null || v is num || v is bool) {
+        out[k] = v;
+      } else if (v is String) {
+        out[k] = v;
+      } else if (v is DateTime) {
+        out[k] = Timestamp.fromDate(v);
+      } else {
+        out[k] = v.toString();
+      }
+    });
+    return out;
   }
 
   Future<Map<String, dynamic>> _getActor() async {
@@ -77,16 +92,23 @@ class LogService {
     required Map<String, dynamic> target, // {type, docId, ...}
     Map<String, dynamic>? meta,
   }) async {
-    final actor = await _getActor();
-    final safeTarget = _sanitizeTarget(target);
+    try {
+      final actor = await _getActor();
+      final safeTarget = _sanitizeTarget(target);
+      final safeMeta = _sanitizeMeta(meta);
 
-    await _db.collection('logs').add({
-      'ts': FieldValue.serverTimestamp(),
-      'action': _s(action) ?? 'unknown',
-      'actor': actor,
-      'target': safeTarget,
-      'meta': meta ?? {},
-    });
+      await _db.collection('logs').add({
+        'ts': FieldValue.serverTimestamp(),     // server clock
+        'clientTs': Timestamp.now(),            // istemci saati (debug için)
+        'action': _s(action) ?? 'unknown',
+        'actor': actor,                         // { uid, email, username, ... }
+        'target': safeTarget,                   // { type, docId, ... } (docId: String)
+        'meta': safeMeta,                       // serbest alanlar (sanitize)
+      });
+    } catch (_) {
+      // log yazımı hiç bir zaman app'i düşürmesin
+      // (gerekirse buraya debugPrint ekleyebilirsin)
+    }
   }
 
   // --- Sık kullanılan yardımcılar ---

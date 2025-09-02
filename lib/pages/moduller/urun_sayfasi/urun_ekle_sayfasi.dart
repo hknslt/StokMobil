@@ -49,7 +49,8 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
       if (urun.resimYollari != null && urun.resimYollari!.isNotEmpty) {
         secilenResimler = urun.resimYollari!.map((p) => File(p)).toList();
         kapakResimYolu =
-            urun.kapakResimYolu ?? (urun.resimYollari!.isNotEmpty ? urun.resimYollari!.first : null);
+            urun.kapakResimYolu ??
+            (urun.resimYollari!.isNotEmpty ? urun.resimYollari!.first : null);
       }
     }
   }
@@ -81,14 +82,21 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
         title: const Text("Resmi Sil"),
         content: const Text("Bu resmi silmek istediğinizden emin misiniz?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Vazgeç")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Evet, sil")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Vazgeç"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Evet, sil"),
+          ),
         ],
       ),
     );
     if (onay == true) {
       setState(() {
-        if (secilenResimler[index].path == kapakResimYolu) kapakResimYolu = null;
+        if (secilenResimler[index].path == kapakResimYolu)
+          kapakResimYolu = null;
         secilenResimler.removeAt(index);
       });
     }
@@ -111,7 +119,10 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Vazgeç")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Vazgeç"),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Renkler.kahveTon),
             onPressed: () => Navigator.pop(ctx, true),
@@ -129,14 +140,14 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
         await renkService.ekle(ad);
         if (!mounted) return;
         setState(() => _secilenRenkAd = ad);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Renk eklendi: $ad")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Renk eklendi: $ad")));
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Renk eklenemedi: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Renk eklenemedi: $e")));
       }
     }
   }
@@ -167,8 +178,9 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Kaydetme başarısız: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Kaydetme başarısız: $e")));
     } finally {
       if (mounted) setState(() => _kaydediyor = false);
     }
@@ -179,7 +191,10 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
     final duzenleme = widget.duzenlenecekUrun != null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(duzenleme ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'), backgroundColor: Renkler.kahveTon),
+      appBar: AppBar(
+        title: Text(duzenleme ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'),
+        backgroundColor: Renkler.kahveTon,
+      ),
       body: AbsorbPointer(
         absorbing: _kaydediyor,
         child: Stack(
@@ -202,7 +217,9 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                           border: Border.all(color: Colors.grey),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Center(child: Text("Resim(leri) seçmek için tıklayın")),
+                        child: const Center(
+                          child: Text("Resim(leri) seçmek için tıklayın"),
+                        ),
                       ),
                     ),
                     Wrap(
@@ -212,23 +229,36 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                         final file = secilenResimler[index];
                         return GestureDetector(
                           onTap: () => _resimSilDialog(index),
-                          onLongPress: () => setState(() => kapakResimYolu = file.path),
+                          onLongPress: () =>
+                              setState(() => kapakResimYolu = file.path),
                           child: Stack(
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.file(file, width: 100, height: 100, fit: BoxFit.cover),
+                                child: Image.file(
+                                  file,
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                               const Positioned(
-                                right: 4, top: 4,
+                                right: 4,
+                                top: 4,
                                 child: CircleAvatar(
-                                  radius: 12, backgroundColor: Colors.black54,
-                                  child: Icon(Icons.close, size: 16, color: Colors.white),
+                                  radius: 12,
+                                  backgroundColor: Colors.black54,
+                                  child: Icon(
+                                    Icons.close,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                               if (file.path == kapakResimYolu)
                                 const Positioned(
-                                  bottom: 4, left: 4,
+                                  bottom: 4,
+                                  left: 4,
                                   child: Icon(Icons.star, color: Colors.amber),
                                 ),
                             ],
@@ -240,17 +270,25 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
 
                     TextFormField(
                       controller: urunKoduController,
-                      decoration: const InputDecoration(labelText: "Ürün Kodu", border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        labelText: "Ürün Kodu",
+                        border: OutlineInputBorder(),
+                      ),
                       textInputAction: TextInputAction.next,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? "Zorunlu" : null,
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? "Zorunlu" : null,
                     ),
                     const SizedBox(height: 12),
 
                     TextFormField(
                       controller: urunAdiController,
-                      decoration: const InputDecoration(labelText: "Ürün Adı", border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        labelText: "Ürün Adı",
+                        border: OutlineInputBorder(),
+                      ),
                       textInputAction: TextInputAction.next,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? "Zorunlu" : null,
+                      validator: (v) =>
+                          (v == null || v.trim().isEmpty) ? "Zorunlu" : null,
                     ),
                     const SizedBox(height: 12),
 
@@ -264,7 +302,10 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                     TextFormField(
                       controller: adetController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: "Adet", border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        labelText: "Adet",
+                        border: OutlineInputBorder(),
+                      ),
                       validator: (v) {
                         final n = int.tryParse((v ?? '').trim());
                         if (n == null) return "Geçersiz sayı";
@@ -276,7 +317,10 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
 
                     TextFormField(
                       controller: aciklamaController,
-                      decoration: const InputDecoration(labelText: "Açıklama", border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        labelText: "Açıklama",
+                        border: OutlineInputBorder(),
+                      ),
                       maxLines: 3,
                     ),
 
@@ -284,9 +328,14 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: Renkler.kahveTon),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Renkler.kahveTon,
+                        ),
                         onPressed: kaydet,
-                        child: Text(duzenleme ? "Kaydet" : "Ekle", style: const TextStyle(color: Colors.white)),
+                        child: Text(
+                          duzenleme ? "Kaydet" : "Ekle",
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 40),
@@ -296,7 +345,10 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
             ),
 
             if (_kaydediyor)
-              Container(color: Colors.black12, child: const Center(child: CircularProgressIndicator())),
+              Container(
+                color: Colors.black12,
+                child: const Center(child: CircularProgressIndicator()),
+              ),
           ],
         ),
       ),
@@ -320,34 +372,76 @@ class _RenkDropdown extends StatelessWidget {
     final svc = RenkService.instance;
 
     return StreamBuilder<List<RenkItem>>(
-      // 🔁 RenkService tarafında 'dinle()' sağlıyoruz
       stream: svc.dinle(),
       builder: (context, snap) {
-        final renkler = snap.data ?? [];
+        final renkler = (snap.data ?? [])
+            // güvence: trim ve boşları at
+            .where((r) => r.ad.trim().isNotEmpty)
+            .toList();
 
-        // Düzenle modunda eski renk listede yoksa, geçici seçenek ekle
-        final secili = seciliAd?.trim() ?? '';
-        final items = [...renkler];
-        final varMi = secili.isEmpty
-            ? true
-            : items.any((r) => r.ad.toLowerCase() == secili.toLowerCase());
-        if (!varMi && secili.isNotEmpty) {
-          items.insert(0, RenkItem(id: '_local_', ad: secili));
+        // 1) Case-insensitive tekilleştir (ilk görüleni tut)
+        final seen = <String>{};
+        final tekil = <RenkItem>[];
+        for (final r in renkler) {
+          final key = r.ad.trim().toLowerCase();
+          if (seen.add(key)) {
+            tekil.add(RenkItem(id: r.id, ad: r.ad.trim()));
+          }
+        }
+
+        // 2) Seçili adı normalize et
+        final seciliRaw = (seciliAd ?? '').trim();
+        final seciliLower = seciliRaw.toLowerCase();
+
+        // 3) Listede eşleşen öğeyi bul (case-insensitive)
+        String? value;
+        final match = tekil.firstWhere(
+          (r) => r.ad.trim().toLowerCase() == seciliLower,
+          orElse: () => RenkItem(id: '', ad: ''), // sentinel
+        );
+        if (match.ad.isNotEmpty) {
+          // tam listedeki ad ile value ver (tekil ve benzersiz)
+          value = match.ad;
+        } else if (seciliRaw.isNotEmpty) {
+          // listede yoksa, sadece 1 adet geçici öğe ekle
+          tekil.insert(0, RenkItem(id: '_local_', ad: seciliRaw));
+          value = seciliRaw;
+        } else {
+          value = null; // seçim yok
+        }
+
+        // 4) Dropdown item’larını oluştur
+        final items = tekil
+            .map(
+              (r) => DropdownMenuItem<String>(value: r.ad, child: Text(r.ad)),
+            )
+            .toList();
+
+        // 5) Eğer (nadir) value artık listede yoksa, güvenli şekilde null yap
+        if (value != null &&
+            items.where((it) => it.value == value).length != 1) {
+          value = null;
         }
 
         return DropdownButtonFormField<String>(
-          value: secili.isNotEmpty ? secili : null,
+          value: value,
           decoration: InputDecoration(
             labelText: "Renk",
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            suffixIcon: IconButton(onPressed: onYeniRenk, icon: const Icon(Icons.add), tooltip: "Yeni renk ekle"),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            suffixIcon: IconButton(
+              onPressed: onYeniRenk,
+              icon: const Icon(Icons.add),
+              tooltip: "Yeni renk ekle",
+            ),
           ),
-          items: items
-              .map((r) => DropdownMenuItem<String>(value: r.ad, child: Text(r.ad)))
-              .toList(),
+          items: items,
           onChanged: onDegisti,
-          validator: (v) => (v == null || v.trim().isEmpty) ? "Renk seçiniz" : null,
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? "Renk seçiniz" : null,
           hint: const Text("Renk seçin"),
         );
       },

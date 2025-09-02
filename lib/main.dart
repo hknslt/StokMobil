@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Stok Takip',
-      initialRoute: '/',
+      initialRoute: '/', 
       routes: {
         '/': (context) => const LoginPage(),
         '/anasayfa': (context) {
