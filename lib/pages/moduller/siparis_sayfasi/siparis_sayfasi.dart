@@ -10,7 +10,7 @@ import 'package:capri/pages/moduller/siparis_sayfasi/siparis_oluşturma/siparis_
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
 import 'package:capri/services/siparis_service.dart';
 import 'package:capri/services/urun_service.dart';
-import 'package:capri/services/fiyat_listesi_service.dart'; // 👈 KDV için
+import 'package:capri/services/fiyat_listesi_service.dart'; // KDV için
 
 class SiparisSayfasi extends StatefulWidget {
   const SiparisSayfasi({super.key});
@@ -22,7 +22,18 @@ class SiparisSayfasi extends StatefulWidget {
 class _SiparisSayfasiState extends State<SiparisSayfasi> {
   final siparisServis = SiparisService();
   final urunServis = UrunService();
-  final fiyatSvc = FiyatListesiService.instance; // 👈 aktif KDV
+  final fiyatSvc = FiyatListesiService.instance; // aktif KDV
+
+  // --- Arama & filtre state ---
+  final _aramaCtrl = TextEditingController();
+  String _arama = '';
+  SiparisDurumu? _durumFiltre; // null => Tümü
+
+  @override
+  void dispose() {
+    _aramaCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _onayla(SiparisModel siparis) async {
     bool devamEt = true;
@@ -115,8 +126,26 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
   }
 
   // --- küçük yardımcılar (aktif KDV & brüt hesap) ---
-  double _aktifKdv() => fiyatSvc.aktifKdv; // 🔁 getKdv yerine
+  double _aktifKdv() => fiyatSvc.aktifKdv;
   double _brut(double net, double kdvOrani) => net * (1 + kdvOrani / 100);
+
+  // durum -> label
+  String _durumLabel(SiparisDurumu? d) {
+    switch (d) {
+      case null:
+        return "Tümü";
+      case SiparisDurumu.beklemede:
+        return "Beklemede";
+      case SiparisDurumu.uretimde:
+        return "Üretimde";
+      case SiparisDurumu.sevkiyat:
+        return "Sevkiyatta";
+      case SiparisDurumu.reddedildi:
+        return "Reddedildi";
+      case SiparisDurumu.tamamlandi:
+        return "Tamamlandı";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -143,227 +172,336 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
         backgroundColor: Renkler.kahveTon,
       ),
 
-      body: StreamBuilder<List<SiparisModel>>(
-        stream: siparisServis.dinle(),
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snap.hasError) {
-            return Center(child: Text('Hata: ${snap.error}'));
-          }
-          final siparisler = snap.data ?? [];
-          if (siparisler.isEmpty) {
-            return const Center(
-              child: Text("Henüz sipariş yok.", style: TextStyle(fontSize: 16)),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
-            itemCount: siparisler.length,
-            itemBuilder: (context, index) {
-              final siparis = siparisler[index];
-              final musteri = siparis.musteri;
-              final tarihStr = DateFormat(
-                'dd.MM.yyyy – HH:mm',
-              ).format(siparis.tarih);
-              final musteriAdi = musteri.firmaAdi?.isNotEmpty == true
-                  ? musteri.firmaAdi!
-                  : musteri.yetkili ?? "";
-
-              final numericIds = siparis.urunler
-                  .map((e) => int.tryParse(e.id))
-                  .whereNotNull()
-                  .toList();
-
-              // ✅ Kaydedilmiş finansallar varsa onları kullan; yoksa aktif KDV ile hesapla
-              final netToplam = (siparis.netTutar ?? siparis.toplamTutar);
-              final kdvOrani = (siparis.kdvOrani ?? aktifKdv);
-              final brutToplam =
-                  (siparis.brutTutar ?? _brut(netToplam, kdvOrani));
-
-              return FutureBuilder<Map<int, int>>(
-                future: urunServis.getStocksByNumericIds(numericIds),
-                builder: (context, stokSnap) {
-                  final stokHaritasi = stokSnap.data ?? {};
-                  final stokYeterli = siparis.urunler.every((su) {
-                    final id = int.tryParse(su.id);
-                    final mevcut = id == null ? 0 : (stokHaritasi[id] ?? 0);
-                    return mevcut >= su.adet;
-                  });
-
-                  return Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+      body: Column(
+        children: [
+          // ---- Arama & Filtre barı ----
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+            child: Row(
+              children: [
+                // Arama kutusu
+                Expanded(
+                  child: TextField(
+                    controller: _aramaCtrl,
+                    decoration: InputDecoration(
+                      hintText: "Müşteri veya ürün ara…",
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      isDense: true,
                     ),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ExpansionTile(
-                            tilePadding: EdgeInsets.zero,
-                            title: Row(
+                    onChanged: (v) =>
+                        setState(() => _arama = v.trim().toLowerCase()),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Durum filtresi
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<SiparisDurumu?>(
+                    value: _durumFiltre,
+                    items:
+                        <SiparisDurumu?>[
+                              null,
+                              SiparisDurumu.beklemede,
+                              SiparisDurumu.uretimde,
+                              SiparisDurumu.sevkiyat,
+                              SiparisDurumu.reddedildi,
+                              SiparisDurumu.tamamlandi,
+                            ]
+                            .map(
+                              (d) => DropdownMenuItem(
+                                value: d,
+                                child: Text(_durumLabel(d)),
+                              ),
+                            )
+                            .toList(),
+                    onChanged: (d) => setState(() => _durumFiltre = d),
+                  ),
+                ),
+                IconButton(
+                  tooltip: "Temizle",
+                  onPressed: () {
+                    setState(() {
+                      _aramaCtrl.clear();
+                      _arama = '';
+                      _durumFiltre = null;
+                    });
+                  },
+                  icon: const Icon(Icons.filter_alt_off),
+                ),
+              ],
+            ),
+          ),
+
+          // ---- Liste ----
+          Expanded(
+            child: StreamBuilder<List<SiparisModel>>(
+              stream: siparisServis.dinle(),
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snap.hasError) {
+                  return Center(child: Text('Hata: ${snap.error}'));
+                }
+
+                var siparisler = snap.data ?? [];
+                if (siparisler.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Henüz sipariş yok.",
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }
+
+                // filtre: durum
+                if (_durumFiltre != null) {
+                  siparisler = siparisler
+                      .where((s) => s.durum == _durumFiltre)
+                      .toList();
+                }
+
+                // filtre: arama (müşteri adı veya ürün adı)
+                if (_arama.isNotEmpty) {
+                  siparisler = siparisler.where((s) {
+                    final musteriAdi =
+                        (s.musteri.firmaAdi?.isNotEmpty == true
+                                ? s.musteri.firmaAdi!
+                                : (s.musteri.yetkili ?? ""))
+                            .toLowerCase();
+                    final urunMatch = s.urunler.any(
+                      (u) => u.urunAdi.toLowerCase().contains(_arama),
+                    );
+                    return musteriAdi.contains(_arama) || urunMatch;
+                  }).toList();
+                }
+
+                if (siparisler.isEmpty) {
+                  return const Center(child: Text("Sonuç bulunamadı."));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+                  itemCount: siparisler.length,
+                  itemBuilder: (context, index) {
+                    final siparis = siparisler[index];
+                    final musteri = siparis.musteri;
+                    final tarihStr = DateFormat(
+                      'dd.MM.yyyy – HH:mm',
+                    ).format(siparis.tarih);
+                    final musteriAdi = musteri.firmaAdi?.isNotEmpty == true
+                        ? musteri.firmaAdi!
+                        : musteri.yetkili ?? "";
+
+                    final numericIds = siparis.urunler
+                        .map((e) => int.tryParse(e.id))
+                        .whereNotNull()
+                        .toList();
+
+                    // yalnızca Beklemede/Üretimde iken stok kontrolü + renkli gösterim
+                    final stokKontrollu =
+                        siparis.durum == SiparisDurumu.beklemede ||
+                        siparis.durum == SiparisDurumu.uretimde;
+
+                    // KDV/Toplam
+                    final netToplam = (siparis.netTutar ?? siparis.toplamTutar);
+                    final kdvOrani = (siparis.kdvOrani ?? _aktifKdv());
+                    final brutToplam =
+                        (siparis.brutTutar ?? _brut(netToplam, kdvOrani));
+
+                    // 👉 TÜM KARTLARDA stok haritasını çekiyoruz (renk gri de olsa stok adetini göstermek için)
+                    return FutureBuilder<Map<int, int>>(
+                      future: urunServis.getStocksByNumericIds(numericIds),
+                      builder: (context, stokSnap) {
+                        final stokHaritasi = stokSnap.data ?? {};
+                        final stokYeterli = siparis.urunler.every((su) {
+                          final id = int.tryParse(su.id);
+                          final mevcut = id == null
+                              ? 0
+                              : (stokHaritasi[id] ?? 0);
+                          return mevcut >= su.adet;
+                        });
+
+                        return Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    musteriAdi,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
+                                ExpansionTile(
+                                  tilePadding: EdgeInsets.zero,
+                                  title: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          musteriAdi,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.open_in_new,
+                                          color: Renkler.kahveTon,
+                                        ),
+                                        tooltip: "Detay Sayfası",
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  SiparisDetaySayfasi(
+                                                    siparis: siparis,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.open_in_new,
-                                    color: Renkler.kahveTon,
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text("Tarih: $tarihStr"),
+                                      Text(
+                                        "İşlem Tarih: ${siparis.islemeTarihi != null ? DateFormat('dd.MM.yyyy').format(siparis.islemeTarihi!) : '-'}",
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Ürün Sayısı: ${siparis.urunler.length}",
+                                          ),
+                                          const SizedBox(width: 8),
+                                          if (stokKontrollu)
+                                            Text(
+                                              stokYeterli
+                                                  ? "Stok Var"
+                                                  : "Stok Yetersiz",
+                                              style: TextStyle(
+                                                color: stokYeterli
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      Text(
+                                        "Toplam (Brüt): ₺${brutToplam.toStringAsFixed(2)}  (KDV %${kdvOrani.toStringAsFixed(2)})",
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  tooltip: "Detay Sayfası",
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => SiparisDetaySayfasi(
-                                          siparis: siparis,
+                                  children: siparis.urunler.map((urun) {
+                                    final id = int.tryParse(urun.id);
+                                    final mevcut = id == null
+                                        ? 0
+                                        : (stokHaritasi[id] ?? 0);
+                                    final yeterli = mevcut >= urun.adet;
+
+                                    final netSatirToplam = urun.toplamFiyat;
+                                    final brutSatirToplam = _brut(
+                                      netSatirToplam,
+                                      kdvOrani,
+                                    );
+
+                                    // renk seçimi
+                                    final renk = stokKontrollu
+                                        ? (yeterli ? Colors.green : Colors.red)
+                                        : Colors.grey;
+
+                                    return ListTile(
+                                      dense: true,
+                                      leading: CircleAvatar(
+                                        backgroundColor: renk,
+                                        child: Text(
+                                          "${urun.adet}x",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      title: Text(
+                                        "${urun.urunAdi} | ${urun.renk != null && urun.renk!.isNotEmpty ? "${urun.renk}" : ""}",
+                                        style: TextStyle(
+                                          color: renk,
+                                          fontWeight: stokKontrollu && !yeterli
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        "Stok: $mevcut  |  Net ₺${netSatirToplam.toStringAsFixed(2)}"
+                                        "  |  KDV %${kdvOrani.toStringAsFixed(2)}",
+                                        style: TextStyle(
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                      trailing: Text(
+                                        "₺${brutSatirToplam.toStringAsFixed(2)}",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     );
-                                  },
+                                  }).toList(),
                                 ),
-                              ],
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("Tarih: $tarihStr"),
-                                Text(
-                                  "İşlem Tarih: ${siparis.islemeTarihi != null ? DateFormat('dd.MM.yyyy').format(siparis.islemeTarihi!) : '-'}",
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: SiparisDurumEtiketi(
+                                    durum: siparis.durum,
+                                  ),
                                 ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      "Ürün Sayısı: ${siparis.urunler.length}",
-                                    ),
-                                    const SizedBox(width: 8),
-                                    if (siparis.durum ==
-                                        SiparisDurumu.beklemede)
-                                      Text(
-                                        stokYeterli
-                                            ? "Stok Var"
-                                            : "Stok Yetersiz",
-                                        style: TextStyle(
-                                          color: stokYeterli
-                                              ? Colors.green
-                                              : Colors.red,
-                                          fontWeight: FontWeight.bold,
+                                if (siparis.durum ==
+                                    SiparisDurumu.beklemede) ...[
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      IconButton(
+                                        onPressed: () => _onayla(siparis),
+                                        icon: const Icon(
+                                          Icons.check_circle,
+                                          color: Colors.green,
                                         ),
-                                      )
-                                    else
-                                      const SizedBox.shrink(), // Beklemede değilse bu etiketi hiç gösterme
-                                  ],
-                                ),
-
-                                // 👇 Artık BRÜT toplamı (KDV dahil) ve kullanılan KDV %
-                                Text(
-                                  "Toplam (Brüt): ₺${brutToplam.toStringAsFixed(2)}  (KDV %${kdvOrani.toStringAsFixed(2)})",
-                                  style: const TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.w600,
+                                        tooltip: "Onayla",
+                                      ),
+                                      IconButton(
+                                        onPressed: () => _reddet(siparis),
+                                        icon: const Icon(
+                                          Icons.cancel,
+                                          color: Colors.red,
+                                        ),
+                                        tooltip: "Reddet",
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                ],
                               ],
                             ),
-                            children: siparis.urunler.map((urun) {
-                              final id = int.tryParse(urun.id);
-                              final mevcut = id == null
-                                  ? 0
-                                  : (stokHaritasi[id] ?? 0);
-                              final yeterli = mevcut >= urun.adet;
-
-                              final netSatirToplam =
-                                  urun.toplamFiyat; // adet * net birim
-                              final brutSatirToplam = _brut(
-                                netSatirToplam,
-                                kdvOrani,
-                              );
-
-                              return ListTile(
-                                dense: true,
-                                leading: CircleAvatar(
-                                  backgroundColor: yeterli
-                                      ? Colors.green
-                                      : Colors.red,
-                                  child: Text(
-                                    "${urun.adet}x",
-                                    style: const TextStyle(color: Colors.white),
-                                  ),
-                                ),
-                                title: Text(
-                                  urun.urunAdi,
-                                  style: TextStyle(
-                                    color: yeterli ? Colors.green : Colors.red,
-                                    fontWeight: yeterli
-                                        ? FontWeight.normal
-                                        : FontWeight.bold,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  "Net ₺${netSatirToplam.toStringAsFixed(2)}  |  KDV %${kdvOrani.toStringAsFixed(2)}  |  Brüt ₺${brutSatirToplam.toStringAsFixed(2)}"
-                                  "${urun.renk != null && urun.renk!.isNotEmpty ? "  •  ${urun.renk}" : ""}",
-                                  style: TextStyle(color: Colors.grey[700]),
-                                ),
-                                trailing: Text(
-                                  "₺${brutSatirToplam.toStringAsFixed(2)}",
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
                           ),
-
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: SiparisDurumEtiketi(durum: siparis.durum),
-                          ),
-
-                          if (siparis.durum == SiparisDurumu.beklemede) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                IconButton(
-                                  onPressed: () => _onayla(siparis),
-                                  icon: const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                  ),
-                                  tooltip: "Onayla",
-                                ),
-                                IconButton(
-                                  onPressed: () => _reddet(siparis),
-                                  icon: const Icon(
-                                    Icons.cancel,
-                                    color: Colors.red,
-                                  ),
-                                  tooltip: "Reddet",
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

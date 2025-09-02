@@ -43,7 +43,8 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
 
     if (widget.siparis.islemeTarihi != null &&
         widget.siparis.islemeTarihi!.isAfter(DateTime.now())) {
-      devamEt = await showDialog<bool>(
+      devamEt =
+          await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text("Erken Onaylama Uyarısı"),
@@ -58,7 +59,9 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
                   child: const Text("Evet"),
                 ),
               ],
@@ -90,7 +93,9 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
         widget.siparis.durum = SiparisDurumu.uretimde;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Stok yetersiz: onay verildi, üretime yönlendirildi ⚠️"),
+            content: Text(
+              "Stok yetersiz: onay verildi, üretime yönlendirildi ⚠️",
+            ),
           ),
         );
       }
@@ -110,15 +115,16 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
     final tarihStr = DateFormat('dd.MM.yyyy – HH:mm').format(s.tarih);
 
     // --- Finansallar: önce kaydedilmiş alanları kullan, yoksa hesapla ---
-    final double kdvOrani =
-        s.kdvOrani ?? FiyatListesiService.instance.aktifKdv;
+    final double kdvOrani = s.kdvOrani ?? FiyatListesiService.instance.aktifKdv;
 
     final double netToplam =
         s.netTutar ?? s.toplamTutar; // ürünlerden hesaplanan net fallback
-    final double kdvTutar =
-        s.kdvTutar ?? _round2(netToplam * kdvOrani / 100);
-    final double brutToplam =
-        s.brutTutar ?? _round2(netToplam + kdvTutar);
+    final double kdvTutar = s.kdvTutar ?? _round2(netToplam * kdvOrani / 100);
+    final double brutToplam = s.brutTutar ?? _round2(netToplam + kdvTutar);
+
+    // Yalnızca beklemede/üretimde renkli; aksi halde gri
+    final bool stokKontrollu =
+        s.durum == SiparisDurumu.beklemede || s.durum == SiparisDurumu.uretimde;
 
     return Scaffold(
       appBar: AppBar(
@@ -177,7 +183,10 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(
                           "Fiyat Listesi: ${s.fiyatListesiAd} • KDV %${kdvOrani.toStringAsFixed(2)}",
-                          style: const TextStyle(fontSize: 12, color: Colors.black54),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
                         ),
                       ),
                   ],
@@ -224,14 +233,19 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
                           final stokYeterli = stok >= u.adet;
 
                           final double netSatirToplam = u.toplamFiyat;
-                          final double brutSatirToplam =
-                              _round2(netSatirToplam * (1 + kdvOrani / 100));
+                          final double brutSatirToplam = _round2(
+                            netSatirToplam * (1 + kdvOrani / 100),
+                          );
+
+                          // Renk seçimi: sadece beklemede/üretimde yeşil/kırmızı; diğer durumlarda gri
+                          final Color satirRenk = stokKontrollu
+                              ? (stokYeterli ? Colors.green : Colors.red)
+                              : Colors.grey;
 
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: CircleAvatar(
-                              backgroundColor:
-                                  stokYeterli ? Colors.green : Colors.red,
+                              backgroundColor: satirRenk,
                               child: Text(
                                 "${u.adet}x",
                                 style: const TextStyle(color: Colors.white),
@@ -240,19 +254,17 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
                             title: Text(
                               "${u.urunAdi}${(u.renk ?? '').isNotEmpty ? " | ${u.renk}" : ""}",
                               style: TextStyle(
-                                color: stokYeterli ? Colors.green : Colors.red,
-                                fontWeight: stokYeterli
-                                    ? FontWeight.normal
-                                    : FontWeight.bold,
+                                color: satirRenk,
+                                fontWeight: stokKontrollu && !stokYeterli
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                             ),
                             subtitle: Text(
                               "Stok: $stok  •  Net ₺${netSatirToplam.toStringAsFixed(2)}  |  "
-                              "KDV %${kdvOrani.toStringAsFixed(2)}  |  "
-                              "Brüt ₺${brutSatirToplam.toStringAsFixed(2)}",
+                              "KDV %${kdvOrani.toStringAsFixed(2)} ",
                               style: TextStyle(color: Colors.grey[700]),
                             ),
-                            // trailing = Brüt
                             trailing: Text(
                               "₺${brutSatirToplam.toStringAsFixed(2)}",
                               style: const TextStyle(
@@ -271,7 +283,7 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
 
             const SizedBox(height: 16),
 
-            // Toplamlar: Net / KDV / Brüt (kayıtlı ise aynen, yoksa hesap)
+            // Toplamlar: Net / KDV / Brüt
             Align(
               alignment: Alignment.centerRight,
               child: Column(

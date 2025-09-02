@@ -1,12 +1,13 @@
 import 'dart:ui';
+import 'package:capri/pages/login/forgot_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/main.dart';
-import 'package:capri/core/models/user.dart';          // <- Yeni UserModel (uid, role vs.)
-import 'package:capri/services/auth_service.dart';     // <- Firebase giriş servisi
+import 'package:capri/core/models/user.dart'; // <- Yeni UserModel (uid, role vs.)
+import 'package:capri/services/auth_service.dart'; // <- Firebase giriş servisi
 
 import 'package:capri/pages/dashboards/admin_dashboard.dart';
 import 'package:capri/pages/dashboards/uretim_dashboard.dart';
@@ -20,9 +21,11 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
+class _LoginPageState extends State<LoginPage>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _kullaniciVeyaEpostaController = TextEditingController();
+  final TextEditingController _kullaniciVeyaEpostaController =
+      TextEditingController();
   final TextEditingController _sifreController = TextEditingController();
 
   AnimationController? _anim;
@@ -36,7 +39,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    _anim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
     _scaleAnim = CurvedAnimation(parent: _anim!, curve: Curves.easeOutBack);
     _anim!.forward();
   }
@@ -57,7 +63,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     final input = _kullaniciVeyaEpostaController.text.trim();
     final password = _sifreController.text;
 
-    await Future.delayed(const Duration(milliseconds: 350)); // küçük UX dokunuşu
+    await Future.delayed(
+      const Duration(milliseconds: 350),
+    ); // küçük UX dokunuşu
 
     try {
       // 1) Firebase Auth ile giriş (email ya da username kabul eder)
@@ -68,7 +76,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
       // 2) Profil verisini Firestore'dan çek
       final uid = cred.user!.uid;
-      final snap = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
       final data = snap.data() ?? {};
 
       // 3) UserModel oluştur (core/models/user.dart yeni sürüm olmalı)
@@ -101,9 +112,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           transitionDuration: const Duration(milliseconds: 450),
           pageBuilder: (_, __, ___) => hedef,
           transitionsBuilder: (_, anim, __, child) {
-            final offset = Tween(begin: const Offset(0, .06), end: Offset.zero)
-                .chain(CurveTween(curve: Curves.easeOutCubic))
-                .animate(anim);
+            final offset = Tween(
+              begin: const Offset(0, .06),
+              end: Offset.zero,
+            ).chain(CurveTween(curve: Curves.easeOutCubic)).animate(anim);
             return FadeTransition(
               opacity: anim,
               child: SlideTransition(position: offset, child: child),
@@ -160,15 +172,27 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [anaRenk.withOpacity(.15), anaRenk.withOpacity(.05), Colors.white],
+                colors: [
+                  anaRenk.withOpacity(.15),
+                  anaRenk.withOpacity(.05),
+                  Colors.white,
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
           ),
           // DEKORATİF LEKELER
-          Positioned(top: -60, left: -30, child: _bulut(anaRenk.withOpacity(.20), size: 220)),
-          Positioned(bottom: -80, right: -40, child: _bulut(ikincil.withOpacity(.18), size: 260)),
+          Positioned(
+            top: -60,
+            left: -30,
+            child: _bulut(anaRenk.withOpacity(.20), size: 220),
+          ),
+          Positioned(
+            bottom: -80,
+            right: -40,
+            child: _bulut(ikincil.withOpacity(.18), size: 260),
+          ),
 
           // İÇERİK
           SafeArea(
@@ -186,7 +210,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(.65),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(.7), width: 1.2),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(.7),
+                            width: 1.2,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(.07),
@@ -202,11 +229,16 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 ScaleTransition(
-                                  scale: _scaleAnim ?? const AlwaysStoppedAnimation<double>(1.0),
+                                  scale:
+                                      _scaleAnim ??
+                                      const AlwaysStoppedAnimation<double>(1.0),
                                   child: Column(
                                     children: [
                                       // LOGO
-                                      Image.asset("assets/images/capri_logo.png", height: 86),
+                                      Image.asset(
+                                        "assets/images/capri_logo.png",
+                                        height: 86,
+                                      ),
                                       const SizedBox(height: 12),
                                       Text(
                                         "Giriş Yap",
@@ -219,67 +251,117 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       const SizedBox(height: 4),
                                       Text(
                                         "Lütfen kullanıcı bilgilerinizi girin",
-                                        style: TextStyle(fontSize: 13.5, color: Colors.grey[700]),
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          color: Colors.grey[700],
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                          
+
                                 const SizedBox(height: 22),
-                          
+
                                 // KULLANICI / E-POSTA
                                 TextFormField(
                                   controller: _kullaniciVeyaEpostaController,
+                                  keyboardType: TextInputType
+                                      .emailAddress, // @ için doğru tip
+                                  textCapitalization: TextCapitalization.none,
+                                  enableSuggestions: false,
+                                  autocorrect: false,
+                                  autofillHints: const [
+                                    AutofillHints.email,
+                                    AutofillHints.username,
+                                  ],
                                   textInputAction: TextInputAction.next,
-                                  decoration: _inputSusu(
-                                    context,
-                                    label: 'E-posta veya Kullanıcı Adı',
-                                    ikon: Icons.person_outline,
-                                    anaRenk: anaRenk,
-                                  ),
-                                  validator: (v) {
-                                    if (v == null || v.trim().isEmpty) {
-                                      return "Bu alan boş bırakılamaz";
-                                    }
-                                    return null;
-                                  },
-                                  onFieldSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                                  maxLines: 1,
+                                  decoration:
+                                      _inputSusu(
+                                        context,
+                                        label: 'E-posta',
+                                        ikon: Icons.person_outline,
+                                        anaRenk: anaRenk,
+                                      ).copyWith(
+                                        suffixIcon: IconButton(
+                                          tooltip: '@ ekle',
+                                          icon: const Icon(
+                                            color: Renkler.kahveTon,
+                                            Icons.alternate_email,
+                                          ),
+                                          onPressed: () {
+                                            final t =
+                                                _kullaniciVeyaEpostaController;
+                                            final sel = t.selection;
+                                            final text = t.text;
+                                            final start = sel.start >= 0
+                                                ? sel.start
+                                                : text.length;
+                                            final end = sel.end >= 0
+                                                ? sel.end
+                                                : text.length;
+                                            final newText = text.replaceRange(
+                                              start,
+                                              end,
+                                              '@',
+                                            );
+                                            t.value = t.value.copyWith(
+                                              text: newText,
+                                              selection:
+                                                  TextSelection.collapsed(
+                                                    offset: start + 1,
+                                                  ),
+                                              composing: TextRange.empty,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                      ? "Bu alan boş bırakılamaz"
+                                      : null,
                                 ),
-                          
+
                                 const SizedBox(height: 14),
-                          
+
+                                // ŞİFRE
                                 // ŞİFRE
                                 TextFormField(
                                   controller: _sifreController,
                                   obscureText: _sifreGizli,
                                   textInputAction: TextInputAction.done,
-                                  decoration: _inputSusu(
-                                    context,
-                                    label: 'Şifre',
-                                    ikon: Icons.lock_outline,
-                                    anaRenk: anaRenk,
-                                  ).copyWith(
-                                    suffixIcon: IconButton(
-                                      onPressed: () => setState(() => _sifreGizli = !_sifreGizli),
-                                      icon: Icon(
-                                        _sifreGizli
-                                            ? Icons.visibility_off_outlined
-                                            : Icons.visibility_outlined,
-                                        color: anaRenk,
+                                  keyboardType: TextInputType
+                                      .visiblePassword, // ← şifre klavyesi
+                                  enableSuggestions: false,
+                                  autocorrect: false,
+                                  autofillHints: const [AutofillHints.password],
+                                  decoration:
+                                      _inputSusu(
+                                        context,
+                                        label: 'Şifre',
+                                        ikon: Icons.lock_outline,
+                                        anaRenk: anaRenk,
+                                      ).copyWith(
+                                        suffixIcon: IconButton(
+                                          onPressed: () => setState(
+                                            () => _sifreGizli = !_sifreGizli,
+                                          ),
+                                          icon: Icon(
+                                            _sifreGizli
+                                                ? Icons.visibility_off_outlined
+                                                : Icons.visibility_outlined,
+                                            color: anaRenk,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty) return "Şifre giriniz";
-                                    // Eğer min 6 şartını istersen aç:
-                                    // if (v.length < 6) return "En az 6 karakter olmalı";
-                                    return null;
-                                  },
+                                  validator: (v) => (v == null || v.isEmpty)
+                                      ? "Şifre giriniz"
+                                      : null,
                                   onFieldSubmitted: (_) => _girisYap(),
                                 ),
-                          
+
                                 const SizedBox(height: 18),
-                          
+
                                 // GİRİŞ BUTONU
                                 SizedBox(
                                   width: double.infinity,
@@ -295,7 +377,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                       ),
                                     ),
                                     child: AnimatedSwitcher(
-                                      duration: const Duration(milliseconds: 250),
+                                      duration: const Duration(
+                                        milliseconds: 250,
+                                      ),
                                       child: _yukleniyor
                                           ? const SizedBox(
                                               key: ValueKey('yukl'),
@@ -303,7 +387,10 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                               height: 22,
                                               child: CircularProgressIndicator(
                                                 strokeWidth: 2.4,
-                                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                                                valueColor:
+                                                    AlwaysStoppedAnimation(
+                                                      Colors.white,
+                                                    ),
                                               ),
                                             )
                                           : const Text(
@@ -317,16 +404,27 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                     ),
                                   ),
                                 ),
-                          
+
                                 const SizedBox(height: 10),
-                          
+
                                 Align(
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const ForgotPasswordPage(),
+                                        ),
+                                      );
+                                    },
                                     child: Text(
                                       "Şifrenizi mi unuttunuz?",
-                                      style: TextStyle(color: anaRenk, fontWeight: FontWeight.w600),
+                                      style: TextStyle(
+                                        color: anaRenk,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),

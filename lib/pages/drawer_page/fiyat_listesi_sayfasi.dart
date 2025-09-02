@@ -869,10 +869,6 @@ class _FiyatSatiriState extends State<FiyatSatiri>
                           label: Text("Renk: ${urun.renk}"),
                           visualDensity: VisualDensity.compact,
                         ),
-                      Chip(
-                        label: Text("Stok: ${urun.adet}"),
-                        visualDensity: VisualDensity.compact,
-                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
