@@ -9,17 +9,24 @@ class MusteriService {
 
   final _col = FirebaseFirestore.instance.collection('musteriler');
 
-  /// Canlı liste
-  Stream<List<MusteriModel>> dinle() {
-    return _col
-        .orderBy('firmaAdi')
-        .snapshots()
-        .map((qs) => qs.docs.map((d) => MusteriModel.fromFirestore(d)).toList());
+  /// Canlı liste (yalnızca guncel == true)
+  Stream<List<MusteriModel>> dinle({bool yalnizcaGuncel = true}) {
+    Query<Map<String, dynamic>> q = _col.orderBy('firmaAdi');
+    if (yalnizcaGuncel) {
+      q = _col.where('guncel', isEqualTo: true).orderBy('firmaAdi');
+    }
+    return q.snapshots().map(
+      (qs) => qs.docs.map((d) => MusteriModel.fromFirestore(d)).toList(),
+    );
   }
 
-  /// Tek seferlik getir
-  Future<List<MusteriModel>> onceGetir() async {
-    final qs = await _col.orderBy('firmaAdi').get();
+  /// Tek seferlik getir (yalnızca guncel == true)
+  Future<List<MusteriModel>> onceGetir({bool yalnizcaGuncel = true}) async {
+    Query<Map<String, dynamic>> q = _col.orderBy('firmaAdi');
+    if (yalnizcaGuncel) {
+      q = _col.where('guncel', isEqualTo: true).orderBy('firmaAdi');
+    }
+    final qs = await q.get();
     return qs.docs.map((d) => MusteriModel.fromFirestore(d)).toList();
   }
 
@@ -28,20 +35,23 @@ class MusteriService {
     final ref = _col.doc();
     final data = {
       ...m.toMap(),
-      'id': ref.id, // belge içindeki id alanını da doldur
+      'id'    : ref.id,
+      // guncel null gelirse varsayılan true kaydedelim
+      'guncel': m.guncel,
+      // (opsiyonel) createdAt eklemek isterseniz:
+      'createdAt': FieldValue.serverTimestamp(),
     };
     await ref.set(data);
 
-    // LOG: musteri_eklendi
     try {
       await LogService.instance.log(
         action: 'musteri_eklendi',
         target: {'type': 'musteri', 'docId': ref.id},
         meta: {
           'firmaAdi': m.firmaAdi,
-          'yetkili': m.yetkili,
-          'telefon': m.telefon,
-          'adres': m.adres,
+          'yetkili' : m.yetkili,
+          'telefon' : m.telefon,
+          'adres'   : m.adres,
         },
       );
     } catch (_) {}
@@ -51,18 +61,21 @@ class MusteriService {
 
   /// Güncelle
   Future<void> guncelle(MusteriModel m) async {
-    await _col.doc(m.id).set(m.toMap(), SetOptions(merge: true));
+    // guncel null ise mevcut değeri bozmayalım (merge:true)
+    await _col.doc(m.id).set({
+      ...m.toMap(),
+      // createdAt'i koru, istersen dokunma
+    }, SetOptions(merge: true));
 
-    // LOG: musteri_guncellendi
     try {
       await LogService.instance.log(
         action: 'musteri_guncellendi',
         target: {'type': 'musteri', 'docId': m.id},
         meta: {
           'firmaAdi': m.firmaAdi,
-          'yetkili': m.yetkili,
-          'telefon': m.telefon,
-          'adres': m.adres,
+          'yetkili' : m.yetkili,
+          'telefon' : m.telefon,
+          'adres'   : m.adres,
         },
       );
     } catch (_) {}
@@ -70,7 +83,6 @@ class MusteriService {
 
   /// Sil
   Future<void> sil(String id) async {
-    // Silmeden önce kısa meta çek
     String? firmaAdi, yetkili, telefon, adres;
     try {
       final snap = await _col.doc(id).get();
@@ -83,16 +95,15 @@ class MusteriService {
 
     await _col.doc(id).delete();
 
-    // LOG: musteri_silindi
     try {
       await LogService.instance.log(
         action: 'musteri_silindi',
         target: {'type': 'musteri', 'docId': id},
         meta: {
           if (firmaAdi != null && firmaAdi.isNotEmpty) 'firmaAdi': firmaAdi,
-          if (yetkili  != null && yetkili!.isNotEmpty) 'yetkili': yetkili,
-          if (telefon  != null && telefon!.isNotEmpty) 'telefon': telefon,
-          if (adres    != null && adres!.isNotEmpty) 'adres': adres,
+          if (yetkili  != null && yetkili.isNotEmpty) 'yetkili' : yetkili,
+          if (telefon  != null && telefon.isNotEmpty) 'telefon' : telefon,
+          if (adres    != null && adres.isNotEmpty) 'adres'   : adres,
         },
       );
     } catch (_) {}

@@ -4,7 +4,7 @@ import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/user.dart';
 import 'package:capri/main.dart';
 import 'package:capri/pages/drawer_page/analiz_sayfasi/analiz_sayfasi.dart';
-import 'package:capri/pages/drawer_page/ayarlar_sayfasi.dart';
+import 'package:capri/pages/drawer_page/ayarlar/ayarlar_sayfasi.dart';
 import 'package:capri/pages/drawer_page/fiyat_listesi_sayfasi.dart';
 import 'package:capri/pages/drawer_page/hakkinda_sayfasi.dart';
 import 'package:capri/pages/drawer_page/musteri_sayfasi/musteri_sayfasi.dart';

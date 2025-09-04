@@ -1,5 +1,6 @@
 // lib/pages/drawer_page/analiz_sayfasi/analiz_sayfasi.dart
 import 'package:capri/core/Color/Colors.dart';
+import 'package:capri/pages/drawer_page/analiz_sayfasi/grafikler/en_cok_satan_urunler.dart';
 import 'package:flutter/material.dart';
 import 'package:capri/pages/drawer_page/analiz_sayfasi/grafikler/kazanc_grafigi.dart';
 import 'package:capri/pages/drawer_page/analiz_sayfasi/grafikler/siparis_grafigi.dart';
@@ -37,6 +38,7 @@ class AnalizSayfasi extends StatelessWidget {
                       width: itemWidth,
                       child: const SiparisGrafigi(),
                     ),
+                    SizedBox(width: itemWidth, child: const EnCokSatanUrunlerPaneli()),
                   ],
                 ),
               ),

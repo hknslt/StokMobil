@@ -6,8 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/main.dart';
-import 'package:capri/core/models/user.dart'; // <- Yeni UserModel (uid, role vs.)
-import 'package:capri/services/auth_service.dart'; // <- Firebase giriş servisi
+import 'package:capri/core/models/user.dart'; 
+import 'package:capri/services/auth_service.dart'; 
 
 import 'package:capri/pages/dashboards/admin_dashboard.dart';
 import 'package:capri/pages/dashboards/uretim_dashboard.dart';
@@ -65,10 +65,10 @@ class _LoginPageState extends State<LoginPage>
 
     await Future.delayed(
       const Duration(milliseconds: 350),
-    ); // küçük UX dokunuşu
+    ); 
 
     try {
-      // 1) Firebase Auth ile giriş (email ya da username kabul eder)
+      
       final cred = await _authService.signInWithEmailOrUsername(
         input: input,
         password: password,

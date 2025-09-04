@@ -46,6 +46,7 @@ dependencies:
   flutter_typeahead: ^5.2.0
   image_picker: ^1.1.2
   flutter_launcher_icons: ^0.14.4
+  firebase_storage: ^13.0.1
 
 dev_dependencies:
   flutter_test:

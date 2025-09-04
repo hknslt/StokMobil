@@ -1,7 +1,11 @@
 // lib/services/urun_service.dart
+import 'dart:io';
 import 'dart:math';
+
 import 'package:capri/services/fiyat_listesi_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+
 import '../core/models/urun_model.dart';
 import '../mock/mock_urun_listesi.dart';
 import 'package:capri/services/log_service.dart';
@@ -39,8 +43,9 @@ class UrunService {
     _urunler.removeWhere((u) => ids.contains(u.id));
   }
 
-  // ---------- Firestore ----------
+  // ---------- Firestore / Storage ----------
   final _col = FirebaseFirestore.instance.collection('urunler');
+  final _storage = FirebaseStorage.instance;
 
   Stream<List<Urun>> dinle() {
     return _col.orderBy('urunAdi').snapshots().map(
@@ -60,12 +65,73 @@ class UrunService {
     return last + 1;
   }
 
-  Future<void> ekle(Urun urun) async {
-    final id = urun.id == 0 ? await _yeniNumericId() : urun.id;
-    final data = urun.copyWith(id: id).toMap();
-    final ref = await _col.add(data);
+  // ---------------------- RESİM YÜKLEME YARDIMCILARI ----------------------
 
-    // LOG: ürün eklendi
+  Future<String> _uploadOne({
+    required String docId,
+    required File file,
+    required String fileName,
+  }) async {
+    final ref = _storage.ref('urunler/$docId/$fileName');
+    await ref.putFile(file);
+    return await ref.getDownloadURL();
+  }
+
+  /// Çoklu resmi yükler, kapak ve liste URL'lerini döndürür.
+  Future<({String? coverUrl, List<String> urls})> _uploadImagesForDoc({
+    required String docId,
+    required List<File> localFiles,
+    String? coverLocalPath,
+  }) async {
+    if (localFiles.isEmpty) return (coverUrl: null, urls: const <String>[]);
+
+    final urls = <String>[];
+    String? coverUrl;
+
+    for (final f in localFiles) {
+      final name =
+          '${DateTime.now().millisecondsSinceEpoch}_${f.path.split('/').last}';
+      final url = await _uploadOne(docId: docId, file: f, fileName: name);
+      urls.add(url);
+      if (coverLocalPath != null && f.path == coverLocalPath) {
+        coverUrl = url;
+      }
+    }
+    coverUrl ??= urls.first;
+    return (coverUrl: coverUrl, urls: urls);
+  }
+
+  // --------------------------- CRUD ---------------------------
+
+  /// Ürün ekler. (Opsiyonel) [localFiles] gönderirsen resimler Storage'a yüklenir ve
+  /// oluşan URL'ler Firestore'a yazılır. [coverLocalPath] kapak olarak işaretlenecek yerel path.
+  Future<void> ekle(
+    Urun urun, {
+    List<File> localFiles = const [],
+    String? coverLocalPath,
+  }) async {
+    final id = urun.id == 0 ? await _yeniNumericId() : urun.id;
+
+    // 1) Belgeyi (resimsiz) oluştur ve docId al
+    final ref = _col.doc();
+    await ref.set(
+      urun.copyWith(id: id, resimYollari: [], kapakResimYolu: null).toMap(),
+    );
+
+    // 2) Resimleri yükle → URL'leri yaz
+    if (localFiles.isNotEmpty) {
+      final uploaded = await _uploadImagesForDoc(
+        docId: ref.id,
+        localFiles: localFiles,
+        coverLocalPath: coverLocalPath,
+      );
+      await ref.update({
+        'resimYollari': uploaded.urls,
+        'kapakResimYolu': uploaded.coverUrl,
+      });
+    }
+
+    // LOG
     await LogService.instance.logUrun(
       action: 'urun_eklendi',
       urunDocId: ref.id,
@@ -77,8 +143,35 @@ class UrunService {
     await FiyatListesiService.instance.yeniUrunTumListelereSifirEkle(id);
   }
 
-  Future<void> guncelle(String docId, Urun urun) async {
+  /// Ürün günceller. Metin/sayı alanlarını [urun] içinden alır.
+  /// (Opsiyonel) [newLocalFiles] gönderirsen yeni resimler yüklenir ve
+  /// Firestore'daki `resimYollari` dizisine eklenir. [coverLocalPath] verilirse kapak URL'i güncellenir.
+  Future<void> guncelle(
+    String docId,
+    Urun urun, {
+    List<File> newLocalFiles = const [],
+    List<String> keepUrls = const [],
+    String? coverLocalPath,
+    String? coverUrl,
+  }) async {
+    // 1) alanları güncelle
     await _col.doc(docId).update(urun.toMap());
+
+    // 2) yeni resimler varsa yükle ve ekle
+    if (newLocalFiles.isNotEmpty) {
+      final uploaded = await _uploadImagesForDoc(
+        docId: docId,
+        localFiles: newLocalFiles,
+        coverLocalPath: coverLocalPath,
+      );
+
+      if (uploaded.urls.isNotEmpty) {
+        await _col.doc(docId).update({
+          'resimYollari': FieldValue.arrayUnion(uploaded.urls),
+          'kapakResimYolu': uploaded.coverUrl, // istersen yorumlayıp koşullu yap
+        });
+      }
+    }
 
     await LogService.instance.logUrun(
       action: 'urun_guncellendi',
@@ -97,6 +190,15 @@ class UrunService {
     final ad = (data['urunAdi'] as String?) ?? '';
 
     await _col.doc(docId).delete();
+
+    // (İsteğe bağlı) Storage klasörünü de temizlemek istersen:
+    // try {
+    //   final folderRef = _storage.ref('urunler/$docId');
+    //   final list = await folderRef.listAll();
+    //   for (final i in list.items) {
+    //     await i.delete();
+    //   }
+    // } catch (_) {}
 
     await LogService.instance.logUrun(
       action: 'urun_silindi',
@@ -121,8 +223,7 @@ class UrunService {
       final urunId = (d['id'] as num?)?.toInt();
       final urunAdi = (d['urunAdi'] as String?) ?? '';
 
-      // Transaction içinde log belgesi yazmak yerine transaction SONRASI yazacağız.
-      // Bu yüzden log’u burada hazırlayıp TX bitince çalıştırıyoruz:
+      // Transaction sonrası logla
       Future(() async {
         await LogService.instance.logUrun(
           action: delta >= 0 ? 'stok_eklendi' : 'stok_azaltildi',
@@ -195,4 +296,7 @@ class UrunService {
       return true;
     });
   }
+
+  
+  
 }

@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MusteriModel {
-  final String id;           // Firestore docId ile aynı
+  final String id;
   final String? firmaAdi;
   final String? yetkili;
   final String? telefon;
   final String? adres;
+  final bool guncel; // ✅
 
   const MusteriModel({
     required this.id,
@@ -13,6 +14,7 @@ class MusteriModel {
     this.yetkili,
     this.telefon,
     this.adres,
+    this.guncel = true, // ✅ varsayılan
   });
 
   MusteriModel copyWith({
@@ -21,6 +23,7 @@ class MusteriModel {
     String? yetkili,
     String? telefon,
     String? adres,
+    bool? guncel,
   }) {
     return MusteriModel(
       id: id ?? this.id,
@@ -28,6 +31,7 @@ class MusteriModel {
       yetkili: yetkili ?? this.yetkili,
       telefon: telefon ?? this.telefon,
       adres: adres ?? this.adres,
+      guncel: guncel ?? this.guncel,
     );
   }
 
@@ -37,6 +41,7 @@ class MusteriModel {
         'yetkili': yetkili,
         'telefon': telefon,
         'adres': adres,
+        'guncel': guncel, // ✅
       };
 
   factory MusteriModel.fromMap(Map<String, dynamic> map) => MusteriModel(
@@ -45,9 +50,9 @@ class MusteriModel {
         yetkili: map['yetkili'] as String?,
         telefon: map['telefon'] as String?,
         adres: map['adres'] as String?,
+        guncel: (map['guncel'] as bool?) ?? true, // ✅
       );
 
-  /// Firestore helper
   factory MusteriModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
   ) {
@@ -58,6 +63,7 @@ class MusteriModel {
       yetkili: data['yetkili'] as String?,
       telefon: data['telefon'] as String?,
       adres: data['adres'] as String?,
+      guncel: (data['guncel'] as bool?) ?? true, // ✅
     );
   }
 }

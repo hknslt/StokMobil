@@ -1,6 +1,6 @@
 // lib/pages/drawer_page/analiz_sayfasi/grafikler/siparis_grafigi.dart
 import 'dart:math' as math;
-import 'package:capri/core/models/istatistik_servisi.dart';
+import 'package:capri/services/istatistik_servisi.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';

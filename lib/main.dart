@@ -6,7 +6,7 @@ import 'firebase_options.dart';
 import 'core/models/user.dart';
 import 'pages/login/login_page.dart';
 import 'pages/home/ana_sayfa.dart';
-import 'pages/drawer_page/ayarlar_sayfasi.dart';
+import 'pages/drawer_page/ayarlar/ayarlar_sayfasi.dart';
 import 'pages/drawer_page/hakkinda_sayfasi.dart';
 
 void main() async {
