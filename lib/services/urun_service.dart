@@ -15,10 +15,12 @@ class UrunService {
   factory UrunService() => _instance;
 
   UrunService._internal() {
-    _urunler.addAll(mockUrunListesi.map((u) {
-      _sonId = max(_sonId, u.id);
-      return u;
-    }));
+    _urunler.addAll(
+      mockUrunListesi.map((u) {
+        _sonId = max(_sonId, u.id);
+        return u;
+      }),
+    );
   }
 
   // ---------- In-memory ----------
@@ -48,9 +50,10 @@ class UrunService {
   final _storage = FirebaseStorage.instance;
 
   Stream<List<Urun>> dinle() {
-    return _col.orderBy('urunAdi').snapshots().map(
-          (qs) => qs.docs.map((d) => Urun.fromFirestore(d)).toList(),
-        );
+    return _col
+        .orderBy('urunAdi')
+        .snapshots()
+        .map((qs) => qs.docs.map((d) => Urun.fromFirestore(d)).toList());
   }
 
   Future<List<Urun>> onceGetir() async {
@@ -146,33 +149,62 @@ class UrunService {
   /// Ürün günceller. Metin/sayı alanlarını [urun] içinden alır.
   /// (Opsiyonel) [newLocalFiles] gönderirsen yeni resimler yüklenir ve
   /// Firestore'daki `resimYollari` dizisine eklenir. [coverLocalPath] verilirse kapak URL'i güncellenir.
+  // lib/services/urun_service.dart
+
+  // ... (mevcut kodlar)
+
   Future<void> guncelle(
     String docId,
     Urun urun, {
     List<File> newLocalFiles = const [],
-    List<String> keepUrls = const [],
-    String? coverLocalPath,
-    String? coverUrl,
+    List<String> urlsToDelete = const [], // Yeni parametre
   }) async {
-    // 1) alanları güncelle
-    await _col.doc(docId).update(urun.toMap());
+    // 1) Eski resimleri sil
+    if (urlsToDelete.isNotEmpty) {
+      for (final url in urlsToDelete) {
+        try {
+          final ref = _storage.refFromURL(url);
+          await ref.delete();
+        } catch (e) {
+          print('Silme hatası: $e');
+          // Hata durumunda devam et
+        }
+      }
+    }
 
-    // 2) yeni resimler varsa yükle ve ekle
+    // 2) Yeni resimleri yükle ve URL'leri al
+    List<String> newUrls = [];
+    String? newCoverUrl;
+
     if (newLocalFiles.isNotEmpty) {
       final uploaded = await _uploadImagesForDoc(
         docId: docId,
         localFiles: newLocalFiles,
-        coverLocalPath: coverLocalPath,
+        coverLocalPath:
+            urun.kapakResimYolu, // Urun modelindeki yolu kullanıyoruz
       );
-
-      if (uploaded.urls.isNotEmpty) {
-        await _col.doc(docId).update({
-          'resimYollari': FieldValue.arrayUnion(uploaded.urls),
-          'kapakResimYolu': uploaded.coverUrl, // istersen yorumlayıp koşullu yap
-        });
-      }
+      newUrls = uploaded.urls;
+      newCoverUrl = uploaded.coverUrl;
     }
 
+    // 3) Firestore'daki resim yolları listesini güncelle
+    // Mevcut URL'lerden silinenleri çıkar, yenilerini ekle
+    final existingUrls = urun.resimYollari ?? [];
+    final updatedUrls = existingUrls
+        .where((url) => !urlsToDelete.contains(url))
+        .toList();
+    updatedUrls.addAll(newUrls);
+
+    // 4) Firestore belgesini güncelle
+    await _col.doc(docId).update({
+      ...urun.toMap(), // Diğer tüm alanları güncelle
+      'resimYollari': updatedUrls,
+      'kapakResimYolu':
+          newCoverUrl ??
+          urun.kapakResimYolu, // Yeni kapak varsa onu, yoksa eskisini kullan
+    });
+
+    // LOG
     await LogService.instance.logUrun(
       action: 'urun_guncellendi',
       urunDocId: docId,
@@ -189,17 +221,30 @@ class UrunService {
     final uid = (data['id'] as num?)?.toInt();
     final ad = (data['urunAdi'] as String?) ?? '';
 
+    // Firestore'dan belgeyi sil
     await _col.doc(docId).delete();
 
-    // (İsteğe bağlı) Storage klasörünü de temizlemek istersen:
-    // try {
-    //   final folderRef = _storage.ref('urunler/$docId');
-    //   final list = await folderRef.listAll();
-    //   for (final i in list.items) {
-    //     await i.delete();
-    //   }
-    // } catch (_) {}
+    // Firebase Storage'daki klasörü ve tüm resimleri sil
+    try {
+      final folderRef = _storage.ref('urunler/$docId');
+      final list = await folderRef.listAll();
+      // Klasördeki her bir öğe (resim) için silme işlemi yap
+      for (final i in list.items) {
+        await i.delete();
+      }
+      // Alt klasörler varsa, bu da onları silecektir.
+      for (final p in list.prefixes) {
+        // Rekürsif olarak tüm alt klasörleri silmek istersen buraya daha gelişmiş bir mantık ekleyebilirsin
+        // Ancak mevcut yapında bu gerekmez.
+        await p.delete();
+      }
+    } catch (e) {
+      // Hata oluşursa (örn. klasör boşsa veya yoksa) bir şey yapma
+      // Bu, uygulamanın çökmesini engeller
+      print('Storage dosya silme hatası: $e');
+    }
 
+    // LOG
     await LogService.instance.logUrun(
       action: 'urun_silindi',
       urunDocId: docId,
@@ -230,11 +275,7 @@ class UrunService {
           urunDocId: docId,
           urunId: urunId,
           urunAdi: urunAdi,
-          meta: {
-            'delta': delta,
-            'oncekiAdet': cur,
-            'yeniAdet': yeni,
-          },
+          meta: {'delta': delta, 'oncekiAdet': cur, 'yeniAdet': yeni},
         );
       });
     });
@@ -296,7 +337,4 @@ class UrunService {
       return true;
     });
   }
-
-  
-  
 }

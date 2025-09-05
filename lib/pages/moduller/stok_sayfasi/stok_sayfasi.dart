@@ -1,4 +1,3 @@
-// lib/pages/drawer_page/stok_sayfasi.dart
 import 'dart:io';
 import 'package:capri/pages/moduller/stok_sayfasi/utils/stok_pdf.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +5,8 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/services/urun_service.dart';
 import 'package:capri/core/models/urun_model.dart';
-import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle_sayfasi.dart';
-import 'package:capri/pages/moduller/urun_sayfasi/urun_detay_sayfasi.dart';
+import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/urun_ekle_sayfasi.dart';
+import 'package:capri/pages/moduller/urun_sayfasi/urun_detay/urun_detay_sayfasi.dart';
 import 'package:capri/services/renk_service.dart';
 
 class StokSayfasi extends StatefulWidget {
@@ -43,8 +42,8 @@ class _StokSayfasiState extends State<StokSayfasi> {
       final stokFiltre = _stoktaOlanlar == null
           ? true
           : _stoktaOlanlar!
-          ? u.adet > 0
-          : u.adet == 0;
+              ? u.adet > 0
+              : u.adet == 0;
 
       final renkFiltre = (_secilenRenk == null || _secilenRenk!.isEmpty)
           ? true
@@ -85,14 +84,13 @@ class _StokSayfasiState extends State<StokSayfasi> {
           ),
         ],
       ),
-
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final eklendiMi = await Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const UrunEkleSayfasi()),
           );
-          if (eklendiMi == true) setState(() {});
+          if (eklendiMi == true && mounted) setState(() {});
         },
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text("Yeni Ürün", style: TextStyle(color: Colors.white)),
@@ -145,13 +143,13 @@ class _StokSayfasiState extends State<StokSayfasi> {
                     final stokFiltre = _stoktaOlanlar == null
                         ? true
                         : _stoktaOlanlar!
-                        ? u.adet > 0
-                        : u.adet == 0;
+                            ? u.adet > 0
+                            : u.adet == 0;
 
                     final renkFiltre =
                         (_secilenRenk == null || _secilenRenk!.isEmpty)
-                        ? true
-                        : u.renk.toLowerCase() == _secilenRenk!.toLowerCase();
+                            ? true
+                            : u.renk.toLowerCase() == _secilenRenk!.toLowerCase();
 
                     final aramaFiltre =
                         u.urunAdi.toLowerCase().contains(aranan) ||
@@ -208,8 +206,7 @@ class _StokSayfasiState extends State<StokSayfasi> {
                             // 🗑️ Sil (Onaylı)
                             SlidableAction(
                               onPressed: (_) async {
-                                final onay =
-                                    await showDialog<bool>(
+                                final onay = await showDialog<bool>(
                                       context: context,
                                       builder: (ctx) => AlertDialog(
                                         title: const Text("Silinsin mi?"),
@@ -220,7 +217,7 @@ class _StokSayfasiState extends State<StokSayfasi> {
                                           TextButton(
                                             onPressed: () =>
                                                 Navigator.pop(ctx, false),
-                                            child: const Text("İptal"),
+                                            child: const Text("İptal", style: TextStyle(color: Renkler.kahveTon),),
                                           ),
                                           ElevatedButton(
                                             style: ElevatedButton.styleFrom(
@@ -228,12 +225,11 @@ class _StokSayfasiState extends State<StokSayfasi> {
                                             ),
                                             onPressed: () =>
                                                 Navigator.pop(ctx, true),
-                                            child: const Text("Sil"),
+                                            child: const Text("Sil", style: TextStyle(color: Colors.white),),
                                           ),
                                         ],
                                       ),
-                                    ) ??
-                                    false;
+                                    ) ?? false;
 
                                 if (!onay) return;
                                 if (!mounted) return;
