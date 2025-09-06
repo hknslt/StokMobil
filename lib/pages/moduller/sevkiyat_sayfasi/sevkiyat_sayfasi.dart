@@ -14,9 +14,11 @@ class SevkiyatSayfasi extends StatefulWidget {
 
 class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
   final _siparisServis = SiparisService();
-
-  // Tek kez oluşturulacak stream referansı (nullable + lazy güvenliği)
   Stream<List<SiparisModel>>? _sevkiyatStream;
+
+  // 🔸 Seçili ürün indeksleri parent’ta tutulur (orderKey -> Set<int>)
+  // Route değişince state korunur, Firebase’e yazılmaz.
+  final Map<String, Set<int>> _secimler = {};
 
   final _searchCtrl = TextEditingController();
   String _query = '';
@@ -24,19 +26,24 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
   @override
   void initState() {
     super.initState();
-    // ❗️ÖNEMLİ: Stream’i burada oluştur
     _sevkiyatStream = _siparisServis.hepsiDinle();
-
-    _searchCtrl.addListener(() {
-      final q = _searchCtrl.text.trim().toLowerCase();
-      if (q != _query && mounted) setState(() => _query = q);
-    });
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  // Sipariş için stabil bir key üret (docId yoksa güvenli fallback)
+  String _orderKey(SiparisModel s, int index) {
+    final doc = (s.docId ?? '').trim();
+    if (doc.isNotEmpty) return doc;
+    // modelde id varsa onu kullan; yoksa firma+index fallback
+    final anyId = (s.id?.toString() ?? '').trim();
+    if (anyId.isNotEmpty) return 'doc_$anyId';
+    final firma = (s.musteri.firmaAdi ?? '').trim();
+    return 'fallback_${firma}_$index';
   }
 
   Future<void> _teslimEt(SiparisModel s) async {
@@ -56,10 +63,7 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
           'Bu siparişi “Tamamlandı” yapalım mı?\n\nMüşteri: ${s.musteri.firmaAdi ?? '-'}',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Vazgeç'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -81,17 +85,16 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
 
   @override
   Widget build(BuildContext context) {
-    // Hot-reload / geri dönüş güvenliği:
     final stream = _sevkiyatStream ??= _siparisServis.hepsiDinle();
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Renkler.kahveTon,
-        title: const Text("Sevkiyat"),
+        title: const Text('Sevkiyat'),
         actions: [
           IconButton(
             icon: const Icon(Icons.checklist_rounded, color: Colors.white),
-            tooltip: "Tamamlananlar",
+            tooltip: 'Tamamlananlar',
             onPressed: () {
               Navigator.push(
                 context,
@@ -103,18 +106,22 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
       ),
       body: Column(
         children: [
-          // ——— Arama kutusu
+          // ——— Arama kutusu (onChanged; listener yok → dispose sonrası setState olmaz)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
               controller: _searchCtrl,
+              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
               decoration: InputDecoration(
                 hintText: 'Müşteri / yetkili / açıklama içinde ara…',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
-                        onPressed: () => _searchCtrl.clear(),
+                        onPressed: () => setState(() {
+                          _query = '';
+                          _searchCtrl.clear();
+                        }),
                         icon: const Icon(Icons.clear),
                       ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -127,7 +134,6 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
           // ——— Liste
           Expanded(
             child: StreamBuilder<List<SiparisModel>>(
-              // Null kalması ihtimaline karşı boş stream fallback (crash engel)
               stream: stream,
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
@@ -153,19 +159,27 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
                 }
 
                 if (data.isEmpty) {
-                  return const Center(child: Text("Sevkiyat bekleyen sipariş bulunamadı."));
+                  return const Center(child: Text('Sevkiyat bekleyen sipariş bulunamadı.'));
                 }
 
                 return ListView.builder(
-                  key: const PageStorageKey('sevkiyat_list'), // scroll konumu koru
+                  key: const PageStorageKey('sevkiyat_list'),
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   itemCount: data.length,
                   itemBuilder: (context, index) {
                     final s = data[index];
-                    final key = s.docId ?? 'idx_$index';
+                    final stableKey = _orderKey(s, index);
+
+                    // Bu sipariş için set’i hazırla
+                    final setRef = _secimler.putIfAbsent(stableKey, () => <int>{});
+
+                    // Ürün sayısı kısaldıysa set içindeki geçersiz indeksleri temizle
+                    setRef.removeWhere((i) => i < 0 || i >= s.urunler.length);
+
                     return _SiparisCard(
-                      key: ValueKey(key),
+                      key: ValueKey(stableKey), // kart state’i bu key’e bağlı
                       siparis: s,
+                      selectedIndexes: setRef,   // 🔸 shared referans
                       onTeslimEt: () => _teslimEt(s),
                     );
                   },
@@ -179,16 +193,18 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
   }
 }
 
-/// —————————————————————————————————————————————————————————————
-/// Her kart kendi state’ini yönetir; parent setState’i tetiklemez.
-/// —————————————————————————————————————————————————————————————
+/// ———————————————————————————————
+/// Kart bileşeni (kendi içinde setState)
+/// ———————————————————————————————
 class _SiparisCard extends StatefulWidget {
   final SiparisModel siparis;
+  final Set<int> selectedIndexes; // parent’tan gelen referans (Firebase’e yazılmaz)
   final VoidCallback onTeslimEt;
 
   const _SiparisCard({
     super.key,
     required this.siparis,
+    required this.selectedIndexes,
     required this.onTeslimEt,
   });
 
@@ -196,41 +212,25 @@ class _SiparisCard extends StatefulWidget {
   State<_SiparisCard> createState() => _SiparisCardState();
 }
 
-class _SiparisCardState extends State<_SiparisCard>
-    with AutomaticKeepAliveClientMixin {
-  // ürün tikleri (sadece bu kart için)
-  final Set<int> _checked = <int>{};
-
-  @override
-  bool get wantKeepAlive => true;
-
-  /// Stream’den yeni sipariş verisi geldiğinde (ürün sayısı değişmiş olabilir),
-  /// eski indeksleri temizleyelim ki state çakışmasın.
-  @override
-  void didUpdateWidget(covariant _SiparisCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final len = widget.siparis.urunler.length;
-    _checked.removeWhere((i) => i < 0 || i >= len);
-  }
-
+class _SiparisCardState extends State<_SiparisCard> {
   void _selectAll() {
     setState(() {
-      _checked
+      widget.selectedIndexes
         ..clear()
         ..addAll(List.generate(widget.siparis.urunler.length, (i) => i));
     });
   }
 
   void _clearSelection() {
-    setState(() => _checked.clear());
+    setState(() => widget.selectedIndexes.clear());
   }
 
   void _toggle(int i, bool v) {
     setState(() {
       if (v) {
-        _checked.add(i);
+        widget.selectedIndexes.add(i);
       } else {
-        _checked.remove(i);
+        widget.selectedIndexes.remove(i);
       }
     });
   }
@@ -242,7 +242,6 @@ class _SiparisCardState extends State<_SiparisCard>
     final telefon = (m.telefon ?? '').trim().isEmpty ? '-' : m.telefon!.trim();
     final adres = (m.adres ?? '').trim().isEmpty ? '-' : m.adres!.trim();
 
-    if (!mounted) return;
     showModalBottomSheet(
       context: context,
       isScrollControlled: false,
@@ -321,17 +320,15 @@ class _SiparisCardState extends State<_SiparisCard>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
-
     final theme = Theme.of(context);
     final s = widget.siparis;
 
     final firma = s.musteri.firmaAdi ?? '-';
     final yetkili = s.musteri.yetkili ?? '-';
     final urunCesidi = s.urunler.length;
-    final toplamAdet = s.urunler.fold<int>(0, (sum, u) => sum + (u.adet));
+    final toplamAdet = s.urunler.fold<int>(0, (sum, u) => sum + u.adet);
     final aciklama = (s.aciklama ?? '').trim();
-    final checkedCount = _checked.length;
+    final checkedCount = widget.selectedIndexes.length;
 
     return Card(
       elevation: 2,
@@ -342,7 +339,7 @@ class _SiparisCardState extends State<_SiparisCard>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Üst satır: müşteri (tıklanabilir) + buton
+            // Üst satır: müşteri + teslim et
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -366,8 +363,7 @@ class _SiparisCardState extends State<_SiparisCard>
                       children: [
                         Text(
                           firma,
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 2),
                         Text('Yetkili: $yetkili', style: theme.textTheme.bodySmall),
@@ -379,20 +375,17 @@ class _SiparisCardState extends State<_SiparisCard>
                             Chip(
                               label: Text('Ürün: $urunCesidi'),
                               visualDensity: VisualDensity.compact,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             Chip(
                               label: Text('Toplam Adet: $toplamAdet'),
                               visualDensity: VisualDensity.compact,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             const Chip(
                               label: Text('Durum: Sevkiyat'),
                               visualDensity: VisualDensity.compact,
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
+                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                           ],
                         ),
@@ -405,26 +398,20 @@ class _SiparisCardState extends State<_SiparisCard>
                   onPressed: widget.onTeslimEt,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                     elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  icon: const Icon(Icons.check_circle,
-                      color: Colors.white, size: 18),
-                  label: const Text('Teslim Et',
-                      style: TextStyle(color: Colors.white)),
+                  icon: const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  label: const Text('Teslim Et', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
 
-            // Açıklama şeridi (varsa)
             if (aciklama.isNotEmpty) ...[
               const SizedBox(height: 10),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.amber.withOpacity(.12),
                   borderRadius: BorderRadius.circular(10),
@@ -435,9 +422,7 @@ class _SiparisCardState extends State<_SiparisCard>
                   children: [
                     const Icon(Icons.sticky_note_2_outlined, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(aciklama, style: theme.textTheme.bodyMedium),
-                    ),
+                    Expanded(child: Text(aciklama, style: theme.textTheme.bodyMedium)),
                   ],
                 ),
               ),
@@ -445,13 +430,11 @@ class _SiparisCardState extends State<_SiparisCard>
 
             const SizedBox(height: 8),
 
-            // Ürünler: açılır/kapanır + tiklenebilir (kart içi state)
+            // Ürünler (seçilebilir)
             Theme(
-              data:
-                  Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
-                key: PageStorageKey(
-                    'exp_${s.docId ?? firma}_${s.urunler.length}'),
+                key: PageStorageKey('exp_${s.docId ?? firma}_${s.urunler.length}'),
                 maintainState: true,
                 tilePadding: const EdgeInsets.symmetric(horizontal: 4),
                 childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -462,8 +445,7 @@ class _SiparisCardState extends State<_SiparisCard>
                     Text('Ürünler', style: theme.textTheme.titleSmall),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(12),
@@ -500,7 +482,7 @@ class _SiparisCardState extends State<_SiparisCard>
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, i) {
                       final u = s.urunler[i];
-                      final checked = _checked.contains(i);
+                      final checked = widget.selectedIndexes.contains(i);
                       return CheckboxListTile(
                         dense: true,
                         controlAffinity: ListTileControlAffinity.leading,
@@ -508,8 +490,7 @@ class _SiparisCardState extends State<_SiparisCard>
                         onChanged: (v) => _toggle(i, v ?? false),
                         title: Text(u.urunAdi),
                         subtitle: Text(u.renk),
-                        secondary: Text('Adet: ${u.adet}',
-                            style: const TextStyle(fontSize: 12)),
+                        secondary: Text('Adet: ${u.adet}', style: const TextStyle(fontSize: 12)),
                       );
                     },
                   ),
