@@ -47,7 +47,6 @@ class _TamamlananSevkiyatlarSayfasiState
     if (v is DateTime) return v;
     if (v is Timestamp) return v.toDate();
     if (v is String) {
-      // Basit parse denemesi
       try {
         return DateTime.tryParse(v);
       } catch (_) {
@@ -79,13 +78,20 @@ class _TamamlananSevkiyatlarSayfasiState
       case _DateQuick.today:
         return DateTimeRange(start: _startOfDay(now), end: _endOfDay(now));
       case _DateQuick.week:
-        final monday = _startOfDay(now.subtract(Duration(days: now.weekday - 1)));
+        final monday = _startOfDay(
+          now.subtract(Duration(days: now.weekday - 1)),
+        );
         final sunday = _endOfDay(monday.add(const Duration(days: 6)));
         return DateTimeRange(start: monday, end: sunday);
       case _DateQuick.month:
         final first = DateTime(now.year, now.month, 1);
-        final last = _endOfDay(DateTime(now.year, now.month + 1, 1)
-            .subtract(const Duration(days: 1)));
+        final last = _endOfDay(
+          DateTime(
+            now.year,
+            now.month + 1,
+            1,
+          ).subtract(const Duration(days: 1)),
+        );
         return DateTimeRange(start: first, end: last);
       case _DateQuick.custom:
         return _customRange;
@@ -102,7 +108,8 @@ class _TamamlananSevkiyatlarSayfasiState
 
   Future<void> _pickCustomRange() async {
     final now = DateTime.now();
-    final initial = _customRange ??
+    final initial =
+        _customRange ??
         DateTimeRange(start: _startOfDay(now), end: _endOfDay(now));
     final picked = await showDateRangePicker(
       context: context,
@@ -113,7 +120,9 @@ class _TamamlananSevkiyatlarSayfasiState
       saveText: 'Uygula',
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: Theme.of(ctx).colorScheme.copyWith(primary: Renkler.kahveTon),
+          colorScheme: Theme.of(
+            ctx,
+          ).colorScheme.copyWith(primary: Renkler.kahveTon),
         ),
         child: child!,
       ),
@@ -156,7 +165,7 @@ class _TamamlananSevkiyatlarSayfasiState
       ),
       body: Column(
         children: [
-          // Arama (debounce + onChanged; listener yok)
+          // Arama
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
@@ -174,7 +183,7 @@ class _TamamlananSevkiyatlarSayfasiState
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
-                        onPressed: () => _clearFilters(),
+                        onPressed: _clearFilters,
                         icon: const Icon(Icons.clear),
                       ),
                 border: OutlineInputBorder(
@@ -209,9 +218,12 @@ class _TamamlananSevkiyatlarSayfasiState
                       ? Renkler.kahveTon.withOpacity(.12)
                       : null,
                   labelStyle: TextStyle(
-                    color: _quick == _DateQuick.custom ? Renkler.kahveTon : null,
-                    fontWeight:
-                        _quick == _DateQuick.custom ? FontWeight.w600 : null,
+                    color: _quick == _DateQuick.custom
+                        ? Renkler.kahveTon
+                        : null,
+                    fontWeight: _quick == _DateQuick.custom
+                        ? FontWeight.w600
+                        : null,
                   ),
                 ),
               ],
@@ -247,22 +259,26 @@ class _TamamlananSevkiyatlarSayfasiState
                   }).toList();
                 }
 
-                // 3) tarih filtresi (islemeTarihi yoksa 'tarih' vs. denenir)
+                // 3) tarih filtresi
                 data = data.where((s) => _inRange(_siparisTarihi(s))).toList();
 
                 if (data.isEmpty) {
                   return const Center(child: Text("Kayıt bulunamadı."));
                 }
 
-                return ListView.builder(
-                  key: const PageStorageKey('tamamlanan_list'),
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  itemCount: data.length,
-                  itemBuilder: (context, index) {
-                    final s = data[index];
-                    final key = s.docId ?? 'done_$index';
-                    return _TamamlananCard(key: ValueKey(key), siparis: s);
-                  },
+                return PrimaryScrollController.none(
+                  child: ListView.builder(
+                    key: const PageStorageKey('tamamlanan_list'),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    primary: false,
+                    controller: ScrollController(),
+                    itemCount: data.length,
+                    itemBuilder: (context, index) {
+                      final s = data[index];
+                      final key = s.docId ?? 'done_$index';
+                      return _TamamlananCard(key: ValueKey(key), siparis: s);
+                    },
+                  ),
                 );
               },
             ),
@@ -349,10 +365,9 @@ class _TamamlananCardState extends State<_TamamlananCard>
                   Expanded(
                     child: Text(
                       firma,
-                      style: Theme.of(ctx)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
+                      style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],
@@ -377,7 +392,10 @@ class _TamamlananCardState extends State<_TamamlananCard>
       children: [
         SizedBox(
           width: 100,
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
         const SizedBox(width: 8),
         Expanded(
@@ -435,17 +453,21 @@ class _TamamlananCardState extends State<_TamamlananCard>
                       children: [
                         Text(
                           firma,
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 2),
-                        Text('Yetkili: $yetkili', style: theme.textTheme.bodySmall),
+                        Text(
+                          'Yetkili: $yetkili',
+                          style: theme.textTheme.bodySmall,
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 6,
                           runSpacing: -6,
                           children: const [
-                            // Çipler dinamik aşağıda
+                            // Dinamik çipler eklemek istersen burada oluştur
                           ],
                         ),
                       ],
@@ -458,7 +480,10 @@ class _TamamlananCardState extends State<_TamamlananCard>
             if (aciklama.isNotEmpty) ...[
               const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.withOpacity(.10),
                   borderRadius: BorderRadius.circular(10),
@@ -469,21 +494,26 @@ class _TamamlananCardState extends State<_TamamlananCard>
                   children: [
                     const Icon(Icons.sticky_note_2_outlined, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(aciklama, style: theme.textTheme.bodyMedium)),
+                    Expanded(
+                      child: Text(aciklama, style: theme.textTheme.bodyMedium),
+                    ),
                   ],
                 ),
               ),
             ],
 
             const SizedBox(height: 8),
-
             Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              data: Theme.of(context).copyWith(
+                dividerColor: Colors.transparent,
+                expansionTileTheme: const ExpansionTileThemeData(
+                  tilePadding: EdgeInsets.symmetric(horizontal: 4),
+                  childrenPadding: EdgeInsets.only(bottom: 8),
+                ),
+              ),
               child: ExpansionTile(
-                key: PageStorageKey('done_${s.docId ?? firma}_${s.urunler.length}'),
-                maintainState: true,
-                tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-                childrenPadding: const EdgeInsets.only(bottom: 8),
+                maintainState: true, // bool ✓
+                initiallyExpanded: false, // bool ✓
                 title: Row(
                   children: [
                     const Icon(Icons.inventory_2_outlined, size: 20),
@@ -491,13 +521,18 @@ class _TamamlananCardState extends State<_TamamlananCard>
                     Text('Ürünler', style: theme.textTheme.titleSmall),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text('$urunCesidi çeşit / $toplamAdet adet',
-                          style: theme.textTheme.bodySmall),
+                      child: Text(
+                        '$urunCesidi çeşit / $toplamAdet adet',
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ),
                   ],
                 ),
@@ -512,9 +547,11 @@ class _TamamlananCardState extends State<_TamamlananCard>
                       return ListTile(
                         dense: true,
                         title: Text(u.urunAdi),
-                        subtitle: Text(u.renk),
-                        trailing: Text('Adet: ${u.adet}',
-                            style: const TextStyle(fontSize: 12)),
+                        subtitle: Text(u.renk ?? '-'), // null güvenli
+                        trailing: Text(
+                          'Adet: ${u.adet}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       );
                     },
                   ),

@@ -16,10 +16,6 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
   final _siparisServis = SiparisService();
   Stream<List<SiparisModel>>? _sevkiyatStream;
 
-  // 🔸 Seçili ürün indeksleri parent’ta tutulur (orderKey -> Set<int>)
-  // Route değişince state korunur, Firebase’e yazılmaz.
-  final Map<String, Set<int>> _secimler = {};
-
   final _searchCtrl = TextEditingController();
   String _query = '';
 
@@ -35,17 +31,6 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
     super.dispose();
   }
 
-  // Sipariş için stabil bir key üret (docId yoksa güvenli fallback)
-  String _orderKey(SiparisModel s, int index) {
-    final doc = (s.docId ?? '').trim();
-    if (doc.isNotEmpty) return doc;
-    // modelde id varsa onu kullan; yoksa firma+index fallback
-    final anyId = (s.id?.toString() ?? '').trim();
-    if (anyId.isNotEmpty) return 'doc_$anyId';
-    final firma = (s.musteri.firmaAdi ?? '').trim();
-    return 'fallback_${firma}_$index';
-  }
-
   Future<void> _teslimEt(SiparisModel s) async {
     if (s.docId == null) {
       if (!mounted) return;
@@ -59,14 +44,15 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Teslimatı Onayla'),
-        content: Text(
-          'Bu siparişi “Tamamlandı” yapalım mı?\n\nMüşteri: ${s.musteri.firmaAdi ?? '-'}',
-        ),
+        content: Text('Bu siparişi “Tamamlandı” yapalım mı?\n\nMüşteri: ${s.musteri.firmaAdi ?? '-'}'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Vazgeç')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Vazgeç', style: TextStyle(color: Renkler.kahveTon)),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(backgroundColor: Renkler.kahveTon),
             child: const Text('Evet, Teslim Et', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -106,7 +92,7 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
       ),
       body: Column(
         children: [
-          // ——— Arama kutusu (onChanged; listener yok → dispose sonrası setState olmaz)
+          // ——— Arama kutusu
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: TextField(
@@ -152,9 +138,7 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
                     final firma = (s.musteri.firmaAdi ?? '').toLowerCase();
                     final yetkili = (s.musteri.yetkili ?? '').toLowerCase();
                     final aciklama = (s.aciklama ?? '').toLowerCase();
-                    return firma.contains(_query) ||
-                        yetkili.contains(_query) ||
-                        aciklama.contains(_query);
+                    return firma.contains(_query) || yetkili.contains(_query) || aciklama.contains(_query);
                   }).toList();
                 }
 
@@ -163,23 +147,12 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
                 }
 
                 return ListView.builder(
-                  key: const PageStorageKey('sevkiyat_list'),
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   itemCount: data.length,
                   itemBuilder: (context, index) {
                     final s = data[index];
-                    final stableKey = _orderKey(s, index);
-
-                    // Bu sipariş için set’i hazırla
-                    final setRef = _secimler.putIfAbsent(stableKey, () => <int>{});
-
-                    // Ürün sayısı kısaldıysa set içindeki geçersiz indeksleri temizle
-                    setRef.removeWhere((i) => i < 0 || i >= s.urunler.length);
-
                     return _SiparisCard(
-                      key: ValueKey(stableKey), // kart state’i bu key’e bağlı
                       siparis: s,
-                      selectedIndexes: setRef,   // 🔸 shared referans
                       onTeslimEt: () => _teslimEt(s),
                     );
                   },
@@ -194,141 +167,30 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
 }
 
 /// ———————————————————————————————
-/// Kart bileşeni (kendi içinde setState)
+/// Kart bileşeni (checkbox/selection YOK)
 /// ———————————————————————————————
-class _SiparisCard extends StatefulWidget {
+class _SiparisCard extends StatelessWidget {
   final SiparisModel siparis;
-  final Set<int> selectedIndexes; // parent’tan gelen referans (Firebase’e yazılmaz)
   final VoidCallback onTeslimEt;
 
   const _SiparisCard({
     super.key,
     required this.siparis,
-    required this.selectedIndexes,
     required this.onTeslimEt,
   });
 
-  @override
-  State<_SiparisCard> createState() => _SiparisCardState();
-}
-
-class _SiparisCardState extends State<_SiparisCard> {
-  void _selectAll() {
-    setState(() {
-      widget.selectedIndexes
-        ..clear()
-        ..addAll(List.generate(widget.siparis.urunler.length, (i) => i));
-    });
-  }
-
-  void _clearSelection() {
-    setState(() => widget.selectedIndexes.clear());
-  }
-
-  void _toggle(int i, bool v) {
-    setState(() {
-      if (v) {
-        widget.selectedIndexes.add(i);
-      } else {
-        widget.selectedIndexes.remove(i);
-      }
-    });
-  }
-
-  void _gosterMusteriDetay() {
-    final m = widget.siparis.musteri;
-    final firma = m.firmaAdi ?? '-';
-    final yetkili = m.yetkili ?? '-';
-    final telefon = (m.telefon ?? '').trim().isEmpty ? '-' : m.telefon!.trim();
-    final adres = (m.adres ?? '').trim().isEmpty ? '-' : m.adres!.trim();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: false,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 42,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.black26,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: Renkler.kahveTon.withOpacity(.15),
-                    child: Text(
-                      (firma.isNotEmpty ? firma[0] : '?').toUpperCase(),
-                      style: TextStyle(color: Renkler.kahveTon),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      firma,
-                      style: Theme.of(ctx)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _infoRow('Yetkili', yetkili),
-              const SizedBox(height: 6),
-              _infoRow('Telefon', telefon),
-              const SizedBox(height: 6),
-              _infoRow('Adres', adres, multiline: true),
-              const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _infoRow(String label, String value, {bool multiline = false}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            value,
-            maxLines: multiline ? null : 2,
-            overflow: multiline ? TextOverflow.visible : TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
+  String _safe(String? v) => (v ?? '').trim().isEmpty ? '-' : v!.trim();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final s = widget.siparis;
+    final s = siparis;
 
-    final firma = s.musteri.firmaAdi ?? '-';
-    final yetkili = s.musteri.yetkili ?? '-';
+    final firma = _safe(s.musteri.firmaAdi);
+    final yetkili = _safe(s.musteri.yetkili);
     final urunCesidi = s.urunler.length;
-    final toplamAdet = s.urunler.fold<int>(0, (sum, u) => sum + u.adet);
+    final toplamAdet = s.urunler.fold<int>(0, (sum, u) => sum + (u.adet ?? 0));
     final aciklama = (s.aciklama ?? '').trim();
-    final checkedCount = widget.selectedIndexes.length;
 
     return Card(
       elevation: 2,
@@ -339,63 +201,53 @@ class _SiparisCardState extends State<_SiparisCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Üst satır: müşteri + teslim et
+            // Üst satır
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                InkWell(
-                  onTap: _gosterMusteriDetay,
-                  borderRadius: BorderRadius.circular(24),
-                  child: CircleAvatar(
-                    backgroundColor: Renkler.kahveTon.withOpacity(.15),
-                    child: Text(
-                      (firma.isNotEmpty ? firma[0] : '?').toUpperCase(),
-                      style: TextStyle(color: Renkler.kahveTon),
-                    ),
+                CircleAvatar(
+                  backgroundColor: Renkler.kahveTon.withOpacity(.15),
+                  child: Text(
+                    (firma.isNotEmpty ? firma[0] : '?').toUpperCase(),
+                    style: const TextStyle(color: Renkler.kahveTon),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: InkWell(
-                    onTap: _gosterMusteriDetay,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          firma,
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 2),
-                        Text('Yetkili: $yetkili', style: theme.textTheme.bodySmall),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: -6,
-                          children: [
-                            Chip(
-                              label: Text('Ürün: $urunCesidi'),
-                              visualDensity: VisualDensity.compact,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            Chip(
-                              label: Text('Toplam Adet: $toplamAdet'),
-                              visualDensity: VisualDensity.compact,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            const Chip(
-                              label: Text('Durum: Sevkiyat'),
-                              visualDensity: VisualDensity.compact,
-                              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(firma, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text('Yetkili: $yetkili', style: theme.textTheme.bodySmall),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          Chip(
+                            label: Text('Ürün: $urunCesidi'),
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          Chip(
+                            label: Text('Toplam Adet: $toplamAdet'),
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          const Chip(
+                            label: Text('Durum: Sevkiyat'),
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  onPressed: widget.onTeslimEt,
+                  onPressed: onTeslimEt,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -430,72 +282,49 @@ class _SiparisCardState extends State<_SiparisCard> {
 
             const SizedBox(height: 8),
 
-            // Ürünler (seçilebilir)
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                key: PageStorageKey('exp_${s.docId ?? firma}_${s.urunler.length}'),
-                maintainState: true,
-                tilePadding: const EdgeInsets.symmetric(horizontal: 4),
-                childrenPadding: const EdgeInsets.only(bottom: 8),
-                title: Row(
-                  children: [
-                    const Icon(Icons.inventory_2_outlined, size: 20),
-                    const SizedBox(width: 8),
-                    Text('Ürünler', style: theme.textTheme.titleSmall),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        checkedCount > 0
-                            ? '$checkedCount / $urunCesidi seçili'
-                            : '$urunCesidi çeşit / $toplamAdet adet',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ),
-                  ],
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Hepsini işaretle',
-                      icon: const Icon(Icons.select_all),
-                      onPressed: _selectAll,
-                    ),
-                    IconButton(
-                      tooltip: 'Seçimi temizle',
-                      icon: const Icon(Icons.clear_all),
-                      onPressed: _clearSelection,
-                    ),
-                  ],
-                ),
+            // Ürünler (sadece görüntüleme)
+            ExpansionTile(
+              tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+              childrenPadding: const EdgeInsets.only(bottom: 8),
+              title: Row(
                 children: [
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: s.urunler.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, i) {
-                      final u = s.urunler[i];
-                      final checked = widget.selectedIndexes.contains(i);
-                      return CheckboxListTile(
-                        dense: true,
-                        controlAffinity: ListTileControlAffinity.leading,
-                        value: checked,
-                        onChanged: (v) => _toggle(i, v ?? false),
-                        title: Text(u.urunAdi),
-                        subtitle: Text(u.renk),
-                        secondary: Text('Adet: ${u.adet}', style: const TextStyle(fontSize: 12)),
-                      );
-                    },
+                  const Icon(Icons.inventory_2_outlined, size: 20, color: Renkler.kahveTon),
+                  const SizedBox(width: 8),
+                  Text('Ürünler', style: theme.textTheme.titleSmall),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text('$urunCesidi çeşit / $toplamAdet adet', style: theme.textTheme.bodySmall),
                   ),
                 ],
               ),
+              children: [
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: s.urunler.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final u = s.urunler[i];
+                    final urunAdi = ((u.urunAdi ?? '').trim().isNotEmpty) ? u.urunAdi!.trim() : '-';
+                    final renk = ((u.renk ?? '').trim().isNotEmpty) ? u.renk!.trim() : '-';
+                    final adet = u.adet ?? 0;
+
+                    return ListTile(
+                      // leading kaldırıldı ✅
+                      title: Text(urunAdi),
+                      subtitle: Text('Renk: $renk'),
+                      trailing: Text('Adet: $adet', style: const TextStyle(fontSize: 12)),
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 0),
+                    );
+                  },
+                ),
+              ],
             ),
           ],
         ),
