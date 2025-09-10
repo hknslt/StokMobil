@@ -1,3 +1,4 @@
+import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
 import 'package:capri/core/models/renk_item.dart';
 import 'package:capri/services/renk_service.dart';
@@ -48,10 +49,13 @@ class RenkDropdown extends StatelessWidget {
         }
 
         final items = tekil
-            .map((r) => DropdownMenuItem<String>(value: r.ad, child: Text(r.ad)))
+            .map(
+              (r) => DropdownMenuItem<String>(value: r.ad, child: Text(r.ad)),
+            )
             .toList();
 
-        if (value != null && items.where((it) => it.value == value).length != 1) {
+        if (value != null &&
+            items.where((it) => it.value == value).length != 1) {
           value = null;
         }
 
@@ -59,17 +63,25 @@ class RenkDropdown extends StatelessWidget {
           value: value,
           decoration: InputDecoration(
             labelText: 'Renk',
+            labelStyle: TextStyle(color: Renkler.kahveTon),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
             suffixIcon: IconButton(
               onPressed: onYeniRenk,
               icon: const Icon(Icons.add),
               tooltip: 'Yeni renk ekle',
             ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+            ),
           ),
           items: items,
           onChanged: onDegisti,
-          validator: (v) => (v == null || v.trim().isEmpty) ? 'Renk seçiniz' : null,
+          validator: (v) =>
+              (v == null || v.trim().isEmpty) ? 'Renk seçiniz' : null,
           hint: const Text('Renk seçin'),
         );
       },

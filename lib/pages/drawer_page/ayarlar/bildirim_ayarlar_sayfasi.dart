@@ -1,113 +1,265 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:capri/core/Color/Colors.dart';
 
-class BildirimAyarlarSayfasi extends StatefulWidget {
-  const BildirimAyarlarSayfasi({super.key});
+class BildirimAyarSayfasi extends StatefulWidget {
+  const BildirimAyarSayfasi({super.key});
 
   @override
-  State<BildirimAyarlarSayfasi> createState() => _BildirimAyarlarSayfasiState();
+  State<BildirimAyarSayfasi> createState() => _BildirimAyarSayfasiState();
 }
 
-class _BildirimAyarlarSayfasiState extends State<BildirimAyarlarSayfasi> {
+class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
   bool _loading = true;
   bool _saving = false;
 
-  bool _pushEnabled = true;
-  bool _emailEnabled = true;
-  bool _orderStatusAlerts = true;
-  bool _lowStockAlerts = false;
+  // Olay toggles
+  bool siparisOlusturuldu = true; // olusturuldu
+  bool stokYetersiz = true;       // stok_eksik
+  bool sevkiyataGitti = true;     // sevkiyat
+  bool siparisTamamlandi = true;  // tamamlandi
+
+  User? get _user => FirebaseAuth.instance.currentUser;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _yukle();
   }
 
-  Future<void> _load() async {
-    final u = FirebaseAuth.instance.currentUser;
-    if (u == null) {
+  Future<void> _yukle() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final d = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final raw = d.data()?['notificationSettings'];
+
+      final s = raw == null ? <String, dynamic>{} : Map<String, dynamic>.from(raw as Map);
+
+      setState(() {
+        siparisOlusturuldu = s['siparisOlusturuldu'] ?? true;
+        stokYetersiz       = s['stokYetersiz']       ?? true;
+        sevkiyataGitti     = s['sevkiyataGitti']     ?? true;
+        siparisTamamlandi  = s['siparisTamamlandi']  ?? true;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ayarlar yüklenemedi: $e")));
       setState(() => _loading = false);
-      return;
     }
-    try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(u.uid).get();
-      final d = doc.data() ?? {};
-      _pushEnabled = (d['pushEnabled'] as bool?) ?? _pushEnabled;
-      _emailEnabled = (d['emailEnabled'] as bool?) ?? _emailEnabled;
-      _orderStatusAlerts = (d['orderStatusAlerts'] as bool?) ?? _orderStatusAlerts;
-      _lowStockAlerts = (d['lowStockAlerts'] as bool?) ?? _lowStockAlerts;
-    } catch (_) {}
-    setState(() => _loading = false);
   }
 
-  Future<void> _save() async {
-    final u = FirebaseAuth.instance.currentUser;
-    if (u == null) return;
-    setState(() => _saving = true);
+  Future<void> _kaydet() async {
     try {
+      final u = _user;
+      if (u == null) return;
+
+      setState(() => _saving = true);
+
       await FirebaseFirestore.instance.collection('users').doc(u.uid).set({
-        'pushEnabled': _pushEnabled,
-        'emailEnabled': _emailEnabled,
-        'orderStatusAlerts': _orderStatusAlerts,
-        'lowStockAlerts': _lowStockAlerts,
-        'settingsUpdatedAt': FieldValue.serverTimestamp(),
+        'notificationSettings': {
+          'siparisOlusturuldu': siparisOlusturuldu,
+          'stokYetersiz': stokYetersiz,
+          'sevkiyataGitti': sevkiyataGitti,
+          'siparisTamamlandi': siparisTamamlandi,
+        },
+        'ayarlar': {
+          'bildirimler': {
+            'siparis': siparisOlusturuldu,
+            'stok': stokYetersiz,
+            'sevkiyat': sevkiyataGitti,
+            'tamamlandi': siparisTamamlandi,
+          },
+        },
+        'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ayarlar kaydedildi')));
-        Navigator.pop(context);
-      }
-    } on FirebaseException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Hata')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ayarlar kaydedildi')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Kaydetme hatası: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
-  Widget _tile(String title, String subtitle, bool value, ValueChanged<bool> onChanged, {IconData? icon}) {
-    return SwitchListTile(
-      secondary: Icon(icon ?? Icons.notifications_none),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      value: value,
-      onChanged: (v) => setState(() => onChanged(v)),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Bildirim ayarları")),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(8),
+    final baseTheme = Theme.of(context);
+    final themed = baseTheme.copyWith(
+      colorScheme: baseTheme.colorScheme.copyWith(
+        primary: Renkler.kahveTon,
+        secondary: Renkler.kahveTon,
+        primaryContainer: Renkler.kahveTon.withOpacity(.14),
+        secondaryContainer: Renkler.kahveTon.withOpacity(.14),
+        onPrimary: Colors.white,
+      ),
+    );
+
+    if (_loading) {
+      return Theme(
+        data: themed,
+        child: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    return Theme(
+      data: themed,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Bildirim Ayarları'),
+          actions: [
+            IconButton(
+              onPressed: _saving ? null : _kaydet,
+              tooltip: 'Kaydet',
+              icon: _saving
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                    )
+                  : const Icon(Icons.save),
+            ),
+          ],
+          flexibleSpace: _GradientHeader(),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            _HintText('Hangi olaylarda bildirim almak istediğini seç.'),
+            const SizedBox(height: 10),
+            _Card(
               child: Column(
                 children: [
-                  _tile("Push bildirimleri", "Uygulama içi anlık bildirimler",
-                      _pushEnabled, (v) => _pushEnabled = v, icon: Icons.notifications_active),
+                  _SwitchTile(
+                    icon: Icons.add_alert_outlined,
+                    title: 'Sipariş oluşturuldu',
+                    subtitle: 'Yeni sipariş eklendiğinde',
+                    value: siparisOlusturuldu,
+                    onChanged: (v) => setState(() => siparisOlusturuldu = v),
+                  ),
                   const Divider(height: 0),
-                  _tile("E-posta bildirimleri", "E-posta ile bilgilendirmeler",
-                      _emailEnabled, (v) => _emailEnabled = v, icon: Icons.alternate_email),
+                  _SwitchTile(
+                    icon: Icons.inventory_2_outlined,
+                    title: 'Stok yetersiz',
+                    subtitle: 'Sipariş sonrası stok eksik uyarısı',
+                    value: stokYetersiz,
+                    onChanged: (v) => setState(() => stokYetersiz = v),
+                  ),
                   const Divider(height: 0),
-                  _tile("Sipariş durum uyarıları", "Onay/sevkiyat/tamamlanma değişince haber ver",
-                      _orderStatusAlerts, (v) => _orderStatusAlerts = v, icon: Icons.shopping_bag_outlined),
+                  _SwitchTile(
+                    icon: Icons.local_shipping_outlined,
+                    title: 'Sevkiyata gitti',
+                    subtitle: 'Sevkiyat aşamasına geçince',
+                    value: sevkiyataGitti,
+                    onChanged: (v) => setState(() => sevkiyataGitti = v),
+                  ),
                   const Divider(height: 0),
-                  _tile("Düşük stok uyarıları", "Belirlediğin eşiğin altına düştüğünde bildir",
-                      _lowStockAlerts, (v) => _lowStockAlerts = v, icon: Icons.inventory_2_outlined),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _saving ? null : _save,
-                      icon: const Icon(Icons.save_outlined),
-                      label: Text(_saving ? 'Kaydediliyor…' : 'Kaydet'),
-                    ),
+                  _SwitchTile(
+                    icon: Icons.check_circle_outline,
+                    title: 'Sipariş tamamlandı',
+                    subtitle: 'Teslim / tamamlandı durumunda',
+                    value: siparisTamamlandi,
+                    onChanged: (v) => setState(() => siparisTamamlandi = v),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : _kaydet,
+                icon: const Icon(Icons.save_outlined),
+                label: Text(_saving ? 'Kaydediliyor…' : 'Kaydet'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+/* ---------- Ortak küçük bileşenler ---------- */
+
+class _GradientHeader extends StatelessWidget implements PreferredSizeWidget {
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [Renkler.kahveTon, Renkler.kahveTon.withOpacity(.85)],
+        ),
+      ),
+    );
+  }
+}
+
+class _Card extends StatelessWidget {
+  final Widget child;
+  const _Card({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SwitchTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  const _SwitchTile({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    required this.value,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SwitchListTile.adaptive(
+      secondary: Container(
+        width: 42, height: 42,
+        decoration: BoxDecoration(
+          color: cs.primary.withOpacity(.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: cs.primary),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: subtitle != null ? Text(subtitle!) : null,
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _HintText extends StatelessWidget {
+  final String text;
+  const _HintText(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text, style: TextStyle(fontSize: 13, color: Colors.grey.shade600));
+    }
 }

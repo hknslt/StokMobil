@@ -1,4 +1,4 @@
-// lib/pages/moduller/siparis_sayfasi/siparis_oluşturma/widgets/siparis_musteri_widget.dart
+// lib/pages/moduller/siparis_sayfasi/siparis_olusturma/widgets/siparis_musteri_widget.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
@@ -7,7 +7,9 @@ import 'package:capri/services/musteri_service.dart';
 
 /// Siparis > Müşteri adımı
 /// - Kayıtlıdan seçersen: form alanları kilitlenir (değiştirilemez)
-/// - Kayıtlı seçmezsen: formu doldurup İleri dediğinde yeni müşteri Firestore’a kaydedilir
+/// - Kayıtlı seçmezsen: formu doldurup İleri dediğinde:
+///     - "Kayıtlı müşterilere ekle" tiki AÇIKSA -> Firestore’a kaydedilir
+///     - tiki KAPALIYSA -> kaydetmeden sadece siparişe geçici müşteri olarak aktarılır
 class SiparisMusteriWidget extends StatefulWidget {
   final TextEditingController firmaAdiController;
   final TextEditingController yetkiliController;
@@ -38,6 +40,7 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
   final _musteriSvc = MusteriService.instance;
 
   MusteriModel? _secilen;
+  bool _kayitliOlsun = false; // ✅ TIK: Manuel müşteri kayıtlılara eklensin mi?
 
   @override
   void initState() {
@@ -50,8 +53,11 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
       widget.telefonController.text.trim().isNotEmpty;
 
   void _musteriAta(MusteriModel m) {
-    setState(() => _secilen = m);
-    // Alanları doldur ve kilitle (enabled=false)
+    setState(() {
+      _secilen = m;
+      _kayitliOlsun = false; // kayıtlı seçildiğinde bu tiki anlamsız; sıfırla
+    });
+    // Alanları doldur ve kilitle
     widget.firmaAdiController.text = m.firmaAdi ?? '';
     widget.yetkiliController.text = m.yetkili ?? '';
     widget.telefonController.text = m.telefon ?? '';
@@ -60,12 +66,11 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
   }
 
   void _musteriSecimiTemizle() {
-    setState(() => _secilen = null);
-    // Temizlemiyoruz; istersen alanları boşalt:
-    // widget.firmaAdiController.clear();
-    // widget.yetkiliController.clear();
-    // widget.telefonController.clear();
-    // widget.adresController.clear();
+    setState(() {
+      _secilen = null;
+      // Alanları istersen boşaltma, kullanıcı devam edebilir;
+      // _kayitliOlsun tikini önceki haline bırakabiliriz (false başlangıç).
+    });
   }
 
   Future<void> _kayitlidanSec() async {
@@ -104,9 +109,9 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
       return;
     }
 
-    // 3) Yeni müşteri oluşturup Firestore’a kaydet
+    // 3) Yeni müşteri modeli oluştur
     final yeni = MusteriModel(
-      id: '', // service docId atayacak
+      id: '', // service docId atayacak (kaydedilirse)
       firmaAdi: widget.firmaAdiController.text.trim(),
       yetkili: widget.yetkiliController.text.trim().isEmpty
           ? null
@@ -118,18 +123,30 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
     );
 
     try {
-      // ekle() metodunun docId döndüğünü varsayıyoruz (daha önceki sayfanda da böyle kullandın)
-      final docId = await _musteriSvc.ekle(yeni);
-      final olusan = MusteriModel(
-        id: docId,
-        firmaAdi: yeni.firmaAdi,
-        yetkili: yeni.yetkili,
-        telefon: yeni.telefon,
-        adres: yeni.adres,
-      );
-      widget.onMusteriSecildi?.call(olusan);
-      // İstersen burada _secilen=olusan yapıp alanları kilitleyebilirsin,
-      // fakat sipariş akışında bir sonraki adıma geçeceğiz:
+      MusteriModel sonKullanilacakModel;
+
+      if (_kayitliOlsun) {
+        // ✅ TIK AÇIK: Firestore'a kaydet
+        final docId = await _musteriSvc.ekle(yeni);
+        sonKullanilacakModel = MusteriModel(
+          id: docId,
+          firmaAdi: yeni.firmaAdi,
+          yetkili: yeni.yetkili,
+          telefon: yeni.telefon,
+          adres: yeni.adres,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Müşteri kayıtlılara eklendi.")),
+        );
+      } else {
+        // ✖️ TIK KAPALI: Kaydetme, sadece siparişe geçici müşteri olarak geçir
+        sonKullanilacakModel = yeni; // id = '' kalır
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Müşteri kaydedilmedi, yalnızca siparişe işlendi.")),
+        );
+      }
+
+      widget.onMusteriSecildi?.call(sonKullanilacakModel);
       widget.onIleri();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,8 +224,7 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                 child: ListTile(
                   leading: CircleAvatar(
                     child: Text(
-                      ((_secilen!.firmaAdi ?? _secilen!.yetkili ?? '?')
-                                  .isNotEmpty)
+                      ((_secilen!.firmaAdi ?? _secilen!.yetkili ?? '?').isNotEmpty)
                           ? (_secilen!.firmaAdi ?? _secilen!.yetkili!)![0]
                           : '?',
                     ),
@@ -266,6 +282,22 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                         controller: widget.adresController,
                         enabled: !alanlarKilitli,
                       ),
+
+                      const Divider(height: 24),
+
+                      // ✅ TIK: Sadece manuel modda göster
+                      if (!alanlarKilitli)
+                        CheckboxListTile(
+                          value: _kayitliOlsun,
+                          onChanged: (v) {
+                            setState(() => _kayitliOlsun = v ?? false);
+                          },
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: const Text("Kayıtlı müşterilere ekle"),
+                          subtitle: const Text(
+                            "İşaretlersen, bu müşteriyi müşteri listene kaydedeceğiz.",
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -297,7 +329,11 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                 ),
                 icon: const Icon(Icons.arrow_forward, color: Colors.white),
                 label: Text(
-                  _secilen != null ? "İleri (Kayıtlı Müşteri)" : "İleri",
+                  _secilen != null
+                      ? "İleri (Kayıtlı Müşteri)"
+                      : _kayitliOlsun
+                          ? "İleri (Kaydet)"
+                          : "İleri (Kaydetmeden)",
                   style: const TextStyle(color: Colors.white),
                 ),
               ),

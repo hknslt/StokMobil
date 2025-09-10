@@ -32,10 +32,8 @@ class _StokSayfasiState extends State<StokSayfasi> {
   }
 
   Future<void> _exportPdf() async {
-    // Tüm ürünleri bir kerelik çek
     var items = await _srv.onceGetir();
 
-    // Ekrandaki mevcut filtreleri uygula
     final aranan = _aramaCtrl.text.toLowerCase();
 
     items = items.where((u) {
@@ -56,7 +54,6 @@ class _StokSayfasiState extends State<StokSayfasi> {
       return stokFiltre && renkFiltre && aramaFiltre;
     }).toList();
 
-    // Sıralama da uygula
     if (_siralamaTuru == "A-Z") {
       items.sort((a, b) => a.urunAdi.compareTo(b.urunAdi));
     } else if (_siralamaTuru == "Z-A") {
@@ -72,6 +69,8 @@ class _StokSayfasiState extends State<StokSayfasi> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom; // klavye yüksekliği
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Stok Yönetimi"),
@@ -98,217 +97,229 @@ class _StokSayfasiState extends State<StokSayfasi> {
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            // 🔍 Arama
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: TextField(
-                controller: _aramaCtrl,
-                onChanged: (_) => setState(() {}),
-                decoration: InputDecoration(
-                  hintText: "Ara (ürün adı veya kodu)",
-                  filled: true,
-                  fillColor: Colors.white,
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+      // 🔧 Tek kaydırılabilir yapı + klavye kadar alt padding
+      body: CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(12, 12, 12, bottomInset),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // 🔍 Arama
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: TextField(
+                    controller: _aramaCtrl,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: "Ara (ürün adı veya kodu)",
+                      filled: true,
+                      fillColor: Colors.white,
+                      prefixIcon: const Icon(Icons.search),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),
+                      borderRadius: BorderRadius.all(Radius.circular(20))),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+
+                _filtrePaneli(),
+                const SizedBox(height: 8),
+              ]),
             ),
+          ),
 
-            _filtrePaneli(),
+          // 📋 Liste – Firestore Stream (sliver olarak)
+          StreamBuilder<List<Urun>>(
+            stream: _srv.dinle(),
+            builder: (context, snap) {
+              if (snap.connectionState == ConnectionState.waiting) {
+                return const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snap.hasError) {
+                return SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text('Hata: ${snap.error}')),
+                );
+              }
 
-            const SizedBox(height: 8),
+              var items = snap.data ?? [];
 
-            // 📋 Liste – Firestore Stream
-            Expanded(
-              child: StreamBuilder<List<Urun>>(
-                stream: _srv.dinle(),
-                builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snap.hasError) {
-                    return Center(child: Text('Hata: ${snap.error}'));
-                  }
-                  var items = snap.data ?? [];
+              // Filtreleme
+              final aranan = _aramaCtrl.text.toLowerCase();
+              items = items.where((u) {
+                final stokFiltre = _stoktaOlanlar == null
+                    ? true
+                    : _stoktaOlanlar!
+                        ? u.adet > 0
+                        : u.adet == 0;
 
-                  // Filtreleme
-                  final aranan = _aramaCtrl.text.toLowerCase();
-                  items = items.where((u) {
-                    final stokFiltre = _stoktaOlanlar == null
+                final renkFiltre =
+                    (_secilenRenk == null || _secilenRenk!.isEmpty)
                         ? true
-                        : _stoktaOlanlar!
-                            ? u.adet > 0
-                            : u.adet == 0;
+                        : u.renk.toLowerCase() == _secilenRenk!.toLowerCase();
 
-                    final renkFiltre =
-                        (_secilenRenk == null || _secilenRenk!.isEmpty)
-                            ? true
-                            : u.renk.toLowerCase() == _secilenRenk!.toLowerCase();
+                final aramaFiltre =
+                    u.urunAdi.toLowerCase().contains(aranan) ||
+                    u.urunKodu.toLowerCase().contains(aranan);
 
-                    final aramaFiltre =
-                        u.urunAdi.toLowerCase().contains(aranan) ||
-                        u.urunKodu.toLowerCase().contains(aranan);
+                return stokFiltre && renkFiltre && aramaFiltre;
+              }).toList();
 
-                    return stokFiltre && renkFiltre && aramaFiltre;
-                  }).toList();
+              // Sıralama
+              if (_siralamaTuru == "A-Z") {
+                items.sort((a, b) => a.urunAdi.compareTo(b.urunAdi));
+              } else if (_siralamaTuru == "Z-A") {
+                items.sort((a, b) => b.urunAdi.compareTo(a.urunAdi));
+              } else if (_siralamaTuru == "Stok Artan") {
+                items.sort((a, b) => a.adet.compareTo(b.adet));
+              } else if (_siralamaTuru == "Stok Azalan") {
+                items.sort((a, b) => b.adet.compareTo(a.adet));
+              }
 
-                  // Sıralama
-                  if (_siralamaTuru == "A-Z") {
-                    items.sort((a, b) => a.urunAdi.compareTo(b.urunAdi));
-                  } else if (_siralamaTuru == "Z-A") {
-                    items.sort((a, b) => b.urunAdi.compareTo(a.urunAdi));
-                  } else if (_siralamaTuru == "Stok Artan") {
-                    items.sort((a, b) => a.adet.compareTo(b.adet));
-                  } else if (_siralamaTuru == "Stok Azalan") {
-                    items.sort((a, b) => b.adet.compareTo(a.adet));
-                  }
+              if (items.isEmpty) {
+                return const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(child: Text("Ürün bulunamadı.")),
+                );
+              }
 
-                  if (items.isEmpty) {
-                    return const Center(child: Text("Ürün bulunamadı."));
-                  }
+              return SliverList.separated(
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 0),
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  final isSecili = _seciliUrunIdleri.contains(item.id);
 
-                  return ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      final isSecili = _seciliUrunIdleri.contains(item.id);
-
-                      return Slidable(
-                        key: Key(item.docId ?? '${item.id}'),
-                        startActionPane: ActionPane(
-                          motion: const DrawerMotion(),
-                          children: [
-                            // ✏️ Düzenle
-                            SlidableAction(
-                              onPressed: (_) async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        UrunEkleSayfasi(duzenlenecekUrun: item),
-                                  ),
-                                );
-                                if (mounted) setState(() {});
-                              },
-                              icon: Icons.edit,
-                              label: "Düzenle",
-                              backgroundColor: Colors.blue,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-
-                            // 🗑️ Sil (Onaylı)
-                            SlidableAction(
-                              onPressed: (_) async {
-                                final onay = await showDialog<bool>(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: const Text("Silinsin mi?"),
-                                        content: Text(
-                                          "\"${item.urunAdi}\" ürünü silinecek. Emin misiniz?",
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () =>
-                                                Navigator.pop(ctx, false),
-                                            child: const Text("İptal", style: TextStyle(color: Renkler.kahveTon),),
-                                          ),
-                                          ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.red,
-                                            ),
-                                            onPressed: () =>
-                                                Navigator.pop(ctx, true),
-                                            child: const Text("Sil", style: TextStyle(color: Colors.white),),
-                                          ),
-                                        ],
-                                      ),
-                                    ) ?? false;
-
-                                if (!onay) return;
-                                if (!mounted) return;
-
-                                if (item.docId == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "Kayıt bulunamadı (docId yok).",
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                try {
-                                  await _srv.sil(item.docId!);
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text("Ürün silindi."),
-                                    ),
-                                  );
-                                } catch (e) {
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text("Silme başarısız: $e"),
-                                    ),
-                                  );
-                                }
-                              },
-                              icon: Icons.delete,
-                              label: "Sil",
-                              backgroundColor: Colors.red,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ],
+                  return Slidable(
+                    key: Key(item.docId ?? '${item.id}'),
+                    startActionPane: ActionPane(
+                      motion: const DrawerMotion(),
+                      children: [
+                        // ✏️ Düzenle
+                        SlidableAction(
+                          onPressed: (_) async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => UrunEkleSayfasi(duzenlenecekUrun: item),
+                              ),
+                            );
+                            if (mounted) setState(() {});
+                          },
+                          icon: Icons.edit,
+                          label: "Düzenle",
+                          backgroundColor: Colors.blue,
+                          borderRadius: BorderRadius.circular(16),
                         ),
 
-                        // 🧾 Satır (tamamı tıklanabilir)
-                        child: Card(
-                          color: isSecili ? Colors.blue.shade100 : null,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: ListTile(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => UrunDetaySayfasi(urun: item),
+                        // 🗑️ Sil (Onaylı)
+                        SlidableAction(
+                          onPressed: (_) async {
+                            final onay = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text("Silinsin mi?"),
+                                    content: Text(
+                                      "\"${item.urunAdi}\" ürünü silinecek. Emin misiniz?",
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(ctx, false),
+                                        child: const Text(
+                                          "İptal",
+                                          style: TextStyle(color: Renkler.kahveTon),
+                                        ),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.red,
+                                        ),
+                                        onPressed: () => Navigator.pop(ctx, true),
+                                        child: const Text(
+                                          "Sil",
+                                          style: TextStyle(color: Colors.white),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ) ??
+                                false;
+
+                            if (!onay) return;
+                            if (!mounted) return;
+
+                            if (item.docId == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Kayıt bulunamadı (docId yok)."),
                                 ),
                               );
-                            },
-                            leading: _urunResmi(item),
-                            title: Text(item.urunAdi),
-                            subtitle: Text(
-                              "Kod: ${item.urunKodu} | Renk: ${item.renk}",
-                            ),
-                            trailing: Text("${item.adet}"),
-                            onLongPress: () {
-                              setState(() {
-                                if (isSecili) {
-                                  _seciliUrunIdleri.remove(item.id);
-                                } else {
-                                  _seciliUrunIdleri.add(item.id);
-                                }
-                              });
-                            },
-                          ),
+                              return;
+                            }
+                            try {
+                              await _srv.sil(item.docId!);
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Ürün silindi.")),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Silme başarısız: $e")),
+                              );
+                            }
+                          },
+                          icon: Icons.delete,
+                          label: "Sil",
+                          backgroundColor: Colors.red,
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      );
-                    },
+                      ],
+                    ),
+
+                    // 🧾 Satır
+                    child: Card(
+                      color: isSecili ? Colors.blue.shade100 : null,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => UrunDetaySayfasi(urun: item),
+                            ),
+                          );
+                        },
+                        leading: _urunResmi(item),
+                        title: Text(item.urunAdi),
+                        subtitle: Text("Kod: ${item.urunKodu} | Renk: ${item.renk}"),
+                        trailing: Text("${item.adet}"),
+                        onLongPress: () {
+                          setState(() {
+                            if (isSecili) {
+                              _seciliUrunIdleri.remove(item.id);
+                            } else {
+                              _seciliUrunIdleri.add(item.id);
+                            }
+                          });
+                        },
+                      ),
+                    ),
                   );
                 },
-              ),
-            ),
-          ],
-        ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -410,10 +421,8 @@ class _StokSayfasiState extends State<StokSayfasi> {
                   stream: RenkService.instance.dinleAdlar(),
                   builder: (context, snap) {
                     final renkler = snap.data ?? const <String>[];
-                    // '' = Tümü
                     final items = <String>['', ...renkler];
 
-                    // Seçili değer listede değilse ama doluysa, item’lara ekleyelim ki görünür olsun
                     if ((_secilenRenk ?? '').isNotEmpty &&
                         !items.contains(_secilenRenk)) {
                       items.add(_secilenRenk!);
@@ -439,7 +448,6 @@ class _StokSayfasiState extends State<StokSayfasi> {
                           )
                           .toList(),
                       onChanged: (v) => setState(() {
-                        // '' => Tümü (filtre kapalı)
                         _secilenRenk = (v == null || v.isEmpty) ? null : v;
                       }),
                     );

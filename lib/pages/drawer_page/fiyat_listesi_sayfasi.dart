@@ -527,6 +527,7 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                       TextField(
                         controller: _aramaCtrl,
                         decoration: const InputDecoration(
+                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2)),
                           prefixIcon: Icon(Icons.search),
                           hintText: "Ürün adı / kodu / renk ara",
                           border: OutlineInputBorder(),

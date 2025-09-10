@@ -187,7 +187,14 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                       hintText: "Müşteri veya ürün ara…",
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Renkler.kahveTon,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       isDense: true,
                     ),

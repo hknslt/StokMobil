@@ -54,7 +54,19 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                   controller: firmaController,
                   decoration: const InputDecoration(
                     labelText: "Firma Adı",
-                    prefixIcon: Icon(Icons.apartment),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.apartment, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? "Firma adı zorunlu"
@@ -65,7 +77,19 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                   controller: yetkiliController,
                   decoration: const InputDecoration(
                     labelText: "Yetkili",
-                    prefixIcon: Icon(Icons.badge),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.badge, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -74,7 +98,19 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: "Telefon",
-                    prefixIcon: Icon(Icons.phone),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.phone, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -84,7 +120,22 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                   maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: "Adres",
-                    prefixIcon: Icon(Icons.location_on),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(
+                      Icons.location_on,
+                      color: Renkler.kahveTon,
+                    ),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                 ),
               ],
@@ -158,7 +209,19 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                   controller: firmaController,
                   decoration: const InputDecoration(
                     labelText: "Firma Adı",
-                    prefixIcon: Icon(Icons.apartment),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.apartment, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
                       ? "Firma adı zorunlu"
@@ -169,7 +232,19 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                   controller: yetkiliController,
                   decoration: const InputDecoration(
                     labelText: "Yetkili",
-                    prefixIcon: Icon(Icons.badge),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.badge, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -178,7 +253,19 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: "Telefon",
-                    prefixIcon: Icon(Icons.phone),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.phone, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -188,7 +275,22 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                   maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: "Adres",
-                    prefixIcon: Icon(Icons.location_on),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(
+                      Icons.location_on,
+                      color: Renkler.kahveTon,
+                    ),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                 ),
               ],
@@ -529,5 +631,4 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
       ),
     );
   }
-
 }

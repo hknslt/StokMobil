@@ -11,7 +11,6 @@ import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/services/urun_service.dart';
 import 'package:capri/services/renk_service.dart';
 
-
 class UrunEkleSayfasi extends StatefulWidget {
   final Urun? duzenlenecekUrun;
   final int? urunIndex;
@@ -49,7 +48,10 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
       _secilenRenkAd = u.renk.isNotEmpty ? u.renk : null;
       adetController.text = u.adet.toString();
       aciklamaController.text = u.aciklama ?? '';
-      _im = ImageManager(initialUrls: u.resimYollari, initialCover: u.kapakResimYolu);
+      _im = ImageManager(
+        initialUrls: u.resimYollari,
+        initialCover: u.kapakResimYolu,
+      );
     } else {
       _im = ImageManager();
     }
@@ -132,12 +134,14 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
         await RenkService.instance.ekle(ad);
         if (!mounted) return;
         setState(() => _secilenRenkAd = ad);
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Renk eklendi: $ad")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Renk eklendi: $ad")));
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Renk eklenemedi: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Renk eklenemedi: $e")));
       }
     }
   }
@@ -149,8 +153,9 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
 
     final newLocalFiles = _im.newLocalFiles();
     final existingUrls = _im.existingUrls();
-    final urlsToDelete =
-        _im.urlsToDeleteFrom(widget.duzenlenecekUrun?.resimYollari ?? []);
+    final urlsToDelete = _im.urlsToDeleteFrom(
+      widget.duzenlenecekUrun?.resimYollari ?? [],
+    );
 
     final urun = Urun(
       docId: widget.duzenlenecekUrun?.docId,
@@ -167,7 +172,10 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
       if (duzenleme) {
         await urunService.guncelle(
           widget.duzenlenecekUrun!.docId!,
-          urun.copyWith(resimYollari: existingUrls, kapakResimYolu: _im.coverPath),
+          urun.copyWith(
+            resimYollari: existingUrls,
+            kapakResimYolu: _im.coverPath,
+          ),
           newLocalFiles: newLocalFiles,
           urlsToDelete: urlsToDelete,
         );
@@ -183,8 +191,9 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Kaydetme başarısız: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Kaydetme başarısız: $e')));
     } finally {
       if (mounted) setState(() => _kaydediyor = false);
     }
@@ -217,8 +226,10 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                         alignment: Alignment.centerLeft,
                         child: Padding(
                           padding: const EdgeInsets.only(bottom: 8),
-                          child: const Text('Resimler',
-                              style: TextStyle(fontWeight: FontWeight.w600)),
+                          child: const Text(
+                            'Resimler',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ),
                     if (_im.images.isNotEmpty)
@@ -227,7 +238,8 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                         coverPath: _im.coverPath,
                         onTap: _openFullscreenAt,
                         onRemove: (i) => setState(() => _im.removeAt(i)),
-                        onMakeCover: (i) => setState(() => _im.setCoverByIndex(i)),
+                        onMakeCover: (i) =>
+                            setState(() => _im.setCoverByIndex(i)),
                       ),
 
                     const SizedBox(height: 20),
@@ -236,7 +248,14 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                       controller: urunKoduController,
                       decoration: const InputDecoration(
                         labelText: 'Ürün Kodu',
+                        labelStyle: TextStyle(color: Renkler.kahveTon),
                         border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Renkler.kahveTon,
+                            width: 2,
+                          ),
+                        ),
                       ),
                       textInputAction: TextInputAction.next,
                       validator: (v) =>
@@ -248,7 +267,14 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                       controller: urunAdiController,
                       decoration: const InputDecoration(
                         labelText: 'Ürün Adı',
+                        labelStyle: TextStyle(color: Renkler.kahveTon),
                         border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Renkler.kahveTon,
+                            width: 2,
+                          ),
+                        ),
                       ),
                       textInputAction: TextInputAction.next,
                       validator: (v) =>
@@ -268,7 +294,9 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'Adet',
+                        labelStyle: TextStyle(color: Renkler.kahveTon),
                         border: OutlineInputBorder(),
+                           focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width:2 ))
                       ),
                       validator: (v) {
                         final n = int.tryParse((v ?? '').trim());
@@ -283,7 +311,9 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                       controller: aciklamaController,
                       decoration: const InputDecoration(
                         labelText: 'Açıklama',
+                        labelStyle: TextStyle(color: Renkler.kahveTon),
                         border: OutlineInputBorder(),
+                           focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width:2 ))
                       ),
                       maxLines: 3,
                     ),

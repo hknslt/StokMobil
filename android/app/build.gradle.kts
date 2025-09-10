@@ -4,7 +4,6 @@ plugins {
     id("com.google.gms.google-services")
     // END: FlutterFire Configuration
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -14,20 +13,18 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // Java 17 + DESUGARING
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
-
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.capri"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -35,13 +32,28 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
 
-flutter {
-    source = "../.."
+/** <- ÖNEMLİ: Eğer başka bağımlılık 2.0.4 istiyorsa bile 2.1.5'e zorla */
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "com.android.tools"
+            && requested.name == "desugar_jdk_libs"
+            && (requested.version == null || requested.version!! < "2.1.5")
+        ) {
+            useVersion("2.1.5")
+            because("flutter_local_notifications requires desugar_jdk_libs >= 2.1.4")
+        }
+    }
+}
+
+flutter { source = "../.." }
+
+dependencies {
+    // <-- BURAYI 2.1.5 YAP!
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }

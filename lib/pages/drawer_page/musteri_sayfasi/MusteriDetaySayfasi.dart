@@ -31,10 +31,10 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
   @override
   void initState() {
     super.initState();
-    _firmaCtrl   = TextEditingController(text: widget.musteri.firmaAdi ?? '');
+    _firmaCtrl = TextEditingController(text: widget.musteri.firmaAdi ?? '');
     _yetkiliCtrl = TextEditingController(text: widget.musteri.yetkili ?? '');
     _telefonCtrl = TextEditingController(text: widget.musteri.telefon ?? '');
-    _adresCtrl   = TextEditingController(text: widget.musteri.adres ?? '');
+    _adresCtrl = TextEditingController(text: widget.musteri.adres ?? '');
   }
 
   @override
@@ -52,8 +52,12 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
     final guncel = MusteriModel(
       id: widget.musteri.id,
       firmaAdi: _firmaCtrl.text.trim(),
-      yetkili: _yetkiliCtrl.text.trim().isEmpty ? null : _yetkiliCtrl.text.trim(),
-      telefon: _telefonCtrl.text.trim().isEmpty ? null : _telefonCtrl.text.trim(),
+      yetkili: _yetkiliCtrl.text.trim().isEmpty
+          ? null
+          : _yetkiliCtrl.text.trim(),
+      telefon: _telefonCtrl.text.trim().isEmpty
+          ? null
+          : _telefonCtrl.text.trim(),
       adres: _adresCtrl.text.trim().isEmpty ? null : _adresCtrl.text.trim(),
     );
 
@@ -81,17 +85,42 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
                   controller: _firmaCtrl,
                   decoration: const InputDecoration(
                     labelText: "Firma Adı",
-                    prefixIcon: Icon(Icons.apartment),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.apartment, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? "Firma adı zorunlu" : null,
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? "Firma adı zorunlu"
+                      : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _yetkiliCtrl,
                   decoration: const InputDecoration(
                     labelText: "Yetkili",
-                    prefixIcon: Icon(Icons.badge),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.badge, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -100,7 +129,19 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: "Telefon",
-                    prefixIcon: Icon(Icons.phone),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(Icons.phone, color: Renkler.kahveTon),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ), // aktif çizgi rengi
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -110,7 +151,22 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
                   maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: "Adres",
-                    prefixIcon: Icon(Icons.location_on),
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: Icon(
+                      Icons.location_on,
+                      color: Renkler.kahveTon,
+                    ),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.grey,
+                      ), // pasif çizgi rengi
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Renkler.kahveTon,
+                        width: 2,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -120,7 +176,10 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("İptal", style: TextStyle(color: Renkler.kahveTon)),
+            child: const Text(
+              "İptal",
+              style: TextStyle(color: Renkler.kahveTon),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Renkler.kahveTon),
@@ -172,16 +231,27 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
             children: [
               // Müşteri kısa bilgiler kartı
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_baslik(m), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      if (m.yetkili?.isNotEmpty == true) Text("Yetkili: ${m.yetkili}"),
-                      if (m.telefon?.isNotEmpty == true) Text("Telefon: ${m.telefon}"),
-                      if (m.adres?.isNotEmpty == true) Text("Adres: ${m.adres}"),
+                      Text(
+                        _baslik(m),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (m.yetkili?.isNotEmpty == true)
+                        Text("Yetkili: ${m.yetkili}"),
+                      if (m.telefon?.isNotEmpty == true)
+                        Text("Telefon: ${m.telefon}"),
+                      if (m.adres?.isNotEmpty == true)
+                        Text("Adres: ${m.adres}"),
                     ],
                   ),
                 ),
@@ -211,7 +281,10 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
               const SizedBox(height: 12),
 
               // Geçmiş Siparişler listesi
-              Text("Geçmiş Siparişler", style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                "Geçmiş Siparişler",
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 6),
 
               if (siparisler.isEmpty)
@@ -223,31 +296,44 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
                 )
               else
                 ...siparisler.map((sp) {
-                  final tarihStr = DateFormat('dd.MM.yyyy – HH:mm').format(sp.tarih);
+                  final tarihStr = DateFormat(
+                    'dd.MM.yyyy – HH:mm',
+                  ).format(sp.tarih);
                   final urunSayisi = sp.urunler.length;
                   final brutToplam = sp.brutToplam;
 
                   return Card(
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      title: Text(tarihStr, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      title: Text(
+                        tarihStr,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(children: [
-                            const Text("Durum: "),
-                            SiparisDurumEtiketi(durum: sp.durum),
-                          ]),
+                          Row(
+                            children: [
+                              const Text("Durum: "),
+                              SiparisDurumEtiketi(durum: sp.durum),
+                            ],
+                          ),
                           Text("Ürün Sayısı: $urunSayisi"),
-                          Text("Toplam (Brüt): ₺${brutToplam.toStringAsFixed(2)}"),
+                          Text(
+                            "Toplam (Brüt): ₺${brutToplam.toStringAsFixed(2)}",
+                          ),
                         ],
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => SiparisDetaySayfasi(siparis: sp)),
+                          MaterialPageRoute(
+                            builder: (_) => SiparisDetaySayfasi(siparis: sp),
+                          ),
                         );
                       },
                     ),
@@ -270,7 +356,10 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
           children: [
             Text(baslik, style: const TextStyle(color: Colors.black54)),
             const SizedBox(height: 6),
-            Text(icerik, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              icerik,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       ),

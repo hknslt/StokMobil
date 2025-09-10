@@ -118,7 +118,7 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
             child: const Text('Vazgeç', style: TextStyle(color: Renkler.kahveTon)),
           ),
           FilledButton(
-            style: ButtonStyle(backgroundColor: WidgetStatePropertyAll(Renkler.kahveTon)),
+            style: ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.red)),
             onPressed: () => Navigator.pop(c, true),
             child: const Text('Evet, sil'),
           ),
@@ -163,6 +163,7 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
                   child: TextField(
                     controller: _araCtrl,
                     decoration: const InputDecoration(
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2)),
                       prefixIcon: Icon(Icons.search),
                       hintText: 'Müşteri / açıklama ara',
                       border: OutlineInputBorder(),
