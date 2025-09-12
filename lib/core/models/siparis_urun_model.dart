@@ -1,9 +1,12 @@
+// lib/core/models/siparis_urun_model.dart
+
 class SiparisUrunModel {
-  final String id;        // ürün id (stringleşmiş)
+  final String id;
   final String urunAdi;
   final String renk;
   int adet;
-  double birimFiyat;
+  double birimFiyat; // final kelimesi kaldirildi!
+  final int? uretilenAdet;
 
   SiparisUrunModel({
     required this.id,
@@ -11,6 +14,7 @@ class SiparisUrunModel {
     required this.renk,
     required this.adet,
     required this.birimFiyat,
+    this.uretilenAdet,
   });
 
   /// Basit kopya
@@ -20,6 +24,7 @@ class SiparisUrunModel {
         renk: renk,
         adet: adet,
         birimFiyat: birimFiyat,
+        uretilenAdet: uretilenAdet,
       );
 
   /// ✅ UretimSayfasi vb. yerlerde lazım olan flexible kopya
@@ -29,6 +34,7 @@ class SiparisUrunModel {
     String? renk,
     int? adet,
     double? birimFiyat,
+    int? uretilenAdet,
   }) {
     return SiparisUrunModel(
       id: id ?? this.id,
@@ -36,6 +42,7 @@ class SiparisUrunModel {
       renk: renk ?? this.renk,
       adet: adet ?? this.adet,
       birimFiyat: birimFiyat ?? this.birimFiyat,
+      uretilenAdet: uretilenAdet ?? this.uretilenAdet,
     );
   }
 
@@ -47,13 +54,16 @@ class SiparisUrunModel {
         'renk': renk,
         'adet': adet,
         'birimFiyat': birimFiyat,
+        'uretilenAdet': uretilenAdet,
       };
 
-  factory SiparisUrunModel.fromMap(Map<String, dynamic> map) => SiparisUrunModel(
+  factory SiparisUrunModel.fromMap(Map<String, dynamic> map) =>
+      SiparisUrunModel(
         id: map['id'] as String,
         urunAdi: map['urunAdi'] as String,
         renk: map['renk'] as String,
         adet: (map['adet'] as num).toInt(),
         birimFiyat: (map['birimFiyat'] as num).toDouble(),
+        uretilenAdet: (map['uretilenAdet'] as num?)?.toInt() ?? 0,
       );
 }
