@@ -166,12 +166,15 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                     suffixStyle: TextStyle(color: Renkler.kahveTon),
                     border: OutlineInputBorder(
                       borderSide: BorderSide(color: Renkler.kahveTon),
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Renkler.kahveTon),
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
                     ),
                   ),
                   onChanged: (v) {
@@ -236,7 +239,7 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
               decoration: const InputDecoration(
                 labelText: "Fiyat listesi adı",
                 labelStyle: TextStyle(color: Renkler.kahveTon),
-                focusedBorder: OutlineInputBorder(
+                focusedBorder: UnderlineInputBorder(
                   borderSide: BorderSide(
                     style: BorderStyle.solid,
                     color: Renkler.kahveTon,
@@ -262,13 +265,13 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                 suffixText: "%",
                 suffixStyle: TextStyle(color: Renkler.kahveTon),
                 border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Renkler.kahveTon),
+                  borderSide: BorderSide(color: Renkler.kahveTon),borderRadius: BorderRadius.all(Radius.circular(12))
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Renkler.kahveTon),
+                  borderSide: BorderSide(color: Renkler.kahveTon),borderRadius: BorderRadius.all(Radius.circular(12))
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                  borderSide: BorderSide(color: Renkler.kahveTon, width: 2),borderRadius: BorderRadius.all(Radius.circular(12))
                 ),
               ),
             ),
@@ -527,13 +530,20 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                       TextField(
                         controller: _aramaCtrl,
                         decoration: const InputDecoration(
-                          focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2)),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide: BorderSide(
+                              color: Renkler.kahveTon,
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.all(Radius.circular(20)),
+                          ),
                           prefixIcon: Icon(Icons.search),
                           hintText: "Ürün adı / kodu / renk ara",
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(20)),
+                          ),
                           isDense: true,
                         ),
-                      
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -915,21 +925,21 @@ class _FiyatSatiriState extends State<FiyatSatiri>
                   border: OutlineInputBorder(),
                   focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Renkler.kahveTon),
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                   isDense: true,
                 ),
                 onTap: () {
-                  // ❌ parent setState YOK
                   widget.onStartEdit();
                   FocusScope.of(context).requestFocus(widget.focusNode);
                 },
                 onChanged: (_) => widget.onSoftChange(),
-                onSubmitted: (_) => widget.onEndEdit(), // ❌ parent setState YOK
-                onTapOutside: (_) =>
-                    widget.onEndEdit(), // ❌ parent setState YOK
+                onSubmitted: (_) => widget.onEndEdit(),
+                onTapOutside: (_) => widget.onEndEdit(),
               ),
             ),
           ],

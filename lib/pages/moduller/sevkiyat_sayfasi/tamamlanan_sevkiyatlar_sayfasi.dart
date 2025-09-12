@@ -92,8 +92,9 @@ class _TamamlananSevkiyatlarSayfasiState
                         onPressed: _clearSearch,
                         icon: const Icon(Icons.clear),
                       ),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),borderRadius: BorderRadius.circular(20)),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ),

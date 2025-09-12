@@ -163,10 +163,10 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
                   child: TextField(
                     controller: _araCtrl,
                     decoration: const InputDecoration(
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2)),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),borderRadius: BorderRadius.all(Radius.circular(20))),
                       prefixIcon: Icon(Icons.search),
                       hintText: 'Müşteri / açıklama ara',
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
                       isDense: true,
                     ),
                     onChanged: (_) => setState(() {}),

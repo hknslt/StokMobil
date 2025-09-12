@@ -342,8 +342,22 @@ class _UretimSayfasiState extends State<UretimSayfasi> {
                           enabled: !isProcessing,
                           textInputAction: TextInputAction.done,
                           decoration: const InputDecoration(
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: Renkler.kahveTon,
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
+                            ),
                             labelText: "Ürün Ara",
-                            border: OutlineInputBorder(),
+                            labelStyle: TextStyle(color: Renkler.kahveTon)
                           ),
                           onSubmitted: (v) {
                             if (isProcessing) return;
@@ -370,7 +384,17 @@ class _UretimSayfasiState extends State<UretimSayfasi> {
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: "Eklenecek Adet",
-                        border: OutlineInputBorder(),
+                        labelStyle: TextStyle(color: Renkler.kahveTon),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Renkler.kahveTon,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
                       ),
                     ),
                   ],
@@ -521,16 +545,26 @@ class _UretimSayfasiState extends State<UretimSayfasi> {
               controller: uretimAdetController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                ),
                 labelText: "Üretilen Adet (Eksik: ${istek.eksikAdet})",
+                labelStyle: TextStyle(color: Renkler.kahveTon),
               ),
               enabled: !isBusy,
             ),
             actions: [
               TextButton(
-                child: const Text("İptal"),
+                child: const Text(
+                  "İptal",
+                  style: TextStyle(color: Renkler.kahveTon),
+                ),
                 onPressed: isBusy ? null : () => nav.pop(),
               ),
               ElevatedButton(
+                style: ButtonStyle(
+                  backgroundColor: WidgetStateProperty.all(Renkler.kahveTon),
+                ),
                 child: isBusy
                     ? const SizedBox(
                         width: 18,
@@ -540,7 +574,10 @@ class _UretimSayfasiState extends State<UretimSayfasi> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text("Tamamla"),
+                    : const Text(
+                        "Tamamla",
+                        style: TextStyle(color: Colors.white),
+                      ),
                 onPressed: () async {
                   if (!localCtx.mounted) {
                     return;

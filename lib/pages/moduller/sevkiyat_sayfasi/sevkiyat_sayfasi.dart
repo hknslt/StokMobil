@@ -99,6 +99,7 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
               controller: _searchCtrl,
               onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
               decoration: InputDecoration(
+                
                 hintText: 'Müşteri / yetkili / açıklama içinde ara…',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _query.isEmpty
@@ -110,7 +111,8 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
                         }),
                         icon: const Icon(Icons.clear),
                       ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon ,width: 2),borderRadius: BorderRadius.circular(20)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
                 isDense: true,
               ),
             ),
