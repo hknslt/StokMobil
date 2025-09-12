@@ -19,9 +19,11 @@ class SiparisService {
     return _col
         .orderBy('tarih', descending: true)
         .snapshots()
-        .map((qs) => qs.docs
-            .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
-            .toList());
+        .map(
+          (qs) => qs.docs
+              .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
+              .toList(),
+        );
   }
 
   Stream<List<SiparisModel>> dinle({SiparisDurumu? sadeceDurum}) {
@@ -30,9 +32,11 @@ class SiparisService {
       q = q.where('durum', isEqualTo: sadeceDurum.name);
     }
     q = q.orderBy('tarih', descending: true);
-    return q.snapshots().map((qs) => qs.docs
-        .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
-        .toList());
+    return q.snapshots().map(
+      (qs) => qs.docs
+          .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
+          .toList(),
+    );
   }
 
   Stream<List<SiparisModel>> beklemedeDinle() =>
@@ -49,24 +53,33 @@ class SiparisService {
     DateTime? baslangic,
     DateTime? bitis,
   }) {
-    Query<Map<String, dynamic>> q =
-        _col.where('durum', isEqualTo: SiparisDurumu.tamamlandi.name);
+    Query<Map<String, dynamic>> q = _col.where(
+      'durum',
+      isEqualTo: SiparisDurumu.tamamlandi.name,
+    );
 
     if (baslangic != null) {
       final start = DateTime(baslangic.year, baslangic.month, baslangic.day);
-      q = q.where('islemeTarihi',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(start));
+      q = q.where(
+        'islemeTarihi',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(start),
+      );
     }
     if (bitis != null) {
-      final next =
-          DateTime(bitis.year, bitis.month, bitis.day).add(const Duration(days: 1));
+      final next = DateTime(
+        bitis.year,
+        bitis.month,
+        bitis.day,
+      ).add(const Duration(days: 1));
       q = q.where('islemeTarihi', isLessThan: Timestamp.fromDate(next));
     }
 
     q = q.orderBy('islemeTarihi', descending: false);
-    return q.snapshots().map((qs) => qs.docs
-        .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
-        .toList());
+    return q.snapshots().map(
+      (qs) => qs.docs
+          .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
+          .toList(),
+    );
   }
 
   // ------------------ HELPER ------------------
@@ -118,10 +131,7 @@ class SiparisService {
     await LogService.instance.logSiparis(
       action: 'siparis_guncellendi',
       siparisId: docId,
-      meta: {
-        'durum': siparis.durum.name,
-        'musteriId': siparis.musteri.id,
-      },
+      meta: {'durum': siparis.durum.name, 'musteriId': siparis.musteri.id},
     );
   }
 
@@ -141,54 +151,15 @@ class SiparisService {
     });
   }
 
-  /// 👇 DURUM GÜNCELLEME
   Future<void> guncelleDurum(
     String docId,
     SiparisDurumu yeni, {
     bool islemeTarihiniAyarla = false,
     DateTime? islemeTarihi,
   }) async {
+    // ❗ Artık sevkiyat isteği gelirse stok işini tek fonksiyona devrediyoruz
     if (yeni == SiparisDurumu.sevkiyat) {
-      final snap = await _col.doc(docId).get();
-      if (!snap.exists) {
-        throw StateError('Sipariş bulunamadı: $docId');
-      }
-      final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
-
-      final istek = _istekHaritasi(sip);
-      final ok = await UrunService().decrementStocksIfSufficient(istek);
-
-      final durum = ok ? SiparisDurumu.sevkiyat : SiparisDurumu.uretimde;
-      await _col.doc(docId).update({'durum': durum.name});
-
-      // LOG: sevkiyata alındı / üretime alındı
-      if (ok) {
-        await LogService.instance.logSiparis(
-          action: 'siparis_sevkiyata_alindi',
-          siparisId: docId,
-          meta: {'urunler': istek}, // {urunId: adet}
-        );
-        // Ayrıntılı stok düşüş logları (her kalem için)
-        for (final su in sip.urunler) {
-          final uid = int.tryParse(su.id);
-          await LogService.instance.logUrun(
-            action: 'stok_azaltildi',
-            urunDocId: null,
-            urunId: uid,
-            urunAdi: su.urunAdi,
-            meta: {
-              'adet': su.adet,
-              'reason': 'sevkiyat',
-              'siparisId': docId,
-            },
-          );
-        }
-      } else {
-        await LogService.instance.logSiparis(
-          action: 'siparis_uretime_alindi',
-          siparisId: docId,
-        );
-      }
+      await onaylaVeStokAyir(docId); // bool'u burada önemsemiyoruz
       return;
     }
 
@@ -201,17 +172,15 @@ class SiparisService {
       }
       await _col.doc(docId).update(data);
 
-      // LOG: tamamlandı
       await LogService.instance.logSiparis(
         action: 'siparis_tamamlandi',
         siparisId: docId,
-        meta: {
-          'islemeTarihi_set': islemeTarihiniAyarla,
-        },
+        meta: {'islemeTarihi_set': islemeTarihiniAyarla},
       );
       return;
     }
 
+    // Diğer durumlar: direkt güncelle + kısa log
     await _col.doc(docId).update({'durum': yeni.name});
     await LogService.instance.logSiparis(
       action: 'siparis_durum_guncellendi',
@@ -235,9 +204,9 @@ class SiparisService {
 
     final istek = _istekHaritasi(sip);
     final ok = await UrunService().decrementStocksIfSufficient(istek);
-    await _col.doc(docId).update(
-      {'durum': ok ? SiparisDurumu.sevkiyat.name : SiparisDurumu.uretimde.name},
-    );
+    await _col.doc(docId).update({
+      'durum': ok ? SiparisDurumu.sevkiyat.name : SiparisDurumu.uretimde.name,
+    });
 
     // LOG
     await LogService.instance.logSiparis(
@@ -347,11 +316,48 @@ class SiparisService {
           tarih = DateTime.fromMillisecondsSinceEpoch(ts);
         }
         if (tarih != null) {
-          batch.update(d.reference, {'islemeTarihi': Timestamp.fromDate(tarih)});
+          batch.update(d.reference, {
+            'islemeTarihi': Timestamp.fromDate(tarih),
+          });
         }
       }
     }
     await batch.commit();
+  }
+
+  Future<bool> onaylaVeStokAyir(String docId) async {
+    final snap = await _col.doc(docId).get();
+    if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
+    final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
+
+    final istek = _istekHaritasi(sip); // {urunId: adet}
+    final ok = await UrunService().decrementStocksIfSufficient(istek);
+
+    final yeni = ok ? SiparisDurumu.sevkiyat : SiparisDurumu.uretimde;
+    await _col.doc(docId).update({'durum': yeni.name});
+
+    // LOG
+    await LogService.instance.logSiparis(
+      action: ok ? 'siparis_sevkiyata_alindi' : 'siparis_uretime_alindi',
+      siparisId: docId,
+      meta: ok ? {'urunler': istek} : null,
+    );
+
+    if (ok) {
+      // Kalem kalem stok azalışı logu
+      for (final su in sip.urunler) {
+        final uid = int.tryParse(su.id);
+        await LogService.instance.logUrun(
+          action: 'stok_azaltildi',
+          urunDocId: null,
+          urunId: uid,
+          urunAdi: su.urunAdi,
+          meta: {'adet': su.adet, 'reason': 'sevkiyat', 'siparisId': docId},
+        );
+      }
+    }
+
+    return ok;
   }
 
   // ------------------ ÇEŞİTLİ ------------------
@@ -368,13 +374,17 @@ class SiparisService {
         .where('musteri.id', isEqualTo: musteriId)
         .orderBy('tarih', descending: true)
         .snapshots()
-        .map((qs) => qs.docs
-            .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
-            .toList());
+        .map(
+          (qs) => qs.docs
+              .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
+              .toList(),
+        );
   }
 
   Future<List<SiparisModel>> getirByDurumVeMusteriOnce(
-      SiparisDurumu durum, String musteriId) async {
+    SiparisDurumu durum,
+    String musteriId,
+  ) async {
     final qs = await _col
         .where('durum', isEqualTo: durum.name)
         .where('musteri.id', isEqualTo: musteriId)

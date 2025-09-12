@@ -223,10 +223,12 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                     borderRadius: BorderRadius.circular(16)),
                 child: ListTile(
                   leading: CircleAvatar(
+                    backgroundColor: Renkler.kahveTon.withOpacity(.5),
                     child: Text(
                       ((_secilen!.firmaAdi ?? _secilen!.yetkili ?? '?').isNotEmpty)
                           ? (_secilen!.firmaAdi ?? _secilen!.yetkili!)![0]
                           : '?',
+                          style: TextStyle(color: Colors.black),
                     ),
                   ),
                   title: Text(_secilen!.firmaAdi ?? _secilen!.yetkili ?? '—'),
@@ -288,6 +290,7 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                       // ✅ TIK: Sadece manuel modda göster
                       if (!alanlarKilitli)
                         CheckboxListTile(
+                          activeColor: Renkler.kahveTon,
                           value: _kayitliOlsun,
                           onChanged: (v) {
                             setState(() => _kayitliOlsun = v ?? false);
@@ -520,7 +523,7 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
                     final harf = base.isNotEmpty ? base[0].toUpperCase() : '?';
 
                     return ListTile(
-                      leading: CircleAvatar(child: Text(harf)),
+                      leading: CircleAvatar(child: Text(harf , style: TextStyle(color: Colors.black),) , backgroundColor: Renkler.kahveTon.withOpacity(.5),),
                       title: Text(m.firmaAdi ?? m.yetkili ?? '—'),
                       subtitle:
                           Text("${m.yetkili ?? '—'} • ${m.telefon ?? '—'}"),
@@ -542,6 +545,7 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: ChoiceChip(
         label: Text(harf),
+        selectedColor: Renkler.kahveTon.withOpacity(.7),
         selected: secili,
         onSelected: (_) {
           setState(() {
@@ -602,10 +606,13 @@ class _MetinAlani extends StatelessWidget {
       enabled: enabled,
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(color: Renkler.kahveTon),
         prefixIcon: Icon(icon),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
+   
         ),
+        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),borderRadius:BorderRadius.circular(14) )
       ),
     );
   }

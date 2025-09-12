@@ -35,7 +35,12 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
     super.dispose();
   }
 
+  bool _busyOnay = false;
+
   Future<void> _onayla(SiparisModel siparis) async {
+    if (_busyOnay) return;
+    _busyOnay = true;
+
     bool devamEt = true;
 
     if (siparis.islemeTarihi != null &&
@@ -56,9 +61,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
                   child: const Text("Evet"),
                 ),
               ],
@@ -66,47 +68,32 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
           ) ??
           false;
     }
-    if (!devamEt) return;
-
-    final istek = <int, int>{};
-    for (final su in siparis.urunler) {
-      final id = int.tryParse(su.id);
-      if (id != null) {
-        istek[id] = (istek[id] ?? 0) + su.adet;
-      }
+    if (!devamEt) {
+      _busyOnay = false;
+      return;
     }
 
     try {
-      final ok = await urunServis.decrementStocksIfSufficient(istek);
-      if (ok) {
-        await siparisServis.guncelleDurum(
-          siparis.docId!,
-          SiparisDurumu.sevkiyat,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Sipariş onaylandı. Stok Var ✅")),
-          );
-        }
-      } else {
-        await siparisServis.guncelleDurum(
-          siparis.docId!,
-          SiparisDurumu.uretimde,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Sipariş onaylandı. Stok Yetersiz ⚠️"),
-            ),
-          );
-        }
-      }
+      final ok = await siparisServis.onaylaVeStokAyir(siparis.docId!);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? "Sipariş onaylandı. Stok Var ✅"
+                : "Sipariş onaylandı. Stok Yetersiz ⚠️",
+          ),
+        ),
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
       }
+    } finally {
+      _busyOnay = false;
+      if (mounted) setState(() {});
     }
   }
 

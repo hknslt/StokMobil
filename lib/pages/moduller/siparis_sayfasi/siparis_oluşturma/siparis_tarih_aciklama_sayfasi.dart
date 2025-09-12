@@ -59,31 +59,46 @@ class _SiparisTarihAciklamaSayfasiState
                   const SizedBox(height: 8),
 
                   // Takvim
+                  // Takvim
                   Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: SizedBox(
                       height: 300, // fazla yer kaplamasın
-                      child: CalendarDatePicker(
-                        initialDate: secilenTarih ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(DateTime.now().year + 5),
-                        onDateChanged: (yeniTarih) {
-                          setState(() {
-                            secilenTarih = yeniTarih;
-                          });
-                        },
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: Renkler.kahveTon, // seçilen günün rengi
+                            onPrimary: Colors.white, // seçilen günün yazısı
+                            surface: Colors.white, // takvim arka planı
+                            onSurface: Colors.black, // normal günlerin yazısı
+                          ),
+                        ),
+                        child: CalendarDatePicker(
+                          initialDate: secilenTarih ?? DateTime.now(),
+                          firstDate: DateTime.now(),
+                          lastDate: DateTime(DateTime.now().year + 5),
+                          onDateChanged: (yeniTarih) {
+                            setState(() {
+                              secilenTarih = yeniTarih;
+                            });
+                          },
+                        ),
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 12),
 
                   // Seçilen tarihi göster
                   Text(
                     "Seçilen Tarih: $tarihStr",
                     style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w500),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 20),
 
@@ -91,7 +106,8 @@ class _SiparisTarihAciklamaSayfasiState
                   Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: TextField(
@@ -117,12 +133,15 @@ class _SiparisTarihAciklamaSayfasiState
                 child: ElevatedButton.icon(
                   onPressed: widget.onBack,
                   icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  label: const Text("Geri",
-                      style: TextStyle(color: Colors.white)),
+                  label: const Text(
+                    "Geri",
+                    style: TextStyle(color: Colors.white),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -133,17 +152,20 @@ class _SiparisTarihAciklamaSayfasiState
                     widget.onNext(secilenTarih, aciklamaController.text);
                   },
                   icon: const Icon(Icons.arrow_forward, color: Colors.white),
-                  label: const Text("İleri",
-                      style: TextStyle(color: Colors.white)),
+                  label: const Text(
+                    "İleri",
+                    style: TextStyle(color: Colors.white),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Renkler.kahveTon,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );

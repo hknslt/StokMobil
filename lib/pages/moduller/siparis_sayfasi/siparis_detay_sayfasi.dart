@@ -1,3 +1,4 @@
+import 'package:capri/services/siparis_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:capri/core/models/siparis_model.dart';
@@ -16,6 +17,7 @@ class SiparisDetaySayfasi extends StatefulWidget {
 
 class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
   final urunServis = UrunService();
+  final siparisServis = SiparisService();
 
   late final List<int> _urunIdleri;
   late Future<Map<int, int>> _stokHaritasiFut; // {id: adet}
@@ -35,7 +37,9 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
   Future<void> _yenileStokHaritasi() async {
     final m = await urunServis.getStocksByNumericIds(_urunIdleri);
     if (!mounted) return;
-    setState(() => _stokHaritasiFut = Future.value(m));
+    setState(() {
+      _stokHaritasiFut = Future.value(m);
+    });
   }
 
   Future<void> siparisiOnayla() async {
@@ -59,9 +63,6 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
                   child: const Text("Evet"),
                 ),
               ],
@@ -69,43 +70,68 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
           ) ??
           false;
     }
-
     if (!devamEt) return;
 
-    final istek = <int, int>{};
-    for (var su in widget.siparis.urunler) {
-      final id = int.tryParse(su.id);
-      if (id != null) {
-        istek[id] = (istek[id] ?? 0) + su.adet;
-      }
+    if (widget.siparis.docId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Sipariş docId yok.")));
+      return;
     }
 
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    final basarili = await urunServis.decrementStocksIfSufficient(istek);
+    try {
+      // ✔ tek kaynak: servis
+      final ok = await siparisServis.onaylaVeStokAyir(widget.siparis.docId!);
 
-    setState(() {
-      if (basarili) {
-        widget.siparis.durum = SiparisDurumu.sevkiyat;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sipariş onaylandı. Stok düşüldü ✅")),
-        );
-      } else {
-        widget.siparis.durum = SiparisDurumu.uretimde;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Stok yetersiz: onay verildi, üretime yönlendirildi ⚠️",
-            ),
+      if (!mounted) return;
+      setState(() {
+        widget.siparis.durum = ok
+            ? SiparisDurumu.sevkiyat
+            : SiparisDurumu.uretimde;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? "Sipariş onaylandı. Stok var ✅"
+                : "Sipariş onaylandı. Stok yetersiz → Üretimde ⚠️",
           ),
-        );
-      }
-    });
+        ),
+      );
 
-    await _yenileStokHaritasi();
+      await _yenileStokHaritasi();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
+    }
   }
 
-  void siparisiReddet() {
-    setState(() => widget.siparis.durum = SiparisDurumu.reddedildi);
+  Future<void> siparisiReddet() async {
+    try {
+      if (widget.siparis.docId == null) {
+        throw "Bu siparişin docId'si yok.";
+      }
+      await siparisServis.guncelleDurum(
+        widget.siparis.docId!,
+        SiparisDurumu.reddedildi,
+      );
+      if (!mounted) return;
+      setState(() {
+        widget.siparis.durum = SiparisDurumu.reddedildi;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Sipariş reddedildi.")));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Reddetme başarısız: $e")));
+    }
   }
 
   @override

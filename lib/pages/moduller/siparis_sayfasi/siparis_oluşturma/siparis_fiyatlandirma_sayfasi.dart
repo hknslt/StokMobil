@@ -177,7 +177,7 @@ class _SiparisFiyatlandirmaSayfasiState extends State<SiparisFiyatlandirmaSayfas
                       OutlinedButton.icon(
                         onPressed: () => _uygulaListeFiyati(fiyatMap, overrideAll: true),
                         icon: const Icon(Icons.playlist_add_check),
-                        label: const Text("Tümüne uygula"),
+                        label: const Text("Tümüne uygula" , style: TextStyle(color: Colors.black),),
                       ),
                     ],
                   ),

@@ -273,6 +273,7 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),borderRadius: BorderRadius.circular(12)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
             ),
           ),
