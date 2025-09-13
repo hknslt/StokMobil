@@ -302,6 +302,17 @@ class UrunService {
     return result;
   }
 
+  /// 🔎 YENİ: Sadece kontrol — tüm istekler mevcut stokla karşılanabiliyor mu?
+  Future<bool> stocksSufficient(Map<int, int> istek) async {
+    if (istek.isEmpty) return true;
+    final stokHarita = await getStocksByNumericIds(istek.keys.toList());
+    for (final entry in istek.entries) {
+      final mevcut = stokHarita[entry.key] ?? 0;
+      if (mevcut < entry.value) return false;
+    }
+    return true;
+  }
+
   /// Hepsi yeterliyse tek transaction içinde stokları düş
   Future<bool> decrementStocksIfSufficient(Map<int, int> istek) async {
     if (istek.isEmpty) return true;

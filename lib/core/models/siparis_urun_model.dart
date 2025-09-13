@@ -5,8 +5,9 @@ class SiparisUrunModel {
   final String urunAdi;
   final String renk;
   int adet;
-  double birimFiyat; // final kelimesi kaldirildi!
-  final int? uretilenAdet;
+  double birimFiyat;
+  final int? uretilenAdet;     // üretim ilerleme
+  final int? sevkEdilenAdet;   // KISMİ SEVKİYAT TAKİBİ (yeni)
 
   SiparisUrunModel({
     required this.id,
@@ -15,9 +16,9 @@ class SiparisUrunModel {
     required this.adet,
     required this.birimFiyat,
     this.uretilenAdet,
+    this.sevkEdilenAdet,
   });
 
-  /// Basit kopya
   SiparisUrunModel copy() => SiparisUrunModel(
         id: id,
         urunAdi: urunAdi,
@@ -25,9 +26,9 @@ class SiparisUrunModel {
         adet: adet,
         birimFiyat: birimFiyat,
         uretilenAdet: uretilenAdet,
+        sevkEdilenAdet: sevkEdilenAdet,
       );
 
-  /// ✅ UretimSayfasi vb. yerlerde lazım olan flexible kopya
   SiparisUrunModel copyWith({
     String? id,
     String? urunAdi,
@@ -35,6 +36,7 @@ class SiparisUrunModel {
     int? adet,
     double? birimFiyat,
     int? uretilenAdet,
+    int? sevkEdilenAdet,
   }) {
     return SiparisUrunModel(
       id: id ?? this.id,
@@ -43,10 +45,17 @@ class SiparisUrunModel {
       adet: adet ?? this.adet,
       birimFiyat: birimFiyat ?? this.birimFiyat,
       uretilenAdet: uretilenAdet ?? this.uretilenAdet,
+      sevkEdilenAdet: sevkEdilenAdet ?? this.sevkEdilenAdet,
     );
   }
 
   double get toplamFiyat => adet * birimFiyat;
+
+  int get kalanSevkAdedi =>
+      adet - (sevkEdilenAdet ?? 0) < 0 ? 0 : adet - (sevkEdilenAdet ?? 0);
+
+  int get kalanUretimAdedi =>
+      adet - (uretilenAdet ?? 0) < 0 ? 0 : adet - (uretilenAdet ?? 0);
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -55,15 +64,16 @@ class SiparisUrunModel {
         'adet': adet,
         'birimFiyat': birimFiyat,
         'uretilenAdet': uretilenAdet,
+        'sevkEdilenAdet': sevkEdilenAdet,
       };
 
-  factory SiparisUrunModel.fromMap(Map<String, dynamic> map) =>
-      SiparisUrunModel(
+  factory SiparisUrunModel.fromMap(Map<String, dynamic> map) => SiparisUrunModel(
         id: map['id'] as String,
         urunAdi: map['urunAdi'] as String,
         renk: map['renk'] as String,
         adet: (map['adet'] as num).toInt(),
         birimFiyat: (map['birimFiyat'] as num).toDouble(),
         uretilenAdet: (map['uretilenAdet'] as num?)?.toInt() ?? 0,
+        sevkEdilenAdet: (map['sevkEdilenAdet'] as num?)?.toInt() ?? 0,
       );
 }

@@ -190,26 +190,68 @@ class SiparisService {
   Future<void> durumuGuncelle(String docId, SiparisDurumu durum) =>
       guncelleDurum(docId, durum);
 
-  /// 🔹 Sadece bu siparişi sevkiyata geçirmeyi dener.
-  ///    (Stok yeterse düşer ve 'sevkiyat', yetmezse 'uretimde' kalır)
-  Future<bool> sevkiyataGecir(String docId) async {
+  // ------------------ YENİ AKIŞ ------------------
+
+  /// ✅ Onay: stok DÜŞMEDEN kontrol edilir.
+  /// - Yeterliyse: sevkiyatHazir:true, durum beklemede kalır.
+  /// - Yetersizse: durum uretimde, sevkiyatHazir:false.
+  Future<bool> onayla(String docId) async {
+    final snap = await _col.doc(docId).get();
+    if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
+    final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
+
+    final istek = _istekHaritasi(sip);
+    final stokYeterli = await UrunService().stocksSufficient(istek);
+
+    if (stokYeterli) {
+      await _col.doc(docId).update({
+        'sevkiyatHazir': true,
+        'durum': SiparisDurumu.beklemede.name,
+      });
+      await LogService.instance.logSiparis(
+        action: 'siparis_onaylandi_stok_yeterli',
+        siparisId: docId,
+        meta: {'urunler': istek},
+      );
+      return true;
+    } else {
+      await _col.doc(docId).update({
+        'sevkiyatHazir': false,
+        'durum': SiparisDurumu.uretimde.name,
+      });
+      await LogService.instance.logSiparis(
+        action: 'siparis_onaylandi_stok_yetersiz',
+        siparisId: docId,
+      );
+      return false;
+    }
+  }
+
+  /// ♻️ Geriye uyum: Eski metot artık sadece ONAY davranışı yapar (stok düşmez).
+  Future<bool> onaylaVeStokAyir(String docId) => onayla(docId);
+
+  /// ✅ Manuel sevkiyat onayı: o anda stok yeterliyse düşer ve durum `sevkiyat` olur.
+  Future<bool> sevkiyataOnayla(String docId) async {
     final snap = await _col.doc(docId).get();
     if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
     final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
 
     final istek = _istekHaritasi(sip);
     final ok = await UrunService().decrementStocksIfSufficient(istek);
+
     await _col.doc(docId).update({
       'durum': ok ? SiparisDurumu.sevkiyat.name : SiparisDurumu.uretimde.name,
+      'sevkiyatHazir': false,
     });
 
-    // LOG
     await LogService.instance.logSiparis(
-      action: ok ? 'siparis_sevkiyata_alindi' : 'siparis_uretime_alindi',
+      action: ok ? 'sevkiyat_onayi_basarili' : 'sevkiyat_onayi_stok_yetersiz',
       siparisId: docId,
       meta: ok ? {'urunler': istek} : null,
     );
+
     if (ok) {
+      // Kalem kalem stok azalışı logu
       for (final su in sip.urunler) {
         final uid = int.tryParse(su.id);
         await LogService.instance.logUrun(
@@ -217,7 +259,7 @@ class SiparisService {
           urunDocId: null,
           urunId: uid,
           urunAdi: su.urunAdi,
-          meta: {'adet': su.adet, 'reason': 'sevkiyat', 'siparisId': docId},
+          meta: {'adet': su.adet, 'reason': 'sevkiyat_onayi', 'siparisId': docId},
         );
       }
     }
@@ -225,8 +267,10 @@ class SiparisService {
     return ok;
   }
 
-  /// 🔹 FIFO: üretimdeki siparişleri sırayla dener; stok yeterli olanlar
-  ///    için stok düşüp 'sevkiyat'a alır. Kaç siparişin geçtiğini döner.
+  /// (Opsiyonel) Eski adlandırma ile manuel sevkiyata geçirme.
+  Future<bool> sevkiyataGecir(String docId) => sevkiyataOnayla(docId);
+
+  /// (ESKİ DAVRANIŞI KULLANAN YERLER İÇİN) FIFO yardımcısı – artık UI'dan çağrılmamalı.
   Future<int> allocateFIFOAcrossProduction() async {
     final adaylar = await getirByDurumOnce(SiparisDurumu.uretimde)
       ..sort((a, b) => a.tarih.compareTo(b.tarih)); // FIFO
@@ -239,7 +283,6 @@ class SiparisService {
         await _col.doc(s.docId!).update({'durum': SiparisDurumu.sevkiyat.name});
         counter++;
 
-        // LOG
         await LogService.instance.logSiparis(
           action: 'siparis_sevkiyata_alindi',
           siparisId: s.docId!,
@@ -320,39 +363,91 @@ class SiparisService {
     await batch.commit();
   }
 
-  Future<bool> onaylaVeStokAyir(String docId) async {
-    final snap = await _col.doc(docId).get();
-    if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
+  // ------------------ ÜRETİM İLERLEMESİ ------------------
+
+  /// 🔹 Belirli bir siparişteki belirli bir ürünün üretilen miktarını günceller.
+  ///    Ürün stoğunu artırmaz (stoğa ekleme ayrı yerde yapılır).
+  Future<void> guncelleUretilenAdet(
+    String siparisDocId,
+    String urunId,
+    int uretilenAdet,
+  ) async {
+    final snap = await _col.doc(siparisDocId).get();
+    if (!snap.exists) {
+      throw StateError('Sipariş bulunamadı: $siparisDocId');
+    }
     final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
 
-    final istek = _istekHaritasi(sip); // {urunId: adet}
-    final ok = await UrunService().decrementStocksIfSufficient(istek);
-
-    final yeni = ok ? SiparisDurumu.sevkiyat : SiparisDurumu.uretimde;
-    await _col.doc(docId).update({'durum': yeni.name});
-
-    // LOG
-    await LogService.instance.logSiparis(
-      action: ok ? 'siparis_sevkiyata_alindi' : 'siparis_uretime_alindi',
-      siparisId: docId,
-      meta: ok ? {'urunler': istek} : null,
-    );
-
-    if (ok) {
-      // Kalem kalem stok azalışı logu
-      for (final su in sip.urunler) {
-        final uid = int.tryParse(su.id);
-        await LogService.instance.logUrun(
-          action: 'stok_azaltildi',
-          urunDocId: null,
-          urunId: uid,
-          urunAdi: su.urunAdi,
-          meta: {'adet': su.adet, 'reason': 'sevkiyat', 'siparisId': docId},
-        );
+    final updatedUrunler = sip.urunler.map((su) {
+      if (su.id == urunId) {
+        return su.copyWith(uretilenAdet: (su.uretilenAdet ?? 0) + uretilenAdet);
       }
-    }
+      return su;
+    }).toList();
 
-    return ok;
+    await _col.doc(siparisDocId).update({
+      'urunler': updatedUrunler.map((e) => e.toMap()).toList(),
+    });
+
+    await LogService.instance.logSiparis(
+      action: 'siparis_urun_uretildi',
+      siparisId: siparisDocId,
+      meta: {'urunId': urunId, 'uretilenAdet': uretilenAdet},
+    );
+  }
+
+  /// 🔹 Üretim ilerlemesini transaction ile günceller.
+  ///    NOT: Artık burada otomatik sevkiyat veya stok düşümü YOK.
+  ///    Tüm kalemler tamamlanmışsa `true` döner, ancak durum/stok değiştirmez.
+  Future<bool> uretilenMiktariGuncelle(
+    String siparisDocId,
+    String urunId,
+    int uretilenAdet,
+  ) async {
+    final docRef = _col.doc(siparisDocId);
+
+    return FirebaseFirestore.instance.runTransaction<bool>((transaction) async {
+      final docSnapshot = await transaction.get(docRef);
+
+      if (!docSnapshot.exists) {
+        throw Exception("Sipariş belgesi bulunamadı!");
+      }
+
+      final siparis = SiparisModel.fromMap(docSnapshot.data()!);
+
+      // İlgili ürünü bul
+      final urunIndex = siparis.urunler.indexWhere((u) => u.id == urunId);
+      if (urunIndex == -1) {
+        throw Exception("Sipariş içinde ürün bulunamadı!");
+      }
+
+      final guncellenecekUrun = siparis.urunler[urunIndex];
+      final yeniUretilenAdet =
+          (guncellenecekUrun.uretilenAdet ?? 0) + uretilenAdet;
+      final toplamAdet = guncellenecekUrun.adet;
+
+      // Üretilen adet istenen adeti geçemez.
+      final guncelUrun = guncellenecekUrun.copyWith(
+        uretilenAdet: min(yeniUretilenAdet, toplamAdet),
+      );
+
+      // Yeni üretilen adetle ürün listesini güncelle
+      final guncelUrunListesi = List.of(siparis.urunler);
+      guncelUrunListesi[urunIndex] = guncelUrun;
+
+      // Siparişi güncelle
+      transaction.update(docRef, {
+        'urunler': guncelUrunListesi.map((u) => u.toMap()).toList(),
+      });
+
+      // Tamamı sevke hazır mı? (yalnızca bilgi amaçlı dönüş)
+      final hepsiHazir = guncelUrunListesi.every(
+        (urun) => (urun.uretilenAdet ?? 0) >= urun.adet,
+      );
+
+      // OTOMATİK sevkiyata geçiş veya stok düşümü YOK.
+      return hepsiHazir;
+    });
   }
 
   // ------------------ ÇEŞİTLİ ------------------
@@ -388,103 +483,5 @@ class SiparisService {
     return qs.docs
         .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
         .toList();
-  }
-
-  // YENİ EKLEDİĞİM FONKSİYON
-  /// 🔹 Belirli bir siparişteki belirli bir ürünün üretilen miktarını günceller.
-  ///    Bu işlem, ana `SiparisModel`'deki `urunler` listesini günceller.
-  ///    **Not:** Bu fonksiyon ürün stoğunu artırmaz, sadece sipariş verisini günceller.
-  ///    Ürün stoğu artırma işlemi ayrı bir yerden (örneğin "Yeni Stok Ekle" butonu) yapılmalıdır.
-  Future<void> guncelleUretilenAdet(
-    String siparisDocId,
-    String urunId,
-    int uretilenAdet,
-  ) async {
-    final snap = await _col.doc(siparisDocId).get();
-    if (!snap.exists) {
-      throw StateError('Sipariş bulunamadı: $siparisDocId');
-    }
-    final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
-
-    final updatedUrunler = sip.urunler.map((su) {
-      if (su.id == urunId) {
-        // Ürünün sadece üretilen miktarını güncelle
-        return su.copyWith(uretilenAdet: (su.uretilenAdet ?? 0) + uretilenAdet);
-      }
-      return su;
-    }).toList();
-
-    // Firestore'da `urunler` listesini güncelle
-    await _col.doc(siparisDocId).update({
-      'urunler': updatedUrunler.map((e) => e.toMap()).toList(),
-    });
-
-    // LOG
-    await LogService.instance.logSiparis(
-      action: 'siparis_urun_uretildi',
-      siparisId: siparisDocId,
-      meta: {'urunId': urunId, 'uretilenAdet': uretilenAdet},
-    );
-  }
-
-  Future<bool> uretilenMiktariGuncelle(
-    String siparisDocId,
-    String urunId,
-    int uretilenAdet,
-  ) async {
-    final docRef = _col.doc(siparisDocId);
-
-    return FirebaseFirestore.instance.runTransaction<bool>((transaction) async {
-      final docSnapshot = await transaction.get(docRef);
-
-      if (!docSnapshot.exists) {
-        throw Exception("Sipariş belgesi bulunamadı!");
-      }
-
-      final siparis = SiparisModel.fromMap(docSnapshot.data()!);
-
-      // İlgili ürünü bul
-      final urunIndex = siparis.urunler.indexWhere((u) => u.id == urunId);
-
-      if (urunIndex == -1) {
-        throw Exception("Sipariş içinde ürün bulunamadı!");
-      }
-
-      final guncellenecekUrun = siparis.urunler[urunIndex];
-      final yeniUretilenAdet =
-          (guncellenecekUrun.uretilenAdet ?? 0) + uretilenAdet;
-      final toplamAdet = guncellenecekUrun.adet;
-
-      // Üretilen adet istenen adeti geçemez.
-      final guncelUrun = guncellenecekUrun.copyWith(
-        uretilenAdet: min(yeniUretilenAdet, toplamAdet),
-      );
-
-      // Yeni üretilen adetle ürün listesini güncelle
-      final guncelUrunListesi = List.of(siparis.urunler);
-      guncelUrunListesi[urunIndex] = guncelUrun;
-
-      // Siparişi güncelle
-      transaction.update(docRef, {
-        'urunler': guncelUrunListesi.map((u) => u.toMap()).toList(),
-      });
-
-      // Siparişin tamamen sevkiyata hazır olup olmadığını kontrol et
-      final sevkiyataHazirMi = guncelUrunListesi.every(
-        (urun) => (urun.uretilenAdet ?? 0) >= urun.adet,
-      );
-
-      if (sevkiyataHazirMi) {
-        // Siparişin durumunu sevkiyata geçti olarak güncelle
-        transaction.update(docRef, {'durum': SiparisDurumu.sevkiyat.name});
-        // İlgili siparişin stoklarını ayır
-        await UrunService().decrementStocksIfSufficient(
-          _istekHaritasi(siparis),
-        );
-        return true;
-      }
-
-      return false;
-    });
   }
 }

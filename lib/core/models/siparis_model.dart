@@ -35,6 +35,9 @@ class SiparisModel {
   final String? fiyatListesiId;
   final String? fiyatListesiAd;
 
+  // ✅ Yeni: Onayda stok yeterliyse kartta "Sevkiyat Onayı" butonunu göstermek için
+  final bool? sevkiyatHazir;
+
   SiparisModel({
     this.docId,
     String? id,
@@ -54,6 +57,9 @@ class SiparisModel {
     // bilgi
     this.fiyatListesiId,
     this.fiyatListesiAd,
+
+    // yeni
+    this.sevkiyatHazir,
   })  : id = id ?? const Uuid().v4(),
         tarih = tarih ?? DateTime.now(),
         durum = durum ?? SiparisDurumu.beklemede;
@@ -62,8 +68,7 @@ class SiparisModel {
   static double _sumNet(List<SiparisUrunModel> items) =>
       items.fold(0.0, (s, u) => s + u.adet * (u.birimFiyat));
 
-  static double _round2(double v) =>
-      double.parse(v.toStringAsFixed(2));
+  static double _round2(double v) => double.parse(v.toStringAsFixed(2));
 
   /// UI’de eski `toplamTutar` alışkanlığı için (NET)
   double get toplamTutar => _round2(_netComputed);
@@ -84,8 +89,8 @@ class SiparisModel {
       'id': id,
       'musteri': musteri.toMap(),
       'urunler': urunler.map((e) => e.toMap()).toList(),
-      'tarih': tarih,
-      'islemeTarihi': islemeTarihi,
+      'tarih': tarih,                  // Firestore DateTime -> Timestamp dönüşümü otomatik
+      'islemeTarihi': islemeTarihi,    // (serverTimestamp set edilecekse servis tarafında)
       'aciklama': aciklama,
       'durum': durum.name,
 
@@ -98,6 +103,9 @@ class SiparisModel {
       // bilgi
       'fiyatListesiId': fiyatListesiId,
       'fiyatListesiAd': fiyatListesiAd,
+
+      // yeni
+      'sevkiyatHazir': sevkiyatHazir ?? false,
     };
   }
 
@@ -127,7 +135,7 @@ class SiparisModel {
       return null;
     }
 
-    final model = SiparisModel(
+    return SiparisModel(
       id: (map['id'] as String?) ?? const Uuid().v4(),
       musteri: MusteriModel.fromMap(map['musteri'] as Map<String, dynamic>),
       urunler: (map['urunler'] as List)
@@ -149,9 +157,10 @@ class SiparisModel {
       // bilgi
       fiyatListesiId: map['fiyatListesiId'] as String?,
       fiyatListesiAd: map['fiyatListesiAd'] as String?,
-    );
 
-    return model;
+      // yeni
+      sevkiyatHazir: (map['sevkiyatHazir'] as bool?) ?? false,
+    );
   }
 
   SiparisModel copyWith({
@@ -171,6 +180,8 @@ class SiparisModel {
 
     String? fiyatListesiId,
     String? fiyatListesiAd,
+
+    bool? sevkiyatHazir,
   }) {
     return SiparisModel(
       docId: docId ?? this.docId,
@@ -189,6 +200,8 @@ class SiparisModel {
 
       fiyatListesiId: fiyatListesiId ?? this.fiyatListesiId,
       fiyatListesiAd: fiyatListesiAd ?? this.fiyatListesiAd,
+
+      sevkiyatHazir: sevkiyatHazir ?? this.sevkiyatHazir,
     );
   }
 }
