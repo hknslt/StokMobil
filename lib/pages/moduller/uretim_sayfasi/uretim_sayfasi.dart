@@ -1,6 +1,5 @@
 // lib/pages/moduller/uretim_sayfasi/uretim_sayfasi.dart
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:collection/collection.dart';
@@ -14,7 +13,7 @@ import 'package:capri/services/urun_service.dart';
 String fmtDate(DateTime d) =>
     "${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}";
 
-/// Alt kırılım: firma bazlı eksik kalem
+/// Alt kırılım: firma bazlı eksik kalem (bilgilendirme için)
 class EksikIstek {
   final String siparisDocId;
   final DateTime siparisTarihi;
@@ -44,7 +43,7 @@ class EksikGrup {
   final String urunAdi;
   final String renk; // '' olabilir
   final int toplamEksik;
-  final List<EksikIstek> firmalar; // alt kırılım
+  final List<EksikIstek> firmalar; // sadece bilgi amaçlı liste
 
   const EksikGrup({
     required this.urunId,
@@ -62,21 +61,21 @@ class UretimViewState {
   final List<Urun> tumUrunler;
 
   const UretimViewState.loading()
-      : loading = true,
-        error = null,
-        eksikListe = const [],
-        tumUrunler = const [];
+    : loading = true,
+      error = null,
+      eksikListe = const [],
+      tumUrunler = const [];
 
   const UretimViewState.error(this.error)
-      : loading = false,
-        eksikListe = const [],
-        tumUrunler = const [];
+    : loading = false,
+      eksikListe = const [],
+      tumUrunler = const [];
 
   const UretimViewState.data({
     required this.eksikListe,
     required this.tumUrunler,
-  })  : loading = false,
-        error = null;
+  }) : loading = false,
+       error = null;
 }
 
 /// Controller: iki servisi dinler, tek akış üretir
@@ -139,8 +138,8 @@ class UretimController {
     for (final sip in _cacheSips) {
       final musteriAdi =
           (sip.musteri.firmaAdi != null && sip.musteri.firmaAdi!.isNotEmpty)
-              ? sip.musteri.firmaAdi!
-              : (sip.musteri.yetkili ?? 'Müşteri');
+          ? sip.musteri.firmaAdi!
+          : (sip.musteri.yetkili ?? 'Müşteri');
 
       for (final su in sip.urunler) {
         final id = int.tryParse(su.id);
@@ -178,30 +177,34 @@ class UretimController {
     }
 
     // Grupları oluştur
-    final List<EksikGrup> eksikGruplar = gruplar.entries.map((e) {
-      final parts = e.key.split('|');
-      final urunId = int.tryParse(parts.first) ?? 0;
-      final renk = parts.length > 1 ? parts[1] : '';
-      final firmalar = e.value;
-      final toplamEksik =
-          firmalar.fold<int>(0, (sum, it) => sum + it.eksikAdet);
-      final urunAdi = firmalar.isNotEmpty ? firmalar.first.urunAdi : 'Ürün';
+    final List<EksikGrup> eksikGruplar =
+        gruplar.entries.map((e) {
+          final parts = e.key.split('|');
+          final urunId = int.tryParse(parts.first) ?? 0;
+          final renk = parts.length > 1 ? parts[1] : '';
+          final firmalar = e.value;
+          final toplamEksik = firmalar.fold<int>(
+            0,
+            (sum, it) => sum + it.eksikAdet,
+          );
+          final urunAdi = firmalar.isNotEmpty ? firmalar.first.urunAdi : 'Ürün';
 
-      return EksikGrup(
-        urunId: urunId,
-        urunAdi: urunAdi,
-        renk: renk,
-        toplamEksik: toplamEksik,
-        firmalar: firmalar
-          ..sort((a, b) => a.siparisTarihi.compareTo(b.siparisTarihi)), // FIFO
-      );
-    }).toList()
-      ..sort((a, b) {
-        // Önce en fazla eksik olanlar, eşitse ürün adına göre
-        final cmp = b.toplamEksik.compareTo(a.toplamEksik);
-        if (cmp != 0) return cmp;
-        return a.urunAdi.compareTo(b.urunAdi);
-      });
+          return EksikGrup(
+            urunId: urunId,
+            urunAdi: urunAdi,
+            renk: renk,
+            toplamEksik: toplamEksik,
+            firmalar: firmalar
+              ..sort(
+                (a, b) => a.siparisTarihi.compareTo(b.siparisTarihi),
+              ), // FIFO
+          );
+        }).toList()..sort((a, b) {
+          // Önce en fazla eksik olanlar, eşitse ürün adına göre
+          final cmp = b.toplamEksik.compareTo(a.toplamEksik);
+          if (cmp != 0) return cmp;
+          return a.urunAdi.compareTo(b.urunAdi);
+        });
 
     _out.add(
       UretimViewState.data(eksikListe: eksikGruplar, tumUrunler: _cacheUruns),
@@ -281,7 +284,7 @@ class _UretimSayfasiState extends State<UretimSayfasi>
                 ),
                 const SizedBox(height: 12),
 
-                // ÜRÜN GRUPLARI
+                // ÜRÜN GRUPLARI (grup bazlı "Stok Ekle")
                 Expanded(
                   child: ListView.builder(
                     key: const PageStorageKey('uretim-istek-list'),
@@ -289,7 +292,7 @@ class _UretimSayfasiState extends State<UretimSayfasi>
                     addAutomaticKeepAlives: false,
                     addRepaintBoundaries: true,
                     addSemanticIndexes: false,
-                    cacheExtent: 600.0, // <- double olarak verildi
+                    cacheExtent: 600.0,
                     itemCount: eksikListe.length,
                     itemBuilder: (context, i) {
                       final grp = eksikListe[i];
@@ -297,60 +300,105 @@ class _UretimSayfasiState extends State<UretimSayfasi>
                         margin: const EdgeInsets.only(bottom: 12),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                              vertical: 8, horizontal: 8),
+                            vertical: 8,
+                            horizontal: 8,
+                          ),
                           child: ExpansionTile(
+                            key: PageStorageKey<String>(
+                              'exp-${grp.urunId}-${grp.renk}',
+                            ), // ✅ benzersiz anahtar
+                            maintainState: true, // ✅ (opsiyonel) state koru
                             tilePadding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 0),
+                              horizontal: 8,
+                              vertical: 0,
+                            ),
                             initiallyExpanded: true,
-                            title: Text(
-                              "${grp.urunAdi} | ${grp.renk.isEmpty ? '-' : grp.renk}",
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                            subtitle: Text(
-                              "Toplam eksik: ${grp.toplamEksik}",
-                              style: const TextStyle(color: Colors.black54),
-                            ),
-
-                            // FİRMA KIRILIMI
-                            children: grp.firmalar.map((it) {
-                              return ListTile(
-                                dense: true,
-                                title: Text(
-                                  "Firma: ${it.musteriAdi}",
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "${grp.urunAdi} | ${grp.renk.isEmpty ? '-' : grp.renk}",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      const Text(
+                                        // Alt bilgi (subtitle yerine)
+                                        // "Toplam eksik: ..." bilgisini buraya taşıdık
+                                        // aşağıda String interpolasyonu ile yazıyoruz:
+                                        "",
+                                        style: TextStyle(color: Colors.black54),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      "Sipariş tarihi: ${fmtDate(it.siparisTarihi)} • İstenen: ${it.toplamIstenen} • Eksik: ${it.eksikAdet}",
-                                      style: const TextStyle(
-                                          color: Colors.black54),
-                                    ),
-                                    if (it.aciklama.isNotEmpty)
-                                      Text(it.aciklama,
-                                          style: const TextStyle(
-                                              color: Colors.black45)),
-                                  ],
-                                ),
-                                trailing: FilledButton.icon(
-                                  icon: const Icon(Icons.check_circle),
-                                  label: const Text("Ekle"),
+                                FilledButton.icon(
+                                  icon: const Icon(Icons.add),
+                                  label: const Text("Stok Ekle"),
                                   style: ButtonStyle(
                                     backgroundColor:
                                         MaterialStateProperty.all<Color>(
-                                      Renkler.kahveTon,
-                                    ),
+                                          Renkler.kahveTon,
+                                        ),
                                   ),
-                                  onPressed: () =>
-                                      _istekTamamla(context, it, tumUrunler),
+                                  onPressed: () => _grupStokEkleDialog(
+                                    context,
+                                    grp,
+                                    tumUrunler,
+                                  ),
                                 ),
-                              );
-                            }).toList(),
+                              ],
+                            ),
+                            // childrenPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 16,
+                                  right: 16,
+                                  bottom: 8,
+                                ),
+                                child: Text(
+                                  "Toplam eksik: ${grp.toplamEksik}",
+                                  style: const TextStyle(color: Colors.black54),
+                                ),
+                              ),
+                              ...grp.firmalar.map(
+                                (it) => ListTile(
+                                  dense: true,
+                                  title: Text(
+                                    "Firma: ${it.musteriAdi}",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Sipariş tarihi: ${fmtDate(it.siparisTarihi)} • İstenen: ${it.toplamIstenen} • Eksik: ${it.eksikAdet}",
+                                        style: const TextStyle(
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                      if (it.aciklama.isNotEmpty)
+                                        Text(
+                                          it.aciklama,
+                                          style: const TextStyle(
+                                            color: Colors.black45,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       );
@@ -363,7 +411,7 @@ class _UretimSayfasiState extends State<UretimSayfasi>
         },
       ),
 
-      // YENİ STOK EKLE (OTOMATİK SEVKİYAT YOK)
+      // Opsiyonel: genel "Yeni Stok" (ürün arayarak)
       floatingActionButton: Builder(
         builder: (ctx) => FloatingActionButton.extended(
           onPressed: () => _stokEkleDialog(ctx),
@@ -384,11 +432,113 @@ class _UretimSayfasiState extends State<UretimSayfasi>
     );
   }
 
-  // ---- Helpers ----
-  static String _fmtDate(DateTime d) =>
-      "${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}";
+  // ---- Dialog: Grup için Stok Ekle (ÜRÜN BAZLI) ----
+  Future<void> _grupStokEkleDialog(
+    BuildContext parentCtx,
+    EksikGrup grp,
+    List<Urun> tumUrunler,
+  ) async {
+    final adetCtrl = TextEditingController(text: grp.toplamEksik.toString());
+    await showDialog(
+      context: parentCtx,
+      builder: (dialogCtx) {
+        final nav = Navigator.of(dialogCtx);
+        bool isBusy = false;
 
-  // ---- Dialog: Stok Ekle ----
+        return StatefulBuilder(
+          builder: (localCtx, setLocal) => AlertDialog(
+            title: Text("${grp.urunAdi} için Stok Ekle"),
+            content: TextField(
+              controller: adetCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: "Eklenecek Adet (Toplam Eksik: ${grp.toplamEksik})",
+              ),
+              enabled: !isBusy,
+            ),
+            actions: [
+              TextButton(
+                onPressed: isBusy ? null : () => nav.pop(),
+                child: const Text(
+                  "İptal",
+                  style: TextStyle(color: Renkler.kahveTon),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: isBusy
+                    ? null
+                    : () async {
+                        final ek = int.tryParse(adetCtrl.text.trim()) ?? 0;
+                        if (ek <= 0) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(parentCtx).showSnackBar(
+                            const SnackBar(
+                              content: Text("Geçerli bir adet girin."),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setLocal(() => isBusy = true);
+                        try {
+                          // İlgili ürünü bul
+                          final urun = tumUrunler.firstWhereOrNull(
+                            (u) => u.id == grp.urunId,
+                          );
+                          if (urun == null || urun.docId == null) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(parentCtx).showSnackBar(
+                              const SnackBar(content: Text("Ürün bulunamadı.")),
+                            );
+                            return;
+                          }
+
+                          // Sadece STOĞU artır — sipariş durumlarına OTOMATİK dokunma!
+                          await UrunService().adetArtir(urun.docId!, ek);
+
+                          if (parentCtx.mounted) {
+                            ScaffoldMessenger.of(parentCtx).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Stoğa eklendi: ${grp.urunAdi}"
+                                  "${grp.renk.isNotEmpty ? " (${grp.renk})" : ""} → +$ek adet. "
+                                  "Sevkiyat için Siparişler sayfasında ilgili siparişe Onay verin.",
+                                ),
+                              ),
+                            );
+                          }
+                          nav.pop();
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(parentCtx).showSnackBar(
+                            SnackBar(content: Text("İşlem başarısız: $e")),
+                          );
+                        } finally {
+                          if (localCtx.mounted) setLocal(() => isBusy = false);
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Renkler.kahveTon,
+                ),
+                child: isBusy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text("Ekle", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ---- Dialog: Genel Stok Ekle (ürün arayarak) ----
   Future<void> _stokEkleDialog(BuildContext pageContext) async {
     final urunServis = _controller.urunServis;
     final urunler = await urunServis.onceGetir();
@@ -420,8 +570,8 @@ class _UretimSayfasiState extends State<UretimSayfasi>
                         secilen == null
                             ? "Lütfen ürün seçin."
                             : (ek <= 0
-                                ? "Geçerli bir adet girin."
-                                : "Ürünün belge kimliği yok. Listeyi yenileyin."),
+                                  ? "Geçerli bir adet girin."
+                                  : "Ürünün belge kimliği yok. Listeyi yenileyin."),
                       ),
                     ),
                   );
@@ -438,7 +588,8 @@ class _UretimSayfasiState extends State<UretimSayfasi>
                     SnackBar(
                       content: Text(
                         "Stok eklendi: ${secilen!.urunAdi}"
-                        "${(secilen!.renk ?? '').isNotEmpty ? " (${secilen!.renk})" : ""} → +$ek adet. ",
+                        "${(secilen!.renk ?? '').isNotEmpty ? " (${secilen!.renk})" : ""} → +$ek adet. "
+                        "Sevkiyat için Siparişler sayfasında Onay'ı kullanın.",
                       ),
                     ),
                   );
@@ -485,8 +636,9 @@ class _UretimSayfasiState extends State<UretimSayfasi>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        subtitle:
-                            Text("Renk: ${u.renk ?? '-'} | Stok: ${u.adet}"),
+                        subtitle: Text(
+                          "Renk: ${u.renk ?? '-'} | Stok: ${u.adet}",
+                        ),
                       ),
                       onSelected: (u) {
                         if (isProcessing) return;
@@ -504,16 +656,18 @@ class _UretimSayfasiState extends State<UretimSayfasi>
                           textInputAction: TextInputAction.done,
                           decoration: const InputDecoration(
                             border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: Renkler.kahveTon,
                                 width: 2,
                               ),
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(12)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(12),
+                              ),
                             ),
                             labelText: "Ürün Ara",
                             labelStyle: TextStyle(color: Renkler.kahveTon),
@@ -589,115 +743,6 @@ class _UretimSayfasiState extends State<UretimSayfasi>
               ],
             );
           },
-        );
-      },
-    );
-  }
-
-  // ---- Dialog: İstek Tamamla ----
-  // Servis örnekleri (UI dışında da kullanılıyor)
-  final siparisServis = SiparisService();
-  final urunServis = UrunService();
-
-  Future<void> _istekTamamla(
-    BuildContext parentCtx,
-    EksikIstek istek,
-    List<Urun> tumUrunler,
-  ) async {
-    final adetCtrl = TextEditingController();
-    await showDialog(
-      context: parentCtx,
-      builder: (dialogCtx) {
-        final nav = Navigator.of(dialogCtx);
-        bool isBusy = false;
-
-        return StatefulBuilder(
-          builder: (localCtx, setLocal) => AlertDialog(
-            title: Text("${istek.urunAdi} Üretimi (${istek.musteriAdi})"),
-            content: TextField(
-              controller: adetCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "Üretilen Adet (Eksik: ${istek.eksikAdet})",
-              ),
-              enabled: !isBusy,
-            ),
-            actions: [
-              TextButton(
-                onPressed: isBusy ? null : () => nav.pop(),
-                child: const Text("İptal"),
-              ),
-              ElevatedButton(
-                onPressed: isBusy
-                    ? null
-                    : () async {
-                        final uretilen =
-                            int.tryParse(adetCtrl.text.trim()) ?? 0;
-                        if (uretilen <= 0) {
-                          ScaffoldMessenger.of(parentCtx).showSnackBar(
-                            const SnackBar(
-                              content: Text("Geçerli bir adet girin."),
-                            ),
-                          );
-                          return;
-                        }
-
-                        setLocal(() => isBusy = true);
-                        try {
-                          // 1) Ürünün stoklarını artır
-                          final urun = tumUrunler.firstWhereOrNull(
-                            (u) => u.id == istek.urunId,
-                          );
-                          if (urun == null || urun.docId == null) {
-                            ScaffoldMessenger.of(parentCtx).showSnackBar(
-                              const SnackBar(
-                                content: Text("Ürün bulunamadı."),
-                              ),
-                            );
-                            return;
-                          }
-                          await urunServis.adetArtir(urun.docId!, uretilen);
-
-                          // 2) İlgili siparişte üretilen adet bilgisini güncelle
-                          final bool hepsiTamam =
-                              await siparisServis.uretilenMiktariGuncelle(
-                            istek.siparisDocId,
-                            istek.urunId.toString(),
-                            uretilen,
-                          );
-
-                          // 3) Mesaj
-                          if (hepsiTamam) {
-                            ScaffoldMessenger.of(parentCtx).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Siparişin tüm kalemleri tamamlandı. Sevkiyat onayı verilebilir.",
-                                ),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(parentCtx).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "Üretim kaydedildi ve stoğa eklendi.",
-                                ),
-                              ),
-                            );
-                          }
-                          nav.pop(); // Diyaloğu kapat
-                        } catch (e) {
-                          ScaffoldMessenger.of(parentCtx).showSnackBar(
-                            SnackBar(content: Text("İşlem başarısız: $e")),
-                          );
-                        } finally {
-                          if (localCtx.mounted) setLocal(() => isBusy = false);
-                        }
-                      },
-                child:
-                    isBusy ? const CircularProgressIndicator() : const Text("Tamamla"),
-              ),
-            ],
-          ),
         );
       },
     );

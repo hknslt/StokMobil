@@ -46,13 +46,15 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
     return s.brutTutar ?? (net * (1 + kdv / 100));
   }
 
-  // ------- SiparisSayfasi ile AYNI onayla/reddet akışları -------
+  // ------- Yeni akış: onayla / sevkiyat onayı / reddet -------
+
   Future<void> _onayla(SiparisModel siparis) async {
     bool devamEt = true;
 
     if (siparis.islemeTarihi != null &&
         siparis.islemeTarihi!.isAfter(DateTime.now())) {
-      devamEt = await showDialog<bool>(
+      devamEt =
+          await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text("Erken Onaylama Uyarısı"),
@@ -67,7 +69,9 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                 ),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
                   child: const Text("Evet"),
                 ),
               ],
@@ -77,74 +81,108 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
     }
     if (!devamEt) return;
 
-    // stok isteğini hazırla: {urunId: adet}
-    final istek = <int, int>{};
-    for (final su in siparis.urunler) {
-      final id = int.tryParse(su.id);
-      if (id != null) {
-        istek[id] = (istek[id] ?? 0) + su.adet;
-      }
-    }
-
     try {
-      final ok = await urunServis.decrementStocksIfSufficient(istek);
-      if (ok) {
-        await siparisServis.guncelleDurum(
-          siparis.docId!,
-          SiparisDurumu.sevkiyat,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Sipariş onaylandı. Stok Var ✅")),
-          );
-        }
-      } else {
-        await siparisServis.guncelleDurum(
-          siparis.docId!,
-          SiparisDurumu.uretimde,
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text("Sipariş onaylandı. Stok Yetersiz ⚠️")),
-          );
-        }
-      }
+      // Yeni sistem: stok düşmeden kontrol, sevkiyatHazir flag set edilir
+      final ok = await siparisServis.onayla(siparis.docId!);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? "Onaylandı: Stok yeterli → Sevkiyat onayı bekliyor"
+                : "Onaylandı: Stok yetersiz → Üretime aktarıldı",
+          ),
+        ),
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("İşlem başarısız: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
+      }
+    }
+  }
+
+  Future<void> _sevkiyataOnayla(SiparisModel siparis) async {
+    try {
+      final ok = await siparisServis.sevkiyataOnayla(siparis.docId!);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? "Sevkiyat onayı başarılı. Stok düşüldü."
+                : "Stok yetersiz. Üretime devam edilmeli.",
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
       }
     }
   }
 
   Future<void> _reddet(SiparisModel siparis) async {
+    final onay =
+        await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Reddetme Onayı"),
+            content: Text(
+              "Bu siparişi reddetmek istediğinize emin misiniz?"
+              "${siparis.durum == SiparisDurumu.sevkiyat ? "\n\nNot: Sipariş sevkiyatta olduğundan daha önce düşülen stoklar iade edilecektir." : ""}",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text("Vazgeç"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text(
+                  "Reddet",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!onay) return;
+
     try {
-      await siparisServis.guncelleDurum(
-        siparis.docId!,
-        SiparisDurumu.reddedildi,
-      );
+      await siparisServis.reddetVeStokIade(siparis.docId!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sipariş reddedildi.")),
+          const SnackBar(
+            content: Text("Sipariş reddedildi. Gerekliyse stok iade edildi."),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Reddetme başarısız: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Reddetme başarısız: $e")));
       }
     }
   }
+
   // ---------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final tl =
-        NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2);
+    final tl = NumberFormat.currency(
+      locale: 'tr_TR',
+      symbol: '₺',
+      decimalDigits: 2,
+    );
 
     return StreamBuilder<List<SiparisModel>>(
       stream: siparisServis.hepsiDinle(),
@@ -157,8 +195,9 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
         }
 
         final tumSiparisler = sipSnap.data ?? [];
-        final bugunBekleyen =
-            tumSiparisler.where((s) => _isPendingForToday(s, now)).toList();
+        final bugunBekleyen = tumSiparisler
+            .where((s) => _isPendingForToday(s, now))
+            .toList();
 
         if (bugunBekleyen.isEmpty) return const SizedBox();
 
@@ -181,20 +220,21 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                 ...bugunBekleyen.map((siparis) {
                   final musteriAdi =
                       siparis.musteri.firmaAdi?.trim().isNotEmpty == true
-                          ? siparis.musteri.firmaAdi!.trim()
-                          : (siparis.musteri.yetkili ?? "-");
+                      ? siparis.musteri.firmaAdi!.trim()
+                      : (siparis.musteri.yetkili ?? "-");
                   final brutToplam = _safeBrut(siparis);
 
                   // sadece beklemede/üretimde stok rengine göre boyama
                   final stokKontrollu =
                       siparis.durum == SiparisDurumu.beklemede ||
-                          siparis.durum == SiparisDurumu.uretimde;
+                      siparis.durum == SiparisDurumu.uretimde;
 
                   // sipariş geneli için "stok var/yok" etiketi (sadece stokKontrollu iken)
                   bool siparisStokYeterli() {
                     for (final su in siparis.urunler) {
-                      final stok = urunler
-                          .firstWhereOrNull((u) => u.id.toString() == su.id);
+                      final stok = urunler.firstWhereOrNull(
+                        (u) => u.id.toString() == su.id,
+                      );
                       final adet = stok?.adet ?? 0;
                       if (adet < su.adet) return false;
                     }
@@ -202,6 +242,12 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                   }
 
                   final yeter = siparisStokYeterli();
+
+                  // Sevkiyat onay butonu yalnızca onaydan sonra ve sevkiyatHazir olduğunda
+                  final sevkiyatOnayGorunur =
+                      (siparis.durum == SiparisDurumu.beklemede ||
+                          siparis.durum == SiparisDurumu.uretimde) &&
+                      (siparis.sevkiyatHazir == true);
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -250,7 +296,9 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                                   ),
                               ],
                             ),
-                            Text("Toplam Tutar (Brüt): ${tl.format(brutToplam)}"),
+                            Text(
+                              "Toplam Tutar (Brüt): ${tl.format(brutToplam)}",
+                            ),
                             if (siparis.islemeTarihi != null)
                               Text(
                                 "İşlem Tarihi: ${DateFormat('dd.MM.yyyy').format(siparis.islemeTarihi!)}",
@@ -262,8 +310,9 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: siparis.urunler.map((su) {
-                              final stok = urunler
-                                  .firstWhereOrNull((u) => u.id.toString() == su.id);
+                              final stok = urunler.firstWhereOrNull(
+                                (u) => u.id.toString() == su.id,
+                              );
                               final stokAdet = stok?.adet ?? 0;
                               final stokYeterli = stokAdet >= su.adet;
 
@@ -294,13 +343,17 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                                   " | ₺${su.birimFiyat.toStringAsFixed(2)}",
                                 ),
                                 trailing: stok == null
-                                    ? const Icon(Icons.warning, color: Colors.grey)
+                                    ? const Icon(
+                                        Icons.warning,
+                                        color: Colors.grey,
+                                      )
                                     : null,
                               );
                             }).toList(),
                           ),
                           const SizedBox(height: 10),
 
+                          // Beklemede: Onay / Reddet
                           if (siparis.durum == SiparisDurumu.beklemede)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -324,6 +377,22 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                                   ),
                                 ),
                               ],
+                            ),
+
+                          // Beklemede/Üretimde ve sevkiyatHazir true ise: Sevkiyat Onayı
+                          if (sevkiyatOnayGorunur)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  ElevatedButton.icon(
+                                    onPressed: () => _sevkiyataOnayla(siparis),
+                                    icon: const Icon(Icons.local_shipping),
+                                    label: const Text("Sevkiyat Onayı"),
+                                  ),
+                                ],
+                              ),
                             ),
                         ],
                       ),

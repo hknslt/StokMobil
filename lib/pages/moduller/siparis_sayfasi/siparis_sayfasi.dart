@@ -1,4 +1,3 @@
-// lib/pages/moduller/siparis_sayfasi/siparis_sayfasi.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
@@ -37,15 +36,16 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
 
   bool _busyOnay = false;
 
-  Future<void> _onayla(SiparisModel siparis) async {
+  // Eski onay akışı: artık sadece "Üretim Onayı" için kullanıyoruz (beklemede + stok yetersiz)
+  Future<void> _uretimeOnayla(SiparisModel siparis) async {
     if (_busyOnay) return;
     setState(() => _busyOnay = true);
 
     bool devamEt = true;
-
     if (siparis.islemeTarihi != null &&
         siparis.islemeTarihi!.isAfter(DateTime.now())) {
-      devamEt = await showDialog<bool>(
+      devamEt =
+          await showDialog<bool>(
             context: context,
             builder: (context) => AlertDialog(
               title: const Text("Erken Onaylama Uyarısı"),
@@ -73,22 +73,23 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
     }
 
     try {
-      // YENİ: onay akışı stok düşmeden kontrol eder
+      // stok düşmeden onayla → stok yetersizse durum=uretimde
       final ok = await siparisServis.onayla(siparis.docId!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             ok
-                ? "Onaylandı: Stok yeterli → Sevkiyat onayı bekliyor"
-                : "Onaylandı: Stok yetersiz → Üretime aktarıldı",
+                ? "Onaylandı: Stok yeterli → Sevkiyat onayı verilebilir."
+                : "Onaylandı: Stok yetersiz → Üretime aktarıldı.",
           ),
         ),
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
       }
     } finally {
       setState(() => _busyOnay = false);
@@ -110,18 +111,53 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
       }
     }
   }
 
   Future<void> _reddet(SiparisModel siparis) async {
+    // Kullanıcıdan onay iste
+    final onay =
+        await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("Reddetme Onayı"),
+            content: Text(
+              "Bu siparişi reddetmek istediğinize emin misiniz?"
+              "${siparis.durum == SiparisDurumu.sevkiyat ? "\n\nNot: Sipariş sevkiyatta olduğundan daha önce düşülen stoklar iade edilecektir." : ""}",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text("Vazgeç"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text(
+                  "Reddet",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!onay) return;
+
     try {
-      await siparisServis.guncelleDurum(
-        siparis.docId!,
-        SiparisDurumu.reddedildi,
-      );
+      await siparisServis.reddetVeStokIade(siparis.docId!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Sipariş reddedildi. Gerekliyse stok iade edildi."),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -213,21 +249,22 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                 DropdownButtonHideUnderline(
                   child: DropdownButton<SiparisDurumu?>(
                     value: _durumFiltre,
-                    items: <SiparisDurumu?>[
-                      null,
-                      SiparisDurumu.beklemede,
-                      SiparisDurumu.uretimde,
-                      SiparisDurumu.sevkiyat,
-                      SiparisDurumu.reddedildi,
-                      SiparisDurumu.tamamlandi,
-                    ]
-                        .map(
-                          (d) => DropdownMenuItem(
-                            value: d,
-                            child: Text(_durumLabel(d)),
-                          ),
-                        )
-                        .toList(),
+                    items:
+                        <SiparisDurumu?>[
+                              null,
+                              SiparisDurumu.beklemede,
+                              SiparisDurumu.uretimde,
+                              SiparisDurumu.sevkiyat,
+                              SiparisDurumu.reddedildi,
+                              SiparisDurumu.tamamlandi,
+                            ]
+                            .map(
+                              (d) => DropdownMenuItem(
+                                value: d,
+                                child: Text(_durumLabel(d)),
+                              ),
+                            )
+                            .toList(),
                     onChanged: (d) => setState(() => _durumFiltre = d),
                   ),
                 ),
@@ -270,8 +307,9 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
 
                 // filtre: durum
                 if (_durumFiltre != null) {
-                  siparisler =
-                      siparisler.where((s) => s.durum == _durumFiltre).toList();
+                  siparisler = siparisler
+                      .where((s) => s.durum == _durumFiltre)
+                      .toList();
                 }
 
                 // filtre: arama (müşteri adı veya ürün adı)
@@ -299,8 +337,9 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                   itemBuilder: (context, index) {
                     final siparis = siparisler[index];
                     final musteri = siparis.musteri;
-                    final tarihStr =
-                        DateFormat('dd.MM.yyyy – HH:mm').format(siparis.tarih);
+                    final tarihStr = DateFormat(
+                      'dd.MM.yyyy – HH:mm',
+                    ).format(siparis.tarih);
                     final musteriAdi = musteri.firmaAdi?.isNotEmpty == true
                         ? musteri.firmaAdi!
                         : musteri.yetkili ?? "";
@@ -316,8 +355,7 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                         siparis.durum == SiparisDurumu.uretimde;
 
                     // KDV/Toplam
-                    final netToplam =
-                        (siparis.netTutar ?? siparis.toplamTutar);
+                    final netToplam = (siparis.netTutar ?? siparis.toplamTutar);
                     final kdvOrani = (siparis.kdvOrani ?? _aktifKdv());
                     final brutToplam =
                         (siparis.brutTutar ?? _brut(netToplam, kdvOrani));
@@ -329,16 +367,11 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                         final stokHaritasi = stokSnap.data ?? {};
                         final stokYeterli = siparis.urunler.every((su) {
                           final id = int.tryParse(su.id);
-                          final mevcut =
-                              id == null ? 0 : (stokHaritasi[id] ?? 0);
+                          final mevcut = id == null
+                              ? 0
+                              : (stokHaritasi[id] ?? 0);
                           return mevcut >= su.adet;
                         });
-
-                        // Sevkiyat onayı butonunun görünmesi
-                        final sevkiyatOnayGorunur =
-                            (siparis.durum == SiparisDurumu.beklemede ||
-                                siparis.durum == SiparisDurumu.uretimde) &&
-                            ((siparis.sevkiyatHazir ?? false) || stokYeterli);
 
                         return Card(
                           elevation: 4,
@@ -374,9 +407,10 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
-                                              builder: (_) => SiparisDetaySayfasi(
-                                                siparis: siparis,
-                                              ),
+                                              builder: (_) =>
+                                                  SiparisDetaySayfasi(
+                                                    siparis: siparis,
+                                                  ),
                                             ),
                                           );
                                         },
@@ -422,13 +456,16 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                   ),
                                   children: siparis.urunler.map((urun) {
                                     final id = int.tryParse(urun.id);
-                                    final mevcut =
-                                        id == null ? 0 : (stokHaritasi[id] ?? 0);
+                                    final mevcut = id == null
+                                        ? 0
+                                        : (stokHaritasi[id] ?? 0);
                                     final yeterli = mevcut >= urun.adet;
 
                                     final netSatirToplam = urun.toplamFiyat;
-                                    final brutSatirToplam =
-                                        _brut(netSatirToplam, kdvOrani);
+                                    final brutSatirToplam = _brut(
+                                      netSatirToplam,
+                                      kdvOrani,
+                                    );
 
                                     // renk seçimi
                                     final renk = stokKontrollu
@@ -471,6 +508,7 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                     );
                                   }).toList(),
                                 ),
+
                                 Align(
                                   alignment: Alignment.centerLeft,
                                   child: SiparisDurumEtiketi(
@@ -478,23 +516,103 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                   ),
                                 ),
 
-                                // Beklemede: Onay / Reddet
-                                if (siparis.durum ==
-                                    SiparisDurumu.beklemede) ...[
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      IconButton(
-                                        onPressed: _busyOnay
-                                            ? null
-                                            : () => _onayla(siparis),
-                                        icon: const Icon(
-                                          Icons.check_circle,
-                                          color: Colors.green,
+                                const SizedBox(height: 8),
+
+                                // Aksiyon satırı: bağlamsal buton + Reddet (her zaman)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    // SOL: bağlamsal aksiyon
+                                    if (siparis.durum ==
+                                        SiparisDurumu.beklemede) ...[
+                                      if (stokYeterli)
+                                        ElevatedButton.icon(
+                                          style: ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                  Colors.green,
+                                                ),
+                                          ),
+                                          onPressed: () =>
+                                              _sevkiyataOnayla(siparis),
+                                          icon: const Icon(
+                                            Icons.local_shipping,
+                                            color: Colors.white,
+                                          ),
+                                          label: const Text(
+                                            "Sevkiyat Onayı",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        ElevatedButton.icon(
+                                          style: ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                  Colors.green,
+                                                ),
+                                          ),
+                                          onPressed: _busyOnay
+                                              ? null
+                                              : () => _uretimeOnayla(siparis),
+                                          icon: const Icon(
+                                            Icons.build,
+                                            color: Colors.white,
+                                          ),
+                                          label: const Text(
+                                            "Üretim Onayı",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                         ),
-                                        tooltip: "Onayla",
-                                      ),
+                                      const SizedBox(width: 8),
+                                    ] else if (siparis.durum ==
+                                        SiparisDurumu.uretimde) ...[
+                                      if (stokYeterli)
+                                        ElevatedButton.icon(
+                                          style: ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll(
+                                                  Colors.green,
+                                                ),
+                                          ),
+                                          onPressed: () =>
+                                              _sevkiyataOnayla(siparis),
+                                          icon: const Icon(
+                                            Icons.local_shipping,
+                                            color: Colors.white,
+                                          ),
+                                          label: const Text(
+                                            "Sevkiyat Onayı",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        TextButton.icon(
+                                          onPressed: null,
+                                          icon: const Icon(
+                                            Icons.more_time,
+                                            color: Renkler.acikGri,
+                                          ),
+                                          label: const Text(
+                                            "Üretim Bekleniyor",
+                                            style: TextStyle(
+                                              color: Renkler.acikGri,
+                                            ),
+                                          ),
+                                        ),
+                                      const SizedBox(width: 8),
+                                    ],
+
+                                    if (siparis.durum !=
+                                            SiparisDurumu.tamamlandi &&
+                                        siparis.durum !=
+                                            SiparisDurumu.reddedildi)
                                       IconButton(
                                         onPressed: () => _reddet(siparis),
                                         icon: const Icon(
@@ -503,25 +621,8 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                         ),
                                         tooltip: "Reddet",
                                       ),
-                                    ],
-                                  ),
-                                ],
-
-                                // Beklemede/Üretimde ve stok hazırsa: Sevkiyat Onayı
-                                if (sevkiyatOnayGorunur) ...[
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      ElevatedButton.icon(
-                                        onPressed: () =>
-                                            _sevkiyataOnayla(siparis),
-                                        icon: const Icon(Icons.local_shipping),
-                                        label: const Text("Sevkiyat Onayı"),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ],
                             ),
                           ),

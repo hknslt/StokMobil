@@ -348,4 +348,32 @@ class UrunService {
       return true;
     });
   }
+
+  Future<void> incrementStocksByNumericIds(Map<int, int> eklemeler) async {
+    if (eklemeler.isEmpty) return;
+
+    // id -> docRef eşleştir
+    final refs = <int, DocumentReference<Map<String, dynamic>>>{};
+    final ids = eklemeler.keys.toList();
+    for (var i = 0; i < ids.length; i += 10) {
+      final chunk = ids.sublist(i, min(i + 10, ids.length));
+      final qs = await _col.where('id', whereIn: chunk).get();
+      for (final d in qs.docs) {
+        final id = (d.data()['id'] as num).toInt();
+        refs[id] = d.reference;
+      }
+    }
+
+    // Transaction ile arttır
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      for (final e in eklemeler.entries) {
+        final ref = refs[e.key];
+        if (ref == null) continue; // eşleşmeyen varsa atla
+        final snap = await tx.get(ref);
+        if (!snap.exists) continue;
+        final cur = (snap.data()?['adet'] as num?)?.toInt() ?? 0;
+        tx.update(ref, {'adet': cur + e.value});
+      }
+    });
+  }
 }

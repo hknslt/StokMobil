@@ -259,7 +259,11 @@ class SiparisService {
           urunDocId: null,
           urunId: uid,
           urunAdi: su.urunAdi,
-          meta: {'adet': su.adet, 'reason': 'sevkiyat_onayi', 'siparisId': docId},
+          meta: {
+            'adet': su.adet,
+            'reason': 'sevkiyat_onayi',
+            'siparisId': docId,
+          },
         );
       }
     }
@@ -483,5 +487,49 @@ class SiparisService {
     return qs.docs
         .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
         .toList();
+  }
+
+  Future<void> reddetVeStokIade(String docId) async {
+    final snap = await _col.doc(docId).get();
+    if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
+    final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
+
+    bool iadeYapildi = false;
+    Map<int, int>? iadeHaritasi;
+
+    if (sip.durum == SiparisDurumu.sevkiyat) {
+      // Sevkiyat aşamasında stok daha önce düşülmüştü → geri ekle
+      final istek = _istekHaritasi(sip); // {urunId: adet}
+      await UrunService().incrementStocksByNumericIds(istek);
+      iadeYapildi = true;
+      iadeHaritasi = istek;
+
+      // Kalem kalem log (opsiyonel)
+      for (final su in sip.urunler) {
+        final uid = int.tryParse(su.id);
+        await LogService.instance.logUrun(
+          action: 'stok_eklendi',
+          urunDocId: null,
+          urunId: uid,
+          urunAdi: su.urunAdi,
+          meta: {
+            'adet': su.adet,
+            'reason': 'siparis_reddedildi',
+            'siparisId': docId,
+          },
+        );
+      }
+    }
+
+    await _col.doc(docId).update({'durum': SiparisDurumu.reddedildi.name});
+
+    await LogService.instance.logSiparis(
+      action: 'siparis_reddedildi',
+      siparisId: docId,
+      meta: {
+        'oncekiDurum': sip.durum.name,
+        if (iadeYapildi) 'iade': iadeHaritasi,
+      },
+    );
   }
 }
