@@ -1,4 +1,4 @@
-// lib/pages/moduller/siparis_sayfasi/siparis_oluşturma/siparis_fiyatlandirma_sayfasi.dart
+
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/siparis_urun_model.dart';
@@ -25,18 +25,13 @@ class SiparisFiyatlandirmaSayfasi extends StatefulWidget {
 class _SiparisFiyatlandirmaSayfasiState
     extends State<SiparisFiyatlandirmaSayfasi> {
   final _svc = FiyatListesiService.instance;
-
-  // ---- local state
   late List<SiparisUrunModel> urunler;
   String? _seciliListeId;
   String? _seciliListeAd;
   bool _ilkUygulamaYapildi = false;
-
-  // ---- controllers & focus
   final Map<String, TextEditingController> _priceCtrls = {};
   final Map<String, FocusNode> _priceFocus = {};
 
-  // ---- STREAM CACHES
   late final Stream<List<FiyatListesi>> _listelerStream;
   Stream<Map<int, double>>? _urunFiyatStream;
 
@@ -102,7 +97,6 @@ class _SiparisFiyatlandirmaSayfasiState
     if (changed && mounted) setState(() {});
   }
 
-  // --- KDV & toplam yardımcıları ---
   double _calcBrut(double net, double kdv) => net * (1 + kdv / 100);
   double get _netToplam => urunler.fold(0, (s, u) => s + u.adet * u.birimFiyat);
   double _kdvTutar(double kdv) => _netToplam * (kdv / 100);
@@ -130,8 +124,6 @@ class _SiparisFiyatlandirmaSayfasiState
             ),
           );
         }
-
-        // İlk seçim
         if (_seciliListeId == null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
@@ -149,7 +141,6 @@ class _SiparisFiyatlandirmaSayfasiState
           builder: (context, fiyatSnap) {
             final fiyatMap = fiyatSnap.data ?? const <int, double>{};
 
-            // Seçili listenin KDV’si
             final double seciliKdv = (() {
               try {
                 final l = listeler.firstWhere((e) => e.id == _seciliListeId);
@@ -216,7 +207,6 @@ class _SiparisFiyatlandirmaSayfasiState
                           style: TextStyle(color: Colors.black),
                         ),
                       ),
-                      // UNUSED FIELD HATASINI GİDERMEK İÇİN EKLE
                       if (_seciliListeAd != null)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -241,8 +231,6 @@ class _SiparisFiyatlandirmaSayfasiState
                           : (fiyatMap[nid] ?? 0.0);
                       final c = _ctrlFor(u.id, u.birimFiyat);
                       final f = _focusFor(u.id);
-
-                      // focus yoksa controller'ı model ile senkronla
                       final should = u.birimFiyat == 0
                           ? ""
                           : u.birimFiyat.toStringAsFixed(2);
@@ -358,7 +346,6 @@ class _SiparisFiyatlandirmaSayfasiState
                                 ],
                               ),
                               const SizedBox(height: 8),
-                              // --- SATIR TOPLAM: BRÜT ---
                               Text(
                                 "Birim Fiyat(Brüt): ₺${_fmt(_calcBrut(u.birimFiyat, seciliKdv))}  (KDV %${seciliKdv.toStringAsFixed(2)})",
                                 style: const TextStyle(
@@ -373,8 +360,6 @@ class _SiparisFiyatlandirmaSayfasiState
                     },
                   ),
                 ),
-
-                // --- ALT ÖZET: NET, KDV, GENEL TOPLAM (BRÜT) ---
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,

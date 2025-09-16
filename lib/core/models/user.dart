@@ -1,4 +1,3 @@
-// lib/core/models/user.dart
 class UserModel {
   final String uid;
   final String email;

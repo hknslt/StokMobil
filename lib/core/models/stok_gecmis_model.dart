@@ -1,5 +1,5 @@
 class StokGecmis {
-  final int degisim; // örn: -10, +15 gibi
+  final int degisim; 
   final DateTime tarih;
 
   StokGecmis({

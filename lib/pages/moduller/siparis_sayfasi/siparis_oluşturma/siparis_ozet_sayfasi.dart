@@ -5,7 +5,7 @@ import 'package:capri/core/models/siparis_urun_model.dart';
 import 'package:capri/core/models/musteri_model.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/services/siparis_service.dart';
-import 'package:capri/services/fiyat_listesi_service.dart'; // ✅ KDV & aktif liste
+import 'package:capri/services/fiyat_listesi_service.dart';
 
 class SiparisOzetSayfasi extends StatelessWidget {
   final MusteriModel musteri;
@@ -35,10 +35,9 @@ class SiparisOzetSayfasi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Fiyatlandırma adımında seçilmiş aktif liste ve KDV
     final svc = FiyatListesiService.instance;
-    final aktifListeAd = svc.aktifListeAd;   // <— değişen isim
-    final kdvYuzde = svc.aktifKdv;           // <— değişen isim
+    final aktifListeAd = svc.aktifListeAd;   
+    final kdvYuzde = svc.aktifKdv;          
 
     final kdvTutar = _netAraToplam * (kdvYuzde / 100);
     final genelToplam = _netAraToplam + kdvTutar;
@@ -51,7 +50,6 @@ class SiparisOzetSayfasi extends StatelessWidget {
           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 6),
-        // Seçilen fiyat listesi ve KDV notu
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Align(
@@ -60,7 +58,6 @@ class SiparisOzetSayfasi extends StatelessWidget {
               "Fiyat Listesi: $aktifListeAd • KDV: %${kdvYuzde.toStringAsFixed(2)}",
               style: TextStyle(
                 fontSize: 12,
-                // withOpacity uyarısını kaldırmak için:
                 color: Theme.of(context)
                     .colorScheme
                     .onSurface
@@ -71,7 +68,6 @@ class SiparisOzetSayfasi extends StatelessWidget {
         ),
         const SizedBox(height: 6),
 
-        // Müşteri & Sipariş Bilgileri
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Card(
@@ -114,7 +110,6 @@ class SiparisOzetSayfasi extends StatelessWidget {
 
         const SizedBox(height: 6),
 
-        // Ürünler – daha kompakt grid
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -209,7 +204,6 @@ class SiparisOzetSayfasi extends StatelessWidget {
           ),
         ),
 
-        // Toplamlar & Aksiyonlar (Net → KDV → Genel)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
@@ -252,21 +246,16 @@ class SiparisOzetSayfasi extends StatelessWidget {
                         ),
                       ),
                       onPressed: () async {
-                        // 🔒 Siparişe o anın finansal özetini yaz ve öyle kaydet
                         final siparis = SiparisModel(
                           musteri: musteri,
                           urunler: urunler,
                           islemeTarihi: islemeTarihi,
                           aciklama: siparisAciklama,
-                          // persist edilen alanlar:
                           netTutar: _netAraToplam,
                           kdvOrani: kdvYuzde,
                           kdvTutar: kdvTutar,
                           brutTutar: genelToplam,
                           fiyatListesiAd: aktifListeAd,
-                          // fiyatListesiId kullanmak isterseniz,
-                          // FiyatListesiService’e aktif liste id getter’ı ekleyip burada set edebilirsiniz.
-                          // fiyatListesiId: svc.aktifListeId,
                         );
 
                         await SiparisService().ekle(siparis);
@@ -287,8 +276,6 @@ class SiparisOzetSayfasi extends StatelessWidget {
       ],
     );
   }
-
-  // ---- küçük yardımcılar ----
   Widget _bilgiSatiri(String baslik, String? deger, {int maxLines = 1}) {
     final val = (deger == null || deger.trim().isEmpty) ? "—" : deger.trim();
     return Padding(

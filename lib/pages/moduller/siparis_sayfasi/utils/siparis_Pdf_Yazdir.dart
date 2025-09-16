@@ -31,7 +31,6 @@ Future<void> siparisPdfYazdir(SiparisModel siparis) async {
       pageFormat: PdfPageFormat.a4,
       margin: const pw.EdgeInsets.all(20),
 
-      // Footer: sadece SON sayfada toplam ve alt bilgiler
       footer: (context) {
         final isLast = context.pageNumber == context.pagesCount;
         if (!isLast) {
@@ -64,7 +63,7 @@ Future<void> siparisPdfYazdir(SiparisModel siparis) async {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text("Sevk Tarihi: ${siparis.islemeTarihi != null ? tarihFormatter.format(siparis.islemeTarihi!) : ''}"),
-                pw.Text("KDV (%):"), // İstersen burada dinamik KDV yazdır
+                pw.Text("KDV (%):"), 
                 pw.Text("Teslim Tarihi:"),
               ],
             ),
@@ -79,7 +78,7 @@ Future<void> siparisPdfYazdir(SiparisModel siparis) async {
       },
 
       build: (context) => [
-        // Başlık (sadece ilk sayfa içeriğinde; MultiPage otomatik kıracak)
+        // Başlık 
         pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
@@ -92,7 +91,7 @@ Future<void> siparisPdfYazdir(SiparisModel siparis) async {
         ),
         pw.SizedBox(height: 10),
 
-        // Müşteri Bilgileri (ilk sayfada yer alır)
+        // Müşteri Bilgileri
         pw.Table(
           border: pw.TableBorder.all(),
           children: [
@@ -118,13 +117,11 @@ Future<void> siparisPdfYazdir(SiparisModel siparis) async {
         ),
         pw.SizedBox(height: 10),
 
-        // --- İlk sayfanın tablosu (en fazla 30 satır) ---
         _urunTablosu(
           baslikSatiri: true,
           urunler: urunler.take(firstCount).toList(),
         ),
 
-        // --- Kalanlar varsa yeni sayfadan devam et ---
         if (remaining.isNotEmpty) pw.SizedBox(height: 100000), // sayfa sonunu zorlar
 
 
@@ -136,7 +133,6 @@ Future<void> siparisPdfYazdir(SiparisModel siparis) async {
   await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
 }
 
-// ---------- Yardımcılar ----------
 
 pw.Widget _urunTablosu({
   required bool baslikSatiri,

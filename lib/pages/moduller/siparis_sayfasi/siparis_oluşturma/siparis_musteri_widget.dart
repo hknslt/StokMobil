@@ -1,23 +1,15 @@
-// lib/pages/moduller/siparis_sayfasi/siparis_olusturma/widgets/siparis_musteri_widget.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/musteri_model.dart';
 import 'package:capri/services/musteri_service.dart';
-
-/// Siparis > Müşteri adımı
-/// - Kayıtlıdan seçersen: form alanları kilitlenir (değiştirilemez)
-/// - Kayıtlı seçmezsen: formu doldurup İleri dediğinde:
-///     - "Kayıtlı müşterilere ekle" tiki AÇIKSA -> Firestore’a kaydedilir
-///     - tiki KAPALIYSA -> kaydetmeden sadece siparişe geçici müşteri olarak aktarılır
 class SiparisMusteriWidget extends StatefulWidget {
   final TextEditingController firmaAdiController;
   final TextEditingController yetkiliController;
   final TextEditingController telefonController;
   final TextEditingController adresController;
   final VoidCallback onIleri;
-
-  /// Dışarıya seçilen/oluşan müşteriyi iletmek için (opsiyonel)
   final MusteriModel? secilenMusteri;
   final Function(MusteriModel)? onMusteriSecildi;
 
@@ -40,7 +32,7 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
   final _musteriSvc = MusteriService.instance;
 
   MusteriModel? _secilen;
-  bool _kayitliOlsun = false; // ✅ TIK: Manuel müşteri kayıtlılara eklensin mi?
+  bool _kayitliOlsun = false;
 
   @override
   void initState() {
@@ -55,9 +47,8 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
   void _musteriAta(MusteriModel m) {
     setState(() {
       _secilen = m;
-      _kayitliOlsun = false; // kayıtlı seçildiğinde bu tiki anlamsız; sıfırla
+      _kayitliOlsun = false;
     });
-    // Alanları doldur ve kilitle
     widget.firmaAdiController.text = m.firmaAdi ?? '';
     widget.yetkiliController.text = m.yetkili ?? '';
     widget.telefonController.text = m.telefon ?? '';
@@ -68,8 +59,6 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
   void _musteriSecimiTemizle() {
     setState(() {
       _secilen = null;
-      // Alanları istersen boşaltma, kullanıcı devam edebilir;
-      // _kayitliOlsun tikini önceki haline bırakabiliriz (false başlangıç).
     });
   }
 
@@ -94,14 +83,12 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
   }
 
   Future<void> _handleIleri() async {
-    // 1) Kayıtlı müşteri seçildiyse direkt devam
     if (_secilen != null) {
       widget.onMusteriSecildi?.call(_secilen!);
       widget.onIleri();
       return;
     }
 
-    // 2) Kayıtlı müşteri yoksa: form valid mi?
     if (!_formGecerli) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Firma adı ve telefon zorunludur.")),
@@ -109,9 +96,8 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
       return;
     }
 
-    // 3) Yeni müşteri modeli oluştur
     final yeni = MusteriModel(
-      id: '', // service docId atayacak (kaydedilirse)
+      id: '',
       firmaAdi: widget.firmaAdiController.text.trim(),
       yetkili: widget.yetkiliController.text.trim().isEmpty
           ? null
@@ -126,7 +112,6 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
       MusteriModel sonKullanilacakModel;
 
       if (_kayitliOlsun) {
-        // ✅ TIK AÇIK: Firestore'a kaydet
         final docId = await _musteriSvc.ekle(yeni);
         sonKullanilacakModel = MusteriModel(
           id: docId,
@@ -139,8 +124,7 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
           const SnackBar(content: Text("Müşteri kayıtlılara eklendi.")),
         );
       } else {
-        // ✖️ TIK KAPALI: Kaydetme, sadece siparişe geçici müşteri olarak geçir
-        sonKullanilacakModel = yeni; // id = '' kalır
+        sonKullanilacakModel = yeni;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Müşteri kaydedilmedi, yalnızca siparişe işlendi.")),
         );
@@ -164,7 +148,6 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Üst başlık + aksiyonlar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Row(
@@ -213,7 +196,6 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
             ),
           ),
 
-          // Seçili müşteri özeti
           if (_secilen != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -243,7 +225,6 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
               ),
             ),
 
-          // Manuel giriş formu (seçili ise kilitli)
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -286,8 +267,6 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                       ),
 
                       const Divider(height: 24),
-
-                      // ✅ TIK: Sadece manuel modda göster
                       if (!alanlarKilitli)
                         CheckboxListTile(
                           activeColor: Renkler.kahveTon,
@@ -308,7 +287,6 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
             ),
           ),
 
-          // Sticky İleri
           Container(
             decoration: BoxDecoration(
               color: tema.scaffoldBackgroundColor,
@@ -365,7 +343,6 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
   String _harfFiltre = 'Tümü';
   bool _azToZa = true;
 
-  // Lazy-load
   static const int _pageSize = 40;
   int _limit = _pageSize;
 
@@ -394,7 +371,7 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 250), () {
       setState(() {
-        _limit = _pageSize; // yeni aramada baştan yükle
+        _limit = _pageSize;
       });
     });
   }
@@ -436,8 +413,6 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
         final bb = (b.firmaAdi ?? b.yetkili ?? '').toLowerCase();
         return _azToZa ? aa.compareTo(bb) : bb.compareTo(aa);
       });
-
-    // Lazy load
     final int son = _limit.clamp(0, liste.length).toInt();
     return liste.take(son).toList();
   }
@@ -478,7 +453,6 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
             ),
           ),
 
-          // A-Z çipleri
           SizedBox(
             height: 46,
             child: ListView(
@@ -492,8 +466,6 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
           ),
 
           const SizedBox(height: 8),
-
-          // Firestore stream + filtreli liste
           Expanded(
             child: StreamBuilder<List<MusteriModel>>(
               stream: _svc.dinle(),
@@ -550,7 +522,7 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
         onSelected: (_) {
           setState(() {
             _harfFiltre = harf;
-            _limit = _pageSize; // filtre değiştiğinde baştan yükle
+            _limit = _pageSize;
           });
         },
       ),

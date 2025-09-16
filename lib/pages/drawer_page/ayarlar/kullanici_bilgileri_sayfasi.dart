@@ -69,7 +69,6 @@ class _KullaniciBilgileriSayfasiState extends State<KullaniciBilgileriSayfasi> {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      // Auth profil adı (displayName)
       final dn = [
         _first.text.trim(),
         _last.text.trim(),
@@ -96,7 +95,6 @@ class _KullaniciBilgileriSayfasiState extends State<KullaniciBilgileriSayfasi> {
     final last = _last.text.trim();
     final dn = [first, last].where((e) => e.isNotEmpty).join(' ');
     if (dn.isNotEmpty) return dn;
-    // dn boşsa username, o da yoksa email local-part
     final user = FirebaseAuth.instance.currentUser;
     final email = user?.email ?? '';
     final local = email.contains('@') ? email.split('@').first : email;

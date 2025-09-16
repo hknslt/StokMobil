@@ -16,7 +16,7 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
   final _svc = MusteriService.instance;
 
   final TextEditingController _aramaController = TextEditingController();
-  String _siralaTuru = 'Ada göre'; // Ada göre | En yeni | En eski
+  String _siralaTuru = 'Ada göre';
 
   String _initialsFrom(MusteriModel m) {
     final base = (m.firmaAdi != null && m.firmaAdi!.trim().isNotEmpty)
@@ -57,15 +57,10 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.apartment, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
@@ -80,15 +75,10 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.badge, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -101,15 +91,10 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.phone, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -126,15 +111,10 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                       color: Renkler.kahveTon,
                     ),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -157,7 +137,7 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
               if (!formKey.currentState!.validate()) return;
 
               final yeni = MusteriModel(
-                id: '', // ref.doc().id ile set edilecek
+                id: '',
                 firmaAdi: firmaController.text.trim(),
                 yetkili: yetkiliController.text.trim().isEmpty
                     ? null
@@ -171,7 +151,7 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
               );
 
               try {
-                await _svc.ekle(yeni); // ✅ Firestore'a kaydet
+                await _svc.ekle(yeni);
                 if (mounted) Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Müşteri eklendi")),
@@ -212,15 +192,10 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.apartment, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
@@ -235,15 +210,10 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.badge, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -256,15 +226,10 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.phone, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -281,15 +246,10 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                       color: Renkler.kahveTon,
                     ),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -312,7 +272,7 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
               if (!formKey.currentState!.validate()) return;
 
               final guncel = MusteriModel(
-                id: m.id, // docId değişmez
+                id: m.id,
                 firmaAdi: firmaController.text.trim(),
                 yetkili: yetkiliController.text.trim().isEmpty
                     ? null
@@ -326,7 +286,7 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
               );
 
               try {
-                await _svc.guncelle(guncel); // ✅ Firestore güncelle
+                await _svc.guncelle(guncel);
                 if (mounted) Navigator.pop(context);
                 ScaffoldMessenger.of(
                   context,
@@ -374,7 +334,7 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
 
     if (onay == true) {
       try {
-        await _svc.sil(m.id); // ✅ Firestore sil
+        await _svc.sil(m.id);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Silindi")));
@@ -455,7 +415,7 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
         elevation: 3,
       ),
       body: StreamBuilder<List<MusteriModel>>(
-        stream: _svc.dinle(), // ✅ Firestore’dan canlı veri
+        stream: _svc.dinle(),
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -465,7 +425,6 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
           }
           var liste = snap.data ?? [];
 
-          // Arama
           final q = _aramaController.text.trim().toLowerCase();
           if (q.isNotEmpty) {
             liste = liste.where((m) {
@@ -480,7 +439,6 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
             }).toList();
           }
 
-          // Sıralama (UI tarafında)
           switch (_siralaTuru) {
             case 'En yeni':
               liste.sort((b, a) => a.id.compareTo(b.id));

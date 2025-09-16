@@ -1,4 +1,4 @@
-// lib/pages/home/admin/siparis_kart.dart
+
 import 'package:flutter/material.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';

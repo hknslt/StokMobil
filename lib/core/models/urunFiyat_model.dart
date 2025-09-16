@@ -1,6 +1,6 @@
 class UrunFiyat {
   final int urunId;
-  final String fiyatListesiAdi; // Firestore’da zorunlu değil; UI için istersen tut
+  final String fiyatListesiAdi;
   double netFiyat;
 
   UrunFiyat({
@@ -17,10 +17,7 @@ class UrunFiyat {
     );
   }
 
-  Map<String, dynamic> toMap() => {
-    'urunId': urunId,
-    'netFiyat': netFiyat,
-  };
+  Map<String, dynamic> toMap() => {'urunId': urunId, 'netFiyat': netFiyat};
 
   factory UrunFiyat.fromMap(String listeAdi, Map<String, dynamic> m) {
     return UrunFiyat(

@@ -23,9 +23,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
-  /// Bekleyen listesi:
-  /// - beklemede: sadece islemeTarihi bugünse
-  /// - uretimde/sevkiyat: tamamlanana kadar
   bool _isPendingForToday(SiparisModel s, DateTime now) {
     switch (s.durum) {
       case SiparisDurumu.beklemede:
@@ -45,8 +42,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
     final kdv = s.kdvOrani ?? 0.0;
     return s.brutTutar ?? (net * (1 + kdv / 100));
   }
-
-  // ------- Yeni akış: onayla / sevkiyat onayı / reddet -------
 
   Future<void> _onayla(SiparisModel siparis) async {
     bool devamEt = true;
@@ -82,7 +77,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
     if (!devamEt) return;
 
     try {
-      // Yeni sistem: stok düşmeden kontrol, sevkiyatHazir flag set edilir
       final ok = await siparisServis.onayla(siparis.docId!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -173,8 +167,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
     }
   }
 
-  // ---------------------------------------------------------------
-
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -200,8 +192,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
             .toList();
 
         if (bugunBekleyen.isEmpty) return const SizedBox();
-
-        // stokları dinle (adet göstermek için sevkiyatta da lazım)
         return StreamBuilder<List<Urun>>(
           stream: urunServis.dinle(),
           builder: (context, urunSnap) {
@@ -223,13 +213,9 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                       ? siparis.musteri.firmaAdi!.trim()
                       : (siparis.musteri.yetkili ?? "-");
                   final brutToplam = _safeBrut(siparis);
-
-                  // sadece beklemede/üretimde stok rengine göre boyama
                   final stokKontrollu =
                       siparis.durum == SiparisDurumu.beklemede ||
                       siparis.durum == SiparisDurumu.uretimde;
-
-                  // sipariş geneli için "stok var/yok" etiketi (sadece stokKontrollu iken)
                   bool siparisStokYeterli() {
                     for (final su in siparis.urunler) {
                       final stok = urunler.firstWhereOrNull(
@@ -242,8 +228,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                   }
 
                   final yeter = siparisStokYeterli();
-
-                  // Sevkiyat onay butonu yalnızca onaydan sonra ve sevkiyatHazir olduğunda
                   final sevkiyatOnayGorunur =
                       (siparis.durum == SiparisDurumu.beklemede ||
                           siparis.durum == SiparisDurumu.uretimde) &&
@@ -315,8 +299,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                               );
                               final stokAdet = stok?.adet ?? 0;
                               final stokYeterli = stokAdet >= su.adet;
-
-                              // renk: sadece beklemede/üretimde yeşil/kırmızı; diğer durumlarda gri
                               final Color renk = stokKontrollu
                                   ? (stokYeterli ? Colors.green : Colors.red)
                                   : Colors.grey;
@@ -353,7 +335,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                           ),
                           const SizedBox(height: 10),
 
-                          // Beklemede: Onay / Reddet
                           if (siparis.durum == SiparisDurumu.beklemede)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -379,7 +360,6 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                               ],
                             ),
 
-                          // Beklemede/Üretimde ve sevkiyatHazir true ise: Sevkiyat Onayı
                           if (sevkiyatOnayGorunur)
                             Padding(
                               padding: const EdgeInsets.only(top: 8.0),

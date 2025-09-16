@@ -120,7 +120,7 @@ class _SiparisOlusturSayfasiState extends State<SiparisOlusturSayfasi> {
             adres: adres.text,
           ),
           urunler: secilenUrunler,
-          islemeTarihi: islemeTarihi, // Özet ekranına da göndereceğiz
+          islemeTarihi: islemeTarihi,
           siparisAciklama: siparisAciklama,
           onBack: geri,
         );

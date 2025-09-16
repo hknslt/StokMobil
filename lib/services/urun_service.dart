@@ -1,49 +1,18 @@
 // lib/services/urun_service.dart
 import 'dart:io';
-import 'dart:math';
 
 import 'package:capri/services/fiyat_listesi_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import '../core/models/urun_model.dart';
-import '../mock/mock_urun_listesi.dart';
 import 'package:capri/services/log_service.dart';
 
 class UrunService {
   static final UrunService _instance = UrunService._internal();
   factory UrunService() => _instance;
 
-  UrunService._internal() {
-    _urunler.addAll(
-      mockUrunListesi.map((u) {
-        _sonId = max(_sonId, u.id);
-        return u;
-      }),
-    );
-  }
-
-  // ---------- In-memory ----------
-  final List<Urun> _urunler = [];
-  int _sonId = 0;
-  List<Urun> get urunler => _urunler;
-
-  void ekleLocal(Urun urun) {
-    final yeni = urun.copyWith(id: ++_sonId);
-    _urunler.add(yeni);
-  }
-
-  void silIndex(int index) {
-    _urunler.removeAt(index);
-  }
-
-  void guncelleIndex(int index, Urun urun) {
-    _urunler[index] = urun;
-  }
-
-  void topluSilLocal(List<int> ids) {
-    _urunler.removeWhere((u) => ids.contains(u.id));
-  }
+  UrunService._internal();
 
   // ---------- Firestore / Storage ----------
   final _col = FirebaseFirestore.instance.collection('urunler');
@@ -148,16 +117,12 @@ class UrunService {
 
   /// Ürün günceller. Metin/sayı alanlarını [urun] içinden alır.
   /// (Opsiyonel) [newLocalFiles] gönderirsen yeni resimler yüklenir ve
-  /// Firestore'daki `resimYollari` dizisine eklenir. [coverLocalPath] verilirse kapak URL'i güncellenir.
-  // lib/services/urun_service.dart
-
-  // ... (mevcut kodlar)
-
+  /// Firestore'daki `resimYollari` dizisine eklenir. [urlsToDelete] verilirse Storage'tan silinir.
   Future<void> guncelle(
     String docId,
     Urun urun, {
     List<File> newLocalFiles = const [],
-    List<String> urlsToDelete = const [], // Yeni parametre
+    List<String> urlsToDelete = const [],
   }) async {
     // 1) Eski resimleri sil
     if (urlsToDelete.isNotEmpty) {
@@ -167,7 +132,6 @@ class UrunService {
           await ref.delete();
         } catch (e) {
           print('Silme hatası: $e');
-          // Hata durumunda devam et
         }
       }
     }
@@ -180,28 +144,23 @@ class UrunService {
       final uploaded = await _uploadImagesForDoc(
         docId: docId,
         localFiles: newLocalFiles,
-        coverLocalPath:
-            urun.kapakResimYolu, // Urun modelindeki yolu kullanıyoruz
+        coverLocalPath: urun.kapakResimYolu,
       );
       newUrls = uploaded.urls;
       newCoverUrl = uploaded.coverUrl;
     }
 
     // 3) Firestore'daki resim yolları listesini güncelle
-    // Mevcut URL'lerden silinenleri çıkar, yenilerini ekle
     final existingUrls = urun.resimYollari ?? [];
-    final updatedUrls = existingUrls
-        .where((url) => !urlsToDelete.contains(url))
-        .toList();
-    updatedUrls.addAll(newUrls);
+    final updatedUrls =
+        existingUrls.where((url) => !urlsToDelete.contains(url)).toList()
+          ..addAll(newUrls);
 
     // 4) Firestore belgesini güncelle
     await _col.doc(docId).update({
-      ...urun.toMap(), // Diğer tüm alanları güncelle
+      ...urun.toMap(),
       'resimYollari': updatedUrls,
-      'kapakResimYolu':
-          newCoverUrl ??
-          urun.kapakResimYolu, // Yeni kapak varsa onu, yoksa eskisini kullan
+      'kapakResimYolu': newCoverUrl ?? urun.kapakResimYolu,
     });
 
     // LOG
@@ -228,19 +187,13 @@ class UrunService {
     try {
       final folderRef = _storage.ref('urunler/$docId');
       final list = await folderRef.listAll();
-      // Klasördeki her bir öğe (resim) için silme işlemi yap
       for (final i in list.items) {
         await i.delete();
       }
-      // Alt klasörler varsa, bu da onları silecektir.
       for (final p in list.prefixes) {
-        // Rekürsif olarak tüm alt klasörleri silmek istersen buraya daha gelişmiş bir mantık ekleyebilirsin
-        // Ancak mevcut yapında bu gerekmez.
         await p.delete();
       }
     } catch (e) {
-      // Hata oluşursa (örn. klasör boşsa veya yoksa) bir şey yapma
-      // Bu, uygulamanın çökmesini engeller
       print('Storage dosya silme hatası: $e');
     }
 
@@ -286,7 +239,7 @@ class UrunService {
     if (ids.isEmpty) return {};
     final chunks = <List<int>>[];
     for (var i = 0; i < ids.length; i += 10) {
-      chunks.add(ids.sublist(i, min(i + 10, ids.length)));
+      chunks.add(ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10));
     }
 
     final result = <int, int>{};
@@ -320,7 +273,7 @@ class UrunService {
     final refs = <int, DocumentReference<Map<String, dynamic>>>{};
     final ids = istek.keys.toList();
     for (var i = 0; i < ids.length; i += 10) {
-      final chunk = ids.sublist(i, min(i + 10, ids.length));
+      final chunk = ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10);
       final qs = await _col.where('id', whereIn: chunk).get();
       for (final d in qs.docs) {
         final id = (d.data()['id'] as num).toInt();
@@ -352,11 +305,10 @@ class UrunService {
   Future<void> incrementStocksByNumericIds(Map<int, int> eklemeler) async {
     if (eklemeler.isEmpty) return;
 
-    // id -> docRef eşleştir
     final refs = <int, DocumentReference<Map<String, dynamic>>>{};
     final ids = eklemeler.keys.toList();
     for (var i = 0; i < ids.length; i += 10) {
-      final chunk = ids.sublist(i, min(i + 10, ids.length));
+      final chunk = ids.sublist(i, i + 10 > ids.length ? ids.length : i + 10);
       final qs = await _col.where('id', whereIn: chunk).get();
       for (final d in qs.docs) {
         final id = (d.data()['id'] as num).toInt();
@@ -364,11 +316,10 @@ class UrunService {
       }
     }
 
-    // Transaction ile arttır
     await FirebaseFirestore.instance.runTransaction((tx) async {
       for (final e in eklemeler.entries) {
         final ref = refs[e.key];
-        if (ref == null) continue; // eşleşmeyen varsa atla
+        if (ref == null) continue;
         final snap = await tx.get(ref);
         if (!snap.exists) continue;
         final cur = (snap.data()?['adet'] as num?)?.toInt() ?? 0;

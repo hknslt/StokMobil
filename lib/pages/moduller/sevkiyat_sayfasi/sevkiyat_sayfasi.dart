@@ -1,4 +1,4 @@
-// lib/pages/moduller/sevkiyat_sayfasi/sevkiyat_sayfasi.dart
+
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/siparis_model.dart';
@@ -168,9 +168,6 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
   }
 }
 
-/// ———————————————————————————————
-/// Kart bileşeni (checkbox/selection YOK)
-/// ———————————————————————————————
 class _SiparisCard extends StatelessWidget {
   final SiparisModel siparis;
   final VoidCallback onTeslimEt;
@@ -203,7 +200,6 @@ class _SiparisCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Üst satır
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -284,7 +280,6 @@ class _SiparisCard extends StatelessWidget {
 
             const SizedBox(height: 8),
 
-            // Ürünler (sadece görüntüleme)
             ExpansionTile(
               tilePadding: const EdgeInsets.symmetric(horizontal: 4),
               childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -317,7 +312,6 @@ class _SiparisCard extends StatelessWidget {
                     final adet = u.adet ?? 0;
 
                     return ListTile(
-                      // leading kaldırıldı ✅
                       title: Text(urunAdi),
                       subtitle: Text('Renk: $renk'),
                       trailing: Text('Adet: $adet', style: const TextStyle(fontSize: 12)),

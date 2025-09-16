@@ -1,4 +1,3 @@
-// lib/pages/moduller/sevkiyat_sayfasi/tamamlanan_sevkiyatlar_sayfasi.dart
 import 'dart:async';
 import 'package:capri/core/models/musteri_model.dart';
 import 'package:capri/core/models/siparis_urun_model.dart';
@@ -92,7 +91,10 @@ class _TamamlananSevkiyatlarSayfasiState
                         onPressed: _clearSearch,
                         icon: const Icon(Icons.clear),
                       ),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),borderRadius: BorderRadius.circular(20)),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -114,7 +116,11 @@ class _TamamlananSevkiyatlarSayfasiState
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red,
+                        ),
                         const SizedBox(height: 16),
                         Text('Hata: ${snapshot.error}'),
                         const SizedBox(height: 8),
@@ -146,7 +152,11 @@ class _TamamlananSevkiyatlarSayfasiState
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.inbox_outlined, size: 64, color: Colors.grey),
+                        Icon(
+                          Icons.inbox_outlined,
+                          size: 64,
+                          color: Colors.grey,
+                        ),
                         SizedBox(height: 16),
                         Text("Tamamlanan sevkiyat bulunamadı"),
                       ],
@@ -171,7 +181,6 @@ class _TamamlananSevkiyatlarSayfasiState
   }
 }
 
-// Basit sipariş kartı widget'ı
 class _SiparisKarti extends StatelessWidget {
   final SiparisModel siparis;
 
@@ -236,7 +245,10 @@ class _SiparisKarti extends StatelessWidget {
                 ),
                 // Durum etiketi
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -303,7 +315,10 @@ class _SiparisKarti extends StatelessWidget {
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -319,7 +334,6 @@ class _SiparisKarti extends StatelessWidget {
               ],
             ),
 
-            // Ürün detayları için tıklanabilir alan
             if (urunler.isNotEmpty) ...[
               const SizedBox(height: 8),
               InkWell(
@@ -347,8 +361,6 @@ class _SiparisKarti extends StatelessWidget {
                 ),
               ),
             ],
-
-            // Müşteri detayları için tıklanabilir alan
             const SizedBox(height: 8),
             InkWell(
               onTap: () => _showCustomerDetails(context, musteri),
@@ -380,7 +392,10 @@ class _SiparisKarti extends StatelessWidget {
     );
   }
 
-  void _showProductDetails(BuildContext context, List<SiparisUrunModel> urunler) {
+  void _showProductDetails(
+    BuildContext context,
+    List<SiparisUrunModel> urunler,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -396,7 +411,6 @@ class _SiparisKarti extends StatelessWidget {
           builder: (context, scrollController) {
             return Column(
               children: [
-                // Handle
                 Container(
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   width: 40,
@@ -406,14 +420,14 @@ class _SiparisKarti extends StatelessWidget {
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                // Başlık
+
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Text(
                     'Ürün Detayları',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 // Ürün listesi
@@ -443,16 +457,16 @@ class _SiparisKarti extends StatelessWidget {
                         subtitle: Text(urun.renk ?? 'Renk belirtilmemiş'),
                         trailing: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             '${urun.adet ?? 0} adet',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
                       );
@@ -480,7 +494,6 @@ class _SiparisKarti extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle
               Center(
                 child: Container(
                   width: 40,
@@ -492,12 +505,11 @@ class _SiparisKarti extends StatelessWidget {
                   ),
                 ),
               ),
-              // Başlık
               Text(
                 'Müşteri Detayları',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
               // Müşteri bilgileri
@@ -507,11 +519,7 @@ class _SiparisKarti extends StatelessWidget {
               const SizedBox(height: 12),
               _buildInfoRow('Telefon', musteri.telefon ?? '-'),
               const SizedBox(height: 12),
-              _buildInfoRow(
-                'Adres',
-                musteri.adres ?? '-',
-                isMultiline: true,
-              ),
+              _buildInfoRow('Adres', musteri.adres ?? '-', isMultiline: true),
               const SizedBox(height: 20),
             ],
           ),

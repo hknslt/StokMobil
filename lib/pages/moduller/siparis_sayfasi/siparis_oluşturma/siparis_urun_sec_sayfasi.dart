@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // digitsOnly için
+import 'package:flutter/services.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/core/models/siparis_urun_model.dart';
@@ -29,7 +29,6 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
 
   String _arama = "";
 
-  // Lazy-load
   static const int _pageSize = 60;
   int _limit = _pageSize;
   Timer? _debounce;
@@ -60,7 +59,7 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
     _debounce = Timer(const Duration(milliseconds: 250), () {
       setState(() {
         _arama = v;
-        _limit = _pageSize; // yeni aramada baştan
+        _limit = _pageSize;
       });
     });
   }
@@ -81,7 +80,7 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
         SiparisUrunModel(
           id: urunId,
           urunAdi: u.urunAdi,
-          renk: u.renk, // artık non-null
+          renk: u.renk,
           adet: adet,
           birimFiyat: 0,
         ),
@@ -123,7 +122,7 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
 
   Future<void> _adetSecBottomSheet(Urun u) async {
     int adet = _bulSecim(u.id.toString())?.adet ?? 1;
-    final int stok = u.adet; // non-null
+    final int stok = u.adet;
 
     final TextEditingController adetCtrl =
         TextEditingController(text: adet.toString());
@@ -241,7 +240,6 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Başlık + özet rozet
           Row(
             children: [
               const Text("Ürün Seçimi",
@@ -280,7 +278,6 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
 
           const SizedBox(height: 12),
 
-          // Seçilenler (yatay çipler)
           if (_secilenler.isNotEmpty)
             SizedBox(
               height: 56,
@@ -303,10 +300,9 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
 
           const SizedBox(height: 12),
 
-          // Ürün listesi (Firestore stream + filtre + lazy slice)
           Expanded(
             child: StreamBuilder<List<Urun>>(
-              stream: _srv.dinle(), // Firestore’dan canlı
+              stream: _srv.dinle(),
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -317,7 +313,6 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
 
                 var urunler = (snap.data ?? <Urun>[]);
 
-                // Arama filtresi
                 if (_arama.isNotEmpty) {
                   final q = _arama.toLowerCase();
                   urunler = urunler.where((u) =>
@@ -326,7 +321,6 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
                   ).toList();
                 }
 
-                // Lazy-load dilimi
                 final sliced = urunler.take(_limit).toList();
 
                 if (sliced.isEmpty) {
@@ -354,7 +348,6 @@ class _SiparisUrunSecSayfasiState extends State<SiparisUrunSecSayfasi> {
 
           const SizedBox(height: 12),
 
-          // Alt butonlar
           AnimatedPadding(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
@@ -422,7 +415,7 @@ class _UrunSatir extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stok = urun.adet; // non-null
+    final stok = urun.adet;
     final secili = secim != null;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),

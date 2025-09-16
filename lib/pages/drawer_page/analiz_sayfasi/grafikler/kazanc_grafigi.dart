@@ -1,4 +1,3 @@
-// lib/pages/drawer_page/analiz_sayfasi/grafikler/kazanc_grafigi.dart
 import 'dart:math' as math;
 import 'package:capri/services/istatistik_servisi.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -16,7 +15,6 @@ class KazancGrafigi extends StatefulWidget {
 class _KazancGrafigiState extends State<KazancGrafigi> {
   String secilenFiltre = 'Günlük';
 
-  // 🔹 Dokunulan index'i grafiği rebuild etmeden tutmak için
   final ValueNotifier<int?> _hoveredIdxVN = ValueNotifier<int?>(null);
 
   @override
@@ -69,7 +67,6 @@ class _KazancGrafigiState extends State<KazancGrafigi> {
       ],
       onPressed: (i) {
         const f = ['Günlük', 'Haftalık', 'Aylık', 'Yıllık'];
-        // 🔹 filtre değişince info etiketini sıfırla
         _hoveredIdxVN.value = null;
         setState(() => secilenFiltre = f[i]);
       },
@@ -129,7 +126,6 @@ class _KazancGrafigiState extends State<KazancGrafigi> {
                 child: StreamBuilder<List<KazancVerisi>>(
                   stream: IstatistikServisi.instance.gunlukKazancAkim(
                     baslangic: _baslangicFromFiltre(),
-                    // dahilDurumlar: {'tamamlandi', 'sevkiyat'},
                   ),
                   builder: (context, snap) {
                     if (snap.connectionState == ConnectionState.waiting) {
@@ -152,13 +148,11 @@ class _KazancGrafigiState extends State<KazancGrafigi> {
                         .map((e) => FlSpot(e.key.toDouble(), e.value.kazanc))
                         .toList();
 
-                    // 🔹 Görüntü akışını sabitle: min/max X/Y belirle
                     final minX = 0.0;
                     final maxX = (spots.length - 1).toDouble();
                     final minYRaw = spots.map((s) => s.y).reduce(math.min);
                     final maxYRaw = spots.map((s) => s.y).reduce(math.max);
-                    final minY =
-                        0.0; // kazanç negatif değilse tabanı 0'a sabitle
+                    final minY = 0.0;
                     final double yPad = (maxYRaw == 0 ? 1 : maxYRaw) * 0.15;
                     final maxY = (maxYRaw + yPad);
 
@@ -169,7 +163,6 @@ class _KazancGrafigiState extends State<KazancGrafigi> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 🔹 Sadece bu minik label rebuild edilsin, grafik sabit kalsın
                         ValueListenableBuilder<int?>(
                           valueListenable: _hoveredIdxVN,
                           builder: (_, idx, __) {
@@ -226,7 +219,6 @@ class _KazancGrafigiState extends State<KazancGrafigi> {
                                 ),
                               ],
 
-                              // 🔹 Dahili dokunuş açık kalsın ama biz setState çağırmayalım.
                               lineTouchData: LineTouchData(
                                 handleBuiltInTouches: true,
                                 touchSpotThreshold: 16,
@@ -236,12 +228,12 @@ class _KazancGrafigiState extends State<KazancGrafigi> {
                                   if (response == null ||
                                       response.lineBarSpots == null ||
                                       response.lineBarSpots!.isEmpty) {
-                                    _hoveredIdxVN.value = null; // rebuild yok
+                                    _hoveredIdxVN.value = null;
                                     return;
                                   }
                                   final idx = response.lineBarSpots!.first.x
                                       .toInt();
-                                  // 🔹 Yalnız değişince güncelle (gereksiz olayları azalt)
+
                                   if (_hoveredIdxVN.value != idx) {
                                     _hoveredIdxVN.value = idx.clamp(
                                       0,
@@ -406,7 +398,6 @@ class _KazancGrafigiState extends State<KazancGrafigi> {
                                 ),
                               ),
                             ),
-                            // 🔹 rebuild’lerde animasyonu kapat
                             duration: Duration.zero,
                             curve: Curves.linear,
                           ),

@@ -1,4 +1,3 @@
-// lib/pages/drawer_page/musteri_detay_sayfasi.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -66,8 +65,8 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Müşteri bilgileri güncellendi")),
     );
-    Navigator.pop(context); // dialog kapat
-    setState(() {}); // başlıktaki isim vs. yenilensin
+    Navigator.pop(context);
+    setState(() {});
   }
 
   void _acDuzenleDialog() {
@@ -88,15 +87,10 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.apartment, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                   validator: (v) => (v == null || v.trim().isEmpty)
@@ -111,15 +105,10 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.badge, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -132,15 +121,10 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
                     labelStyle: TextStyle(color: Renkler.kahveTon),
                     prefixIcon: Icon(Icons.phone, color: Renkler.kahveTon),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ), // aktif çizgi rengi
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -157,15 +141,10 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
                       color: Renkler.kahveTon,
                     ),
                     enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Colors.grey,
-                      ), // pasif çizgi rengi
+                      borderSide: BorderSide(color: Colors.grey),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: Renkler.kahveTon,
-                        width: 2,
-                      ),
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
                     ),
                   ),
                 ),
@@ -280,7 +259,6 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
 
               const SizedBox(height: 12),
 
-              // Geçmiş Siparişler listesi
               Text(
                 "Geçmiş Siparişler",
                 style: Theme.of(context).textTheme.titleMedium,

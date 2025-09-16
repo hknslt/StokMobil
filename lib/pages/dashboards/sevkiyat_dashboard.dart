@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:capri/main.dart';
 import 'package:capri/pages/home/ana_sayfa.dart';
 import 'package:capri/pages/moduller/sevkiyat_sayfasi/sevkiyat_sayfasi.dart';
-import 'package:capri/pages/moduller/siparis_sayfasi/siparis_sayfasi.dart';
 import 'package:capri/pages/moduller/stok_sayfasi/stok_sayfasi.dart';
-import 'package:capri/pages/moduller/uretim_sayfasi/uretim_sayfasi.dart';
 import 'package:capri/pages/widgets/navbar_widget.dart';
 
 class SevkiyatDashboard extends StatefulWidget {

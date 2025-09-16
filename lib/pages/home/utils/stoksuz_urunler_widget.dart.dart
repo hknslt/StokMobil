@@ -55,7 +55,6 @@ class _StoksuzUrunlerWidgetState extends State<StoksuzUrunlerWidget> {
         );
         return;
       }
-      // Basit güncelleme (atomic increment yerine toplayarak)
       final yeniAdet = urun.adet + eklenecek;
       await urunServis.guncelle(
         urun.docId!,

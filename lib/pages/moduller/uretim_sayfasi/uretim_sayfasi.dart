@@ -438,7 +438,7 @@ class _UretimSayfasiState extends State<UretimSayfasi>
     EksikGrup grp,
     List<Urun> tumUrunler,
   ) async {
-    final adetCtrl = TextEditingController(text: grp.toplamEksik.toString());
+    final adetCtrl = TextEditingController();
     await showDialog(
       context: parentCtx,
       builder: (dialogCtx) {
@@ -453,6 +453,8 @@ class _UretimSayfasiState extends State<UretimSayfasi>
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 labelText: "Eklenecek Adet (Toplam Eksik: ${grp.toplamEksik})",
+                labelStyle: TextStyle(color: Renkler.kahveTon),
+                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2))
               ),
               enabled: !isBusy,
             ),

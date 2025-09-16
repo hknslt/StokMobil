@@ -13,12 +13,10 @@ class BildirimAyarSayfasi extends StatefulWidget {
 class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
   bool _loading = true;
   bool _saving = false;
-
-  // Olay toggles
-  bool siparisOlusturuldu = true; // olusturuldu
-  bool stokYetersiz = true;       // stok_eksik
-  bool sevkiyataGitti = true;     // sevkiyat
-  bool siparisTamamlandi = true;  // tamamlandi
+  bool siparisOlusturuldu = true;
+  bool stokYetersiz = true;
+  bool sevkiyataGitti = true;
+  bool siparisTamamlandi = true;
 
   User? get _user => FirebaseAuth.instance.currentUser;
 
@@ -31,21 +29,28 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
   Future<void> _yukle() async {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final d = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final d = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
       final raw = d.data()?['notificationSettings'];
 
-      final s = raw == null ? <String, dynamic>{} : Map<String, dynamic>.from(raw as Map);
+      final s = raw == null
+          ? <String, dynamic>{}
+          : Map<String, dynamic>.from(raw as Map);
 
       setState(() {
         siparisOlusturuldu = s['siparisOlusturuldu'] ?? true;
-        stokYetersiz       = s['stokYetersiz']       ?? true;
-        sevkiyataGitti     = s['sevkiyataGitti']     ?? true;
-        siparisTamamlandi  = s['siparisTamamlandi']  ?? true;
+        stokYetersiz = s['stokYetersiz'] ?? true;
+        sevkiyataGitti = s['sevkiyataGitti'] ?? true;
+        siparisTamamlandi = s['siparisTamamlandi'] ?? true;
         _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Ayarlar yüklenemedi: $e")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Ayarlar yüklenemedi: $e")));
       setState(() => _loading = false);
     }
   }
@@ -76,10 +81,14 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
       }, SetOptions(merge: true));
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ayarlar kaydedildi')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Ayarlar kaydedildi')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Kaydetme hatası: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Kaydetme hatası: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -101,9 +110,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
     if (_loading) {
       return Theme(
         data: themed,
-        child: const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
+        child: const Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
 
@@ -119,7 +126,11 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
               icon: _saving
                   ? const Padding(
                       padding: EdgeInsets.all(12),
-                      child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
                   : const Icon(Icons.save),
             ),
@@ -195,7 +206,8 @@ class _GradientHeader extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [Renkler.kahveTon, Renkler.kahveTon.withOpacity(.85)],
         ),
       ),
@@ -213,7 +225,13 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );
@@ -239,7 +257,8 @@ class _SwitchTile extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return SwitchListTile.adaptive(
       secondary: Container(
-        width: 42, height: 42,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
           color: cs.primary.withOpacity(.08),
           borderRadius: BorderRadius.circular(12),
@@ -260,6 +279,9 @@ class _HintText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(text, style: TextStyle(fontSize: 13, color: Colors.grey.shade600));
-    }
+    return Text(
+      text,
+      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+    );
+  }
 }

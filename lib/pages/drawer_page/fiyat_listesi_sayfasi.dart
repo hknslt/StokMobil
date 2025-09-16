@@ -1,4 +1,4 @@
-// lib/pages/moduller/fiyat_listesi/fiyat_listesi_sayfasi.dart
+
 import 'dart:async';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
@@ -23,21 +23,13 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
   String? _seciliListeId;
   FiyatListesi? _seciliListe;
 
-  // UI filtre/sıralama
   final TextEditingController _aramaCtrl = TextEditingController();
   bool _sadeceSifirFiyatli = false;
-  String _sirala = "İsim (A-Z)"; // "Net ↑", "Net ↓"
+  String _sirala = "İsim (A-Z)"; 
 
-  // (Artık parent rebuild tetiklemeyecek) — sadece bilgi amaçlı
   int? _editingId;
-
-  // Alt özetleri titreştirmemek için debounce
   Timer? _sumDebounce;
-
-  // Alt özet için hafif tetikleyici
   final ValueNotifier<int> _ozetTick = ValueNotifier<int>(0);
-
-  // Controller & Focus cache (ürün id -> controller/focus)
   final Map<int, TextEditingController> _controllers = {};
   final Map<int, FocusNode> _focusNodes = {};
 
@@ -65,7 +57,6 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
     return _focusNodes.putIfAbsent(urunId, () => FocusNode());
   }
 
-  // ---------- Stream cache ----------
   late final Stream<List<FiyatListesi>> _listelerStream;
   Stream<Map<int, double>>? _fiyatStream;
 
@@ -99,7 +90,6 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
     ).showSnackBar(const SnackBar(content: Text("Fiyatlar kaydedildi.")));
   }
 
-  // KDV bottom sheet
   void _kdvBottomSheet(FiyatListesi liste) {
     double tmpVal = (liste.kdv).clamp(0, 100);
     final tmpCtrl = TextEditingController(text: tmpVal.toStringAsFixed(2));
@@ -363,7 +353,6 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
     }
   }
 
-  // Ürün filtresi/sıralaması (editing sırasında parent rebuild’e gerek yok)
   List<Urun> _filtreleSirala(List<Urun> urunler, Map<int, double> fiyatMap) {
     final q = _aramaCtrl.text.trim().toLowerCase();
 
@@ -385,7 +374,6 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
       return matchArama && matchSifir;
     }).toList();
 
-    // Sıralama (yazarken zaten parent setState etmiyoruz, bu yüzden liste stabil)
     switch (_sirala) {
       case "Net ↑":
         liste.sort(
@@ -405,7 +393,6 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
     return liste;
   }
 
-  // Seçili listeyi ve stream’ini tek yerden ayarla
   void _selectListe(FiyatListesi l) {
     _seciliListeId = l.id;
     _seciliListe = l;
@@ -415,7 +402,6 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
     _resetControllers();
   }
 
-  // Sadece alt özet panelini tazele (listeyi rebuild etmeden)
   void _softRecalcAltOzet() {
     _sumDebounce?.cancel();
     _sumDebounce = Timer(const Duration(milliseconds: 250), () {
@@ -427,7 +413,7 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Klavye açılırken Scaffold’u yeniden boyutlandırma
+
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: Renkler.kahveTon,
@@ -526,7 +512,7 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: // Yeni Hali
+                      child: 
                       TextField(
                         controller: _aramaCtrl,
                         decoration: const InputDecoration(
@@ -643,13 +629,12 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                                     controller: ctrl,
                                     focusNode: focus,
 
-                                    // 🔻 ÖNEMLİ: Artık parent’ta setState yok
                                     onStartEdit: () {
                                       _editingId = urun
-                                          .id; // sadece state değişkeni; rebuild yok
+                                          .id; 
                                     },
                                     onEndEdit: () {
-                                      _editingId = null; // rebuild yok
+                                      _editingId = null;
                                     },
 
                                     onSoftChange: _softRecalcAltOzet,
@@ -658,7 +643,6 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                               ),
                             ),
 
-                            // Alt özet + Kaydet (yalnızca tetikleyiciyle güncelleniyor)
                             ValueListenableBuilder<int>(
                               valueListenable: _ozetTick,
                               builder: (_, __, ___) {
@@ -853,7 +837,6 @@ class _FiyatSatiriState extends State<FiyatSatiri>
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Sol - ürün bilgileri
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -901,7 +884,6 @@ class _FiyatSatiriState extends State<FiyatSatiri>
             ),
             const SizedBox(width: 12),
 
-            // Sağ - Net fiyat girişi
             SizedBox(
               width: 150,
               child: TextField(

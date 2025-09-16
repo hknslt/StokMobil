@@ -1,5 +1,5 @@
 class FiyatListesi {
-  final String id;    // Firestore docId
+  final String id;    
   final String ad;
   final double kdv;
   final DateTime createdAt;
@@ -11,7 +11,6 @@ class FiyatListesi {
     required this.createdAt,
   });
 
-  // 🔹 UI 'liste.kdvYuzde' bekliyor; modelde alan 'kdv'.
   double get kdvYuzde => kdv;
 
   Map<String, dynamic> toMap() => {

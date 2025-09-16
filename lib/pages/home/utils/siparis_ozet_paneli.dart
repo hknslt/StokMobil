@@ -1,4 +1,4 @@
-// lib/pages/home/utils/siparis_ozet_paneli.dart
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:capri/services/siparis_service.dart';
@@ -16,7 +16,7 @@ class SiparisOzetPaneli extends StatelessWidget {
         a.year == b.year && a.month == b.month && a.day == b.day;
 
     double _safeBrut(SiparisModel s) {
-      // Öncelik: kaydedilmiş brüt -> yoksa net*(1+kdv/100)
+
       final net = s.netTutar ?? s.toplamTutar;
       final kdv = s.kdvOrani ?? 0.0;
       return s.brutTutar ?? (net * (1 + kdv / 100));
@@ -32,23 +32,18 @@ class SiparisOzetPaneli extends StatelessWidget {
 
         final liste = snap.data!;
         final now = DateTime.now();
-
-        // 🔁 BUGÜN BEKLEYEN: yalnızca islemeTarihi bugün olan + DURUM beklemede
         final bugunBekleyenSayisi = liste.where((s) {
           if (s.durum != SiparisDurumu.beklemede) return false;
           if (s.islemeTarihi == null) return false;
           return _isSameDay(s.islemeTarihi!, now);
         }).length;
 
-        // ✅ BUGÜN TAMAMLANAN: islemeTarihi varsa ona göre, yoksa tarih'e göre
         final bugunTamamlanan = liste.where((s) {
           if (s.durum != SiparisDurumu.tamamlandi) return false;
           final ref = s.islemeTarihi ?? s.tarih;
           return _isSameDay(ref, now);
         }).toList();
         final bugunTamamlananSayisi = bugunTamamlanan.length;
-
-        // 💰 BUGÜN BRÜT KAZANÇ: bugün tamamlananların brüt toplamı
         final bugunBrutKazanc = bugunTamamlanan.fold<double>(
           0.0, (sum, s) => sum + _safeBrut(s),
         );

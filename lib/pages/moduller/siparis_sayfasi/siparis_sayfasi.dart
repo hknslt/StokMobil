@@ -9,7 +9,7 @@ import 'package:capri/pages/moduller/siparis_sayfasi/siparis_oluşturma/siparis_
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
 import 'package:capri/services/siparis_service.dart';
 import 'package:capri/services/urun_service.dart';
-import 'package:capri/services/fiyat_listesi_service.dart'; // KDV için
+import 'package:capri/services/fiyat_listesi_service.dart';
 
 class SiparisSayfasi extends StatefulWidget {
   const SiparisSayfasi({super.key});
@@ -21,12 +21,12 @@ class SiparisSayfasi extends StatefulWidget {
 class _SiparisSayfasiState extends State<SiparisSayfasi> {
   final siparisServis = SiparisService();
   final urunServis = UrunService();
-  final fiyatSvc = FiyatListesiService.instance; // aktif KDV
+  final fiyatSvc = FiyatListesiService.instance;
 
   // --- Arama & filtre state ---
   final _aramaCtrl = TextEditingController();
   String _arama = '';
-  SiparisDurumu? _durumFiltre; // null => Tümü
+  SiparisDurumu? _durumFiltre; 
 
   @override
   void dispose() {
@@ -36,7 +36,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
 
   bool _busyOnay = false;
 
-  // Eski onay akışı: artık sadece "Üretim Onayı" için kullanıyoruz (beklemede + stok yetersiz)
   Future<void> _uretimeOnayla(SiparisModel siparis) async {
     if (_busyOnay) return;
     setState(() => _busyOnay = true);
@@ -73,7 +72,7 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
     }
 
     try {
-      // stok düşmeden onayla → stok yetersizse durum=uretimde
+
       final ok = await siparisServis.onayla(siparis.docId!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -119,7 +118,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
   }
 
   Future<void> _reddet(SiparisModel siparis) async {
-    // Kullanıcıdan onay iste
     final onay =
         await showDialog<bool>(
           context: context,
@@ -132,7 +130,7 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text("Vazgeç"),
+                child: const Text("Vazgeç" , style: TextStyle(color: Renkler.kahveTon)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -166,12 +164,10 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
       }
     }
   }
-
-  // --- küçük yardımcılar (aktif KDV & brüt hesap) ---
   double _aktifKdv() => fiyatSvc.aktifKdv;
   double _brut(double net, double kdvOrani) => net * (1 + kdvOrani / 100);
 
-  // durum -> label
+
   String _durumLabel(SiparisDurumu? d) {
     switch (d) {
       case null:
@@ -305,14 +301,12 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                   );
                 }
 
-                // filtre: durum
+                // filtre
                 if (_durumFiltre != null) {
                   siparisler = siparisler
                       .where((s) => s.durum == _durumFiltre)
                       .toList();
                 }
-
-                // filtre: arama (müşteri adı veya ürün adı)
                 if (_arama.isNotEmpty) {
                   siparisler = siparisler.where((s) {
                     final musteriAdi =
@@ -349,7 +343,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                         .whereNotNull()
                         .toList();
 
-                    // yalnızca Beklemede/Üretimde iken stok kontrolü + renkli gösterim
                     final stokKontrollu =
                         siparis.durum == SiparisDurumu.beklemede ||
                         siparis.durum == SiparisDurumu.uretimde;
@@ -360,7 +353,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                     final brutToplam =
                         (siparis.brutTutar ?? _brut(netToplam, kdvOrani));
 
-                    // 👉 TÜM KARTLARDA stok haritasını çekiyoruz (renk gri de olsa stok adetini göstermek için)
                     return FutureBuilder<Map<int, int>>(
                       future: urunServis.getStocksByNumericIds(numericIds),
                       builder: (context, stokSnap) {
@@ -467,7 +459,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                       kdvOrani,
                                     );
 
-                                    // renk seçimi
                                     final renk = stokKontrollu
                                         ? (yeterli ? Colors.green : Colors.red)
                                         : Colors.grey;
@@ -518,11 +509,10 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
 
                                 const SizedBox(height: 8),
 
-                                // Aksiyon satırı: bağlamsal buton + Reddet (her zaman)
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    // SOL: bağlamsal aksiyon
+
                                     if (siparis.durum ==
                                         SiparisDurumu.beklemede) ...[
                                       if (stokYeterli)

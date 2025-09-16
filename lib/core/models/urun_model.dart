@@ -1,9 +1,8 @@
-// lib/core/models/urun_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Urun {
-  final String? docId;            // <-- Firestore belge id'si
-  final int id;                   // numeric id (bizde gerekli)
+  final String? docId;
+  final int id;
   final String urunKodu;
   final String urunAdi;
   final String renk;
@@ -79,6 +78,4 @@ class Urun {
     final data = doc.data() ?? {};
     return Urun.fromMap(data, docId: doc.id);
   }
-
-  
 }

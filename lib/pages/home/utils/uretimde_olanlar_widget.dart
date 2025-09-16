@@ -1,4 +1,4 @@
-// lib/pages/home/admin/uretimde_olanlar_widget.dart
+
 import 'package:flutter/material.dart';
 import 'package:capri/pages/home/utils/siparis_kart.dart';
 import 'package:capri/services/siparis_service.dart';
@@ -10,7 +10,7 @@ class UretimdeOlanlarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<SiparisModel>>(
-      stream: SiparisService().hepsiDinle(), // ✅
+      stream: SiparisService().hepsiDinle(), 
       builder: (context, snap) {
         if (!snap.hasData) return const SizedBox();
         final liste = (snap.data ?? [])

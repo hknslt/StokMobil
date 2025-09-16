@@ -6,7 +6,7 @@ class MusteriModel {
   final String? yetkili;
   final String? telefon;
   final String? adres;
-  final bool guncel; // ✅
+  final bool guncel; 
 
   const MusteriModel({
     required this.id,
@@ -14,7 +14,7 @@ class MusteriModel {
     this.yetkili,
     this.telefon,
     this.adres,
-    this.guncel = true, // ✅ varsayılan
+    this.guncel = true, 
   });
 
   MusteriModel copyWith({
@@ -41,7 +41,7 @@ class MusteriModel {
         'yetkili': yetkili,
         'telefon': telefon,
         'adres': adres,
-        'guncel': guncel, // ✅
+        'guncel': guncel, 
       };
 
   factory MusteriModel.fromMap(Map<String, dynamic> map) => MusteriModel(
@@ -50,7 +50,7 @@ class MusteriModel {
         yetkili: map['yetkili'] as String?,
         telefon: map['telefon'] as String?,
         adres: map['adres'] as String?,
-        guncel: (map['guncel'] as bool?) ?? true, // ✅
+        guncel: (map['guncel'] as bool?) ?? true, 
       );
 
   factory MusteriModel.fromFirestore(
@@ -63,7 +63,7 @@ class MusteriModel {
       yetkili: data['yetkili'] as String?,
       telefon: data['telefon'] as String?,
       adres: data['adres'] as String?,
-      guncel: (data['guncel'] as bool?) ?? true, // ✅
+      guncel: (data['guncel'] as bool?) ?? true, 
     );
   }
 }

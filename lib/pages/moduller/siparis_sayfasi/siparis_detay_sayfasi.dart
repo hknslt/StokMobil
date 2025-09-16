@@ -5,7 +5,7 @@ import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/pages/moduller/siparis_sayfasi/utils/siparis_Pdf_Yazdir.dart';
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
 import 'package:capri/services/urun_service.dart';
-import 'package:capri/services/fiyat_listesi_service.dart'; // sadece yedek KDV için
+import 'package:capri/services/fiyat_listesi_service.dart'; 
 
 class SiparisDetaySayfasi extends StatefulWidget {
   final SiparisModel siparis;
@@ -20,7 +20,7 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
   final siparisServis = SiparisService();
 
   late final List<int> _urunIdleri;
-  late Future<Map<int, int>> _stokHaritasiFut; // {id: adet}
+  late Future<Map<int, int>> _stokHaritasiFut; 
 
   double _round2(double v) => (v * 100).roundToDouble() / 100.0;
 
@@ -81,7 +81,6 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
     }
 
     try {
-      // ✔ tek kaynak: servis
       final ok = await siparisServis.onaylaVeStokAyir(widget.siparis.docId!);
 
       if (!mounted) return;
@@ -140,15 +139,14 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
     final musteri = s.musteri;
     final tarihStr = DateFormat('dd.MM.yyyy – HH:mm').format(s.tarih);
 
-    // --- Finansallar: önce kaydedilmiş alanları kullan, yoksa hesapla ---
     final double kdvOrani = s.kdvOrani ?? FiyatListesiService.instance.aktifKdv;
 
     final double netToplam =
-        s.netTutar ?? s.toplamTutar; // ürünlerden hesaplanan net fallback
+        s.netTutar ?? s.toplamTutar;
     final double kdvTutar = s.kdvTutar ?? _round2(netToplam * kdvOrani / 100);
     final double brutToplam = s.brutTutar ?? _round2(netToplam + kdvTutar);
 
-    // Yalnızca beklemede/üretimde renkli; aksi halde gri
+
     final bool stokKontrollu =
         s.durum == SiparisDurumu.beklemede || s.durum == SiparisDurumu.uretimde;
 
@@ -222,7 +220,6 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
 
             const SizedBox(height: 16),
 
-            // Ürün Listesi (stok bilgisi + Net/KDV/Brüt)
             FutureBuilder<Map<int, int>>(
               future: _stokHaritasiFut,
               builder: (context, snap) {
@@ -263,7 +260,6 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
                             netSatirToplam * (1 + kdvOrani / 100),
                           );
 
-                          // Renk seçimi: sadece beklemede/üretimde yeşil/kırmızı; diğer durumlarda gri
                           final Color satirRenk = stokKontrollu
                               ? (stokYeterli ? Colors.green : Colors.red)
                               : Colors.grey;
@@ -309,7 +305,6 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
 
             const SizedBox(height: 16),
 
-            // Toplamlar: Net / KDV / Brüt
             Align(
               alignment: Alignment.centerRight,
               child: Column(

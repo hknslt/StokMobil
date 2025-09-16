@@ -1,4 +1,3 @@
-// lib/pages/drawer_page/gecmis_siparis/sayfa_gecmis_siparisler.dart
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/pages/drawer_page/gecmis_siparis/siparis_detay_sayfasi.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +9,8 @@ class GecmisSiparislerSayfasi extends StatefulWidget {
   const GecmisSiparislerSayfasi({super.key});
 
   @override
-  State<GecmisSiparislerSayfasi> createState() => _GecmisSiparislerSayfasiState();
+  State<GecmisSiparislerSayfasi> createState() =>
+      _GecmisSiparislerSayfasiState();
 }
 
 class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
@@ -36,7 +36,6 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
     return DateFormat('dd\nMMM', 'tr_TR').format(dt);
   }
 
-  // MusteriModel adını güvenli okumak için
   String _musteriAdi(dynamic m) {
     try {
       final ad = (m as dynamic).ad as String?;
@@ -74,13 +73,26 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
 
   bool _inDateRange(DateTime? dt) {
     if (_range == null || dt == null) return true;
-    final start = DateTime(_range!.start.year, _range!.start.month, _range!.start.day);
-    final end = DateTime(_range!.end.year, _range!.end.month, _range!.end.day, 23, 59, 59, 999);
+    final start = DateTime(
+      _range!.start.year,
+      _range!.start.month,
+      _range!.start.day,
+    );
+    final end = DateTime(
+      _range!.end.year,
+      _range!.end.month,
+      _range!.end.day,
+      23,
+      59,
+      59,
+      999,
+    );
     return !dt.isBefore(start) && !dt.isAfter(end);
   }
 
   Future<void> _pickRange() async {
-    final initial = _range ??
+    final initial =
+        _range ??
         DateTimeRange(
           start: DateTime.now().subtract(const Duration(days: 7)),
           end: DateTime.now(),
@@ -93,9 +105,9 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: Renkler.kahveTon,
-                ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: Renkler.kahveTon),
           ),
           child: child!,
         );
@@ -115,10 +127,15 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('Vazgeç', style: TextStyle(color: Renkler.kahveTon)),
+            child: const Text(
+              'Vazgeç',
+              style: TextStyle(color: Renkler.kahveTon),
+            ),
           ),
           FilledButton(
-            style: ButtonStyle(backgroundColor: WidgetStatePropertyAll(Colors.red)),
+            style: ButtonStyle(
+              backgroundColor: WidgetStatePropertyAll(Colors.red),
+            ),
             onPressed: () => Navigator.pop(c, true),
             child: const Text('Evet, sil'),
           ),
@@ -130,15 +147,15 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
     try {
       await _svc.sil(s.docId!);
       if (!mounted) return true;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sipariş silindi')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sipariş silindi')));
       return true;
     } catch (e) {
       if (!mounted) return false;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Silinirken hata: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Silinirken hata: $e')));
       return false;
     }
   }
@@ -154,7 +171,6 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
       ),
       body: Column(
         children: [
-          // Arama + Tarih filtresi satırı
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
             child: Row(
@@ -163,10 +179,18 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
                   child: TextField(
                     controller: _araCtrl,
                     decoration: const InputDecoration(
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),borderRadius: BorderRadius.all(Radius.circular(20))),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Renkler.kahveTon,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                      ),
                       prefixIcon: Icon(Icons.search),
                       hintText: 'Müşteri / açıklama ara',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(20))),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                      ),
                       isDense: true,
                     ),
                     onChanged: (_) => setState(() {}),
@@ -176,9 +200,11 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
                 OutlinedButton.icon(
                   onPressed: _pickRange,
                   icon: const Icon(Icons.calendar_today_rounded, size: 18),
-                  label: Text(_range == null
-                      ? 'Tarih'
-                      : '${DateFormat('dd.MM.yyyy').format(_range!.start)} - ${DateFormat('dd.MM.yyyy').format(_range!.end)}'),
+                  label: Text(
+                    _range == null
+                        ? 'Tarih'
+                        : '${DateFormat('dd.MM.yyyy').format(_range!.start)} - ${DateFormat('dd.MM.yyyy').format(_range!.end)}',
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Renkler.kahveTon,
                     side: const BorderSide(color: Renkler.kahveTon),
@@ -196,7 +222,6 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
             ),
           ),
 
-          // Liste
           Expanded(
             child: StreamBuilder<List<SiparisModel>>(
               stream: _svc.tamamlananDinle(),
@@ -211,27 +236,31 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
                 final list = snap.data ?? [];
                 final q = _araCtrl.text.trim().toLowerCase();
 
-                final filtreli = list.where((s) {
-                  final musteriAd = _musteriAdi(s.musteri).toLowerCase();
-                  final acik = (s.aciklama ?? '').toLowerCase();
-                  final bitti = s.islemeTarihi ?? s.tarih;
-                  final matchQ = q.isEmpty || musteriAd.contains(q) || acik.contains(q);
-                  final matchDate = _inDateRange(bitti);
-                  return matchQ && matchDate;
-                }).toList()
-                  ..sort((a, b) {
-                    final da = a.islemeTarihi ?? a.tarih;
-                    final db = b.islemeTarihi ?? b.tarih;
-                    // son tamamlanan üstte
-                    return (db ?? DateTime(0)).compareTo(da ?? DateTime(0));
-                  });
+                final filtreli =
+                    list.where((s) {
+                      final musteriAd = _musteriAdi(s.musteri).toLowerCase();
+                      final acik = (s.aciklama ?? '').toLowerCase();
+                      final bitti = s.islemeTarihi ?? s.tarih;
+                      final matchQ =
+                          q.isEmpty ||
+                          musteriAd.contains(q) ||
+                          acik.contains(q);
+                      final matchDate = _inDateRange(bitti);
+                      return matchQ && matchDate;
+                    }).toList()..sort((a, b) {
+                      final da = a.islemeTarihi ?? a.tarih;
+                      final db = b.islemeTarihi ?? b.tarih;
+                      return (db ?? DateTime(0)).compareTo(da ?? DateTime(0));
+                    });
 
                 if (filtreli.isEmpty) {
                   return const Center(child: Text('Kayıt bulunamadı.'));
                 }
 
-                // Üst mini özet
-                final toplamTutar = filtreli.fold<double>(0, (t, s) => t + s.brutToplam);
+                final toplamTutar = filtreli.fold<double>(
+                  0,
+                  (t, s) => t + s.brutToplam,
+                );
                 final adet = filtreli.length;
 
                 return Column(
@@ -259,7 +288,8 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
                     const SizedBox(height: 4),
                     Expanded(
                       child: ListView.separated(
-                        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                         itemCount: filtreli.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
@@ -278,7 +308,8 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
                             background: _dismissBg(),
                             child: _SiparisKart(
                               baslik: ad,
-                              altYazi: 'Durum: ${statusName.toUpperCase()}  •  ${_fmtTarih(bitti)}',
+                              altYazi:
+                                  'Durum: ${statusName.toUpperCase()}  •  ${_fmtTarih(bitti)}',
                               solGunKutucuk: _fmtGunKisa(bitti),
                               toplamYazi: _paraFmt.format(toplam),
                               statusColor: statusColor,
@@ -286,7 +317,9 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => SiparisGecmisDetaySayfasi(siparisId: s.docId!),
+                                    builder: (_) => SiparisGecmisDetaySayfasi(
+                                      siparisId: s.docId!,
+                                    ),
                                   ),
                                 );
                               },
@@ -317,7 +350,9 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
         borderRadius: BorderRadius.circular(14),
         color: scheme.surface,
         border: Border.all(color: scheme.outlineVariant),
-        boxShadow: const [BoxShadow(blurRadius: 6, offset: Offset(0, 1), color: Colors.black12)],
+        boxShadow: const [
+          BoxShadow(blurRadius: 6, offset: Offset(0, 1), color: Colors.black12),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -327,8 +362,17 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(deger, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-              Text(etiket, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11)),
+              Text(
+                deger,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                etiket,
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 11),
+              ),
             ],
           ),
         ],
@@ -349,14 +393,16 @@ class _GecmisSiparislerSayfasiState extends State<GecmisSiparislerSayfasi> {
         children: [
           Icon(Icons.delete_outline, color: Colors.white),
           SizedBox(width: 6),
-          Text('Sil', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          Text(
+            'Sil',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Nicer card widget for each order row
 class _SiparisKart extends StatelessWidget {
   final String baslik;
   final String altYazi;
@@ -389,7 +435,6 @@ class _SiparisKart extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
-              // Sol tarih kutusu
               Container(
                 width: 48,
                 height: 48,
@@ -411,15 +456,19 @@ class _SiparisKart extends StatelessWidget {
               ),
               const SizedBox(width: 12),
 
-              // Metinler
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(baslik,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    Text(
+                      baslik,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       altYazi,
@@ -432,14 +481,15 @@ class _SiparisKart extends StatelessWidget {
               ),
 
               const SizedBox(width: 8),
-
-              // Tutar + rozet nokta
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     toplamYazi,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -448,16 +498,21 @@ class _SiparisKart extends StatelessWidget {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                        ),
                       ),
                       const SizedBox(width: 6),
-                      Text('durum',
-                          style: TextStyle(
-                            color: scheme.onSurfaceVariant,
-                            fontSize: 11,
-                          )),
+                      Text(
+                        'durum',
+                        style: TextStyle(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ],

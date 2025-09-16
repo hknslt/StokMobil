@@ -1,4 +1,4 @@
-// lib/pages/moduller/siparis_gecmis/siparis_gecmis_detay_sayfasi.dart
+
 import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -29,8 +29,6 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
     } catch (_) {}
     return '-';
   }
-
-  // ---------- Finans güvenli yardımcıları ----------
   double _netToplam(SiparisModel s) => (s.netTutar ?? s.toplamTutar);
   double _kdvOrani(SiparisModel s) => (s.kdvOrani ?? 0.0);
   double _kdvTutar(SiparisModel s) =>
@@ -70,7 +68,7 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
 
           return Column(
             children: [
-              // ÜST ÖZET + FİNANS KARTI
+
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Card(
@@ -81,7 +79,6 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Başlık ve durum/ tarih çipleri
                         Row(
                           children: [
                             Expanded(
@@ -128,7 +125,6 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
 
-                        // Finans satırları
                         Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.black12),
@@ -157,15 +153,13 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
                 ),
               ),
 
-              // ÜRÜN KALEMLERİ
               Expanded(
                 child: ListView.separated(
                   itemCount: s.urunler.length,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
-                    final u = s.urunler[i]; // SiparisUrunModel
-                    // güvenli erişim
+                    final u = s.urunler[i];
                     dynamic d = u;
                     String urunAdi = '';
                     String? urunKodu;
@@ -215,7 +209,6 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
                               'Birim: ${tl.format(birim)}',
                             ].join(' • ')),
                             const SizedBox(height: 6),
-                            // alt kırılımlar
                             Row(
                               children: [
                                 _miniTag("Brüt", tl.format(brutSatir), highlight: true),
@@ -223,7 +216,6 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
                             ),
                           ],
                         ),
-                        // trailing’i sade bıraktım; istersen kaldır
                       ),
                     );
                   },
@@ -236,7 +228,6 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
     );
   }
 
-  // ------- UI yardımcıları -------
   Widget _finDivider() => const Divider(height: 0, thickness: 1, color: Color(0x11000000));
 
   Widget _finSatir(String baslik, String deger, {bool vurgulu = false}) {

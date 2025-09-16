@@ -33,10 +33,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
 
     try {
-      // E-postalar Türkçe gelsin
+
       await FirebaseAuth.instance.setLanguageCode('tr');
 
-      // E-posta ya da kullanıcı adından e-postayı çöz
       final email = await _resolveEmail(raw);
       if (email == null) {
         if (mounted) {
@@ -56,12 +55,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           content: Text("Şifre sıfırlama e-postası gönderildi: $email"),
         ),
       );
-      Navigator.pop(context); // başarılıysa sayfayı kapat
+      Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = _firebaseErrToTr(e); // user-not-found, invalid-email vb.
+        _error = _firebaseErrToTr(e);
       });
     } catch (e) {
       if (!mounted) return;
@@ -72,22 +71,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     }
   }
 
-  /// E-posta girilmişse direkt döndürür.
-  /// Kullanıcı adı ise Firestore 'users' koleksiyonundan email alanını bulur.
   Future<String?> _resolveEmail(String input) async {
     if (input.contains('@')) return input;
 
-    // usernameLower desteği – kullanıcı adı karşılaştırmasını case-insensitive yapar
     final lower = input.toLowerCase();
 
-    // 1) usernameLower ile ara
     var qs = await FirebaseFirestore.instance
         .collection('users')
         .where('usernameLower', isEqualTo: lower)
         .limit(1)
         .get();
 
-    // 2) Bulunamazsa username ile de bir kez dene
     if (qs.docs.isEmpty) {
       qs = await FirebaseFirestore.instance
           .collection('users')
@@ -141,7 +135,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               controller: _inputCtrl,
               enabled: !_loading,
               textInputAction: TextInputAction.done,
-              keyboardType: TextInputType.emailAddress, // @ içeren klavye
+              keyboardType: TextInputType.emailAddress,
               autofocus: true,
               decoration: InputDecoration(
                 labelText: "E-posta veya kullanıcı adı",

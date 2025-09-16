@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:capri/services/bildirim_servisi.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -10,8 +9,6 @@ import 'pages/login/login_page.dart';
 import 'pages/home/ana_sayfa.dart';
 import 'pages/drawer_page/ayarlar/ayarlar_sayfasi.dart';
 import 'pages/drawer_page/hakkinda_sayfasi.dart';
-
-// === Bildirimler ===
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,17 +20,14 @@ final _fln = FlutterLocalNotificationsPlugin();
 Future<void> _bgHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await BildirimServisi.init();
-  // Arka plan mesajı: gerekirse log tutabilirsin.
 }
 
 Future<void> _kurBildirimAltyapisi() async {
   FirebaseMessaging.onBackgroundMessage(_bgHandler);
 
-  // İzin iste
   final fcm = FirebaseMessaging.instance;
   await fcm.requestPermission(alert: true, badge: true, sound: true);
 
-  // Local notifications init
   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
   const initSettings = InitializationSettings(
     android: androidInit,
@@ -41,7 +35,6 @@ Future<void> _kurBildirimAltyapisi() async {
   );
   await _fln.initialize(initSettings);
 
-  // Uygulama açıkken gelen FCM'leri yerel bildirim olarak göster
   FirebaseMessaging.onMessage.listen((RemoteMessage m) async {
     final n = m.notification;
     if (n != null) {
@@ -63,7 +56,6 @@ Future<void> _kurBildirimAltyapisi() async {
     }
   });
 
-  // >>> TOKEN YENİLENMESİNİ DİNLE (EKLENDİ) <<<
   FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
     final u = FirebaseAuth.instance.currentUser;
     if (u == null) return;
@@ -75,7 +67,7 @@ Future<void> _kurBildirimAltyapisi() async {
         .set({
           'uid': u.uid,
           'token': newToken,
-          'platform': 'android', // iOS'ta 'ios'
+          'platform': 'android',
           'refreshedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
   });
@@ -94,9 +86,9 @@ Future<void> _kaydetFcmToken() async {
       .collection('cihazlar')
       .doc(token)
       .set({
-        'uid': u.uid, // EK: uid
+        'uid': u.uid,
         'token': token,
-        'platform': 'android', // iOS'ta 'ios'
+        'platform': 'android',
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 }
@@ -108,17 +100,14 @@ void main() async {
   await intl_local.initializeDateFormatting('tr', "");
   Intl.defaultLocale = 'tr';
 
-  // Bildirim altyapısı
   await _kurBildirimAltyapisi();
 
   runApp(const MyApp());
 
-  // Login durumu değişirse token kaydet
   FirebaseAuth.instance.authStateChanges().listen((user) {
     if (user != null) _kaydetFcmToken();
   });
 
-  // >>> UYGULAMA AÇILDIĞINDA KULLANICI ZATEN GİRİŞLİYSE TOKEN'I HEMEN KAYDET (EKLENDİ) <<<
   if (FirebaseAuth.instance.currentUser != null) {
     _kaydetFcmToken();
   }

@@ -74,7 +74,7 @@ class _LoginPageState extends State<LoginPage>
         password: password,
       );
 
-      // 2) Profil verisini Firestore'dan çek
+      // Profil verisini Firestore'dan çek
       final uid = cred.user!.uid;
       final snap = await FirebaseFirestore.instance
           .collection('users')
@@ -82,11 +82,10 @@ class _LoginPageState extends State<LoginPage>
           .get();
       final data = snap.data() ?? {};
 
-      // 3) UserModel oluştur (core/models/user.dart yeni sürüm olmalı)
       final current = UserModel.fromMap(data, uid);
       MyApp.currentUser = current;
 
-      // 4) Role göre hedef sayfa
+      //Role göre hedef sayfa
       Widget hedef;
       switch (current.role) {
         case 'admin':
@@ -266,7 +265,7 @@ class _LoginPageState extends State<LoginPage>
                                 TextFormField(
                                   controller: _kullaniciVeyaEpostaController,
                                   keyboardType: TextInputType
-                                      .emailAddress, // @ için doğru tip
+                                      .emailAddress,
                                   textCapitalization: TextCapitalization.none,
                                   enableSuggestions: false,
                                   autocorrect: false,
@@ -325,13 +324,12 @@ class _LoginPageState extends State<LoginPage>
                                 const SizedBox(height: 14),
 
                                 // ŞİFRE
-                                // ŞİFRE
                                 TextFormField(
                                   controller: _sifreController,
                                   obscureText: _sifreGizli,
                                   textInputAction: TextInputAction.done,
                                   keyboardType: TextInputType
-                                      .visiblePassword, // ← şifre klavyesi
+                                      .visiblePassword, //  şifre klavyesi
                                   enableSuggestions: false,
                                   autocorrect: false,
                                   autofillHints: const [AutofillHints.password],
@@ -472,8 +470,6 @@ class _LoginPageState extends State<LoginPage>
       ),
     );
   }
-
-  // Dekoratif bulut/daire
   Widget _bulut(Color renk, {double size = 240}) {
     return Container(
       width: size,

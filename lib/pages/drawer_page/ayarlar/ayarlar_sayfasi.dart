@@ -14,15 +14,10 @@ class AyarlarSayfasi extends StatelessWidget {
     final baseTheme = Theme.of(context);
     final cs = baseTheme.colorScheme;
 
-    // Firebase kullanıcı bilgileri
     final user = FirebaseAuth.instance.currentUser;
     final email = user?.email ?? '—';
     final displayName = user?.displayName?.trim();
 
-    // İSİM GERİ DÖNÜŞ ZİNCİRİ:
-    // 1) displayName dolu ise onu kullan
-    // 2) değilse e-posta'nın '@' öncesini kullan
-    // 3) o da yoksa 'Misafir'
     final fallbackFromEmail = email.contains('@')
         ? email.split('@').first
         : email;
@@ -30,13 +25,11 @@ class AyarlarSayfasi extends StatelessWidget {
         ? displayName
         : (fallbackFromEmail.isNotEmpty ? fallbackFromEmail : 'Misafir');
 
-    // Bu sayfa için bir alt tema: ana rengi kahveTon yap
     final themed = baseTheme.copyWith(
       colorScheme: cs.copyWith(
         primary: Renkler.kahveTon,
         secondary: Renkler.kahveTon,
         onPrimary: Colors.white,
-        // İsteğe bağlı: container tonlarını da kahveTon’dan türetelim
         primaryContainer: Renkler.kahveTon.withOpacity(.15),
         secondaryContainer: Renkler.kahveTon.withOpacity(.15),
       ),
@@ -97,7 +90,6 @@ class AyarlarSayfasi extends StatelessWidget {
               ),
             ),
 
-            // Bölüm: Hesap
             SliverToBoxAdapter(
               child: _Section(
                 title: 'Hesap',
@@ -128,7 +120,6 @@ class AyarlarSayfasi extends StatelessWidget {
               ),
             ),
 
-            // Bölüm: Bildirimler
             SliverToBoxAdapter(
               child: _Section(
                 title: 'Bildirimler',
@@ -148,7 +139,6 @@ class AyarlarSayfasi extends StatelessWidget {
               ),
             ),
 
-            // Bölüm: Uygulama
             SliverToBoxAdapter(
               child: _Section(
                 title: 'Uygulama',
@@ -251,7 +241,7 @@ class _Avatar extends StatelessWidget {
     final trimmed = name.trim();
     final initial = trimmed.isNotEmpty
         ? trimmed.split(RegExp(r'\s+')).map((e) => e[0]).take(2).join()
-        : 'M'; // Misafir -> 'M'
+        : 'M';
     return Container(
       width: 56,
       height: 56,
@@ -282,7 +272,7 @@ class _QuickGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    // Basit bir grid görünümü
+
     return Row(
       children: [
         for (int i = 0; i < items.length; i++)

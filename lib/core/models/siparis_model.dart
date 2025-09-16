@@ -15,8 +15,8 @@ extension _SiparisDurumuParse on SiparisDurumu {
 }
 
 class SiparisModel {
-  final String? docId; // Firestore belge id’si (opsiyonel)
-  final String id;     // Uygulama içi UUID
+  final String? docId;
+  final String id;
 
   final MusteriModel musteri;
   final List<SiparisUrunModel> urunler;
@@ -25,17 +25,14 @@ class SiparisModel {
   final String? aciklama;
   SiparisDurumu durum;
 
-  // 💾 Kalıcı finans alanları (sipariş anında sabitlenir)
-  final double? netTutar;   // KDV hariç toplam
-  final double? kdvOrani;   // % olarak (örn 10.0)
+  final double? netTutar; // KDV hariç toplam
+  final double? kdvOrani; // % olarak
   final double? kdvTutar;
-  final double? brutTutar;  // net + kdv
+  final double? brutTutar; // net + kdv
 
-  // 🔎 İsteğe bağlı bilgi amaçlı
   final String? fiyatListesiId;
   final String? fiyatListesiAd;
 
-  // ✅ Yeni: Onayda stok yeterliyse kartta "Sevkiyat Onayı" butonunu göstermek için
   final bool? sevkiyatHazir;
 
   SiparisModel({
@@ -48,21 +45,18 @@ class SiparisModel {
     this.aciklama,
     SiparisDurumu? durum,
 
-    // finans
     this.netTutar,
     this.kdvOrani,
     this.kdvTutar,
     this.brutTutar,
 
-    // bilgi
     this.fiyatListesiId,
     this.fiyatListesiAd,
 
-    // yeni
     this.sevkiyatHazir,
-  })  : id = id ?? const Uuid().v4(),
-        tarih = tarih ?? DateTime.now(),
-        durum = durum ?? SiparisDurumu.beklemede;
+  }) : id = id ?? const Uuid().v4(),
+       tarih = tarih ?? DateTime.now(),
+       durum = durum ?? SiparisDurumu.beklemede;
 
   // ---------- Helpers ----------
   static double _sumNet(List<SiparisUrunModel> items) =>
@@ -70,7 +64,6 @@ class SiparisModel {
 
   static double _round2(double v) => double.parse(v.toStringAsFixed(2));
 
-  /// UI’de eski `toplamTutar` alışkanlığı için (NET)
   double get toplamTutar => _round2(_netComputed);
 
   double get _netComputed => netTutar ?? _sumNet(urunler);
@@ -89,22 +82,19 @@ class SiparisModel {
       'id': id,
       'musteri': musteri.toMap(),
       'urunler': urunler.map((e) => e.toMap()).toList(),
-      'tarih': tarih,                  // Firestore DateTime -> Timestamp dönüşümü otomatik
-      'islemeTarihi': islemeTarihi,    // (serverTimestamp set edilecekse servis tarafında)
+      'tarih': tarih,
+      'islemeTarihi': islemeTarihi,
       'aciklama': aciklama,
       'durum': durum.name,
 
-      // finans (hesaplandıysa verilen; yoksa computed değerler)
       'netTutar': netTutar ?? _netComputed,
       'kdvOrani': kdvOrani ?? _kdvOraniComputed,
       'kdvTutar': kdvTutar ?? _kdvComputed,
       'brutTutar': brutTutar ?? _brutComputed,
 
-      // bilgi
       'fiyatListesiId': fiyatListesiId,
       'fiyatListesiAd': fiyatListesiAd,
 
-      // yeni
       'sevkiyatHazir': sevkiyatHazir ?? false,
     };
   }
@@ -148,17 +138,14 @@ class SiparisModel {
         (map['durum'] as String?) ?? 'beklemede',
       ),
 
-      // finans
       netTutar: _num(map['netTutar']),
       kdvOrani: _num(map['kdvOrani']),
       kdvTutar: _num(map['kdvTutar']),
       brutTutar: _num(map['brutTutar']),
 
-      // bilgi
       fiyatListesiId: map['fiyatListesiId'] as String?,
       fiyatListesiAd: map['fiyatListesiAd'] as String?,
 
-      // yeni
       sevkiyatHazir: (map['sevkiyatHazir'] as bool?) ?? false,
     );
   }

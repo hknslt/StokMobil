@@ -64,22 +64,19 @@ class SevkiyattaOlanlarWidget extends StatelessWidget {
         final gosterilecek = liste.take(5).toList();
 
         return Container(
-          // daha GENİŞ görünüm için yatay padding’i azalttık
           padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ---------- BAŞLIK SATIRI (taşma düzeltildi) ----------
               LayoutBuilder(
                 builder: (context, c) {
-                  final narrow = c.maxWidth < 380; // dar kartlar için eşik
+                  final narrow = c.maxWidth < 380;
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Icon(Icons.local_shipping_outlined, color: Renkler.kahveTon),
                       const SizedBox(width: 8),
 
-                      // Başlık: kalan alanı alsın
                       const Expanded(
                         child: Text(
                           "Sevkiyat Bekleyenler",
@@ -91,7 +88,6 @@ class SevkiyattaOlanlarWidget extends StatelessWidget {
 
                       const SizedBox(width: 8),
 
-                      // Sayı rozeti
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
@@ -103,7 +99,6 @@ class SevkiyattaOlanlarWidget extends StatelessWidget {
 
                       const SizedBox(width: 4),
 
-                      // Genişse yazılı buton, darsa sadece ikon
                       if (narrow)
                         IconButton(
                           tooltip: 'Tümünü Gör',
@@ -142,13 +137,12 @@ class SevkiyattaOlanlarWidget extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // Kartlar: FULL GENİŞLİK + geniş görünüm için kompakt=false
               ...gosterilecek.map(
                 (s) => SizedBox(
                   width: double.infinity,
                   child: SiparisSevkiyatKart(
                     siparis: s,
-                    kompakt: false, // daha “geniş”/ferah iç padding
+                    kompakt: false, 
                     onTeslimEt: () => _teslimEtDialog(context, s),
                   ),
                 ),

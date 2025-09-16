@@ -1,13 +1,11 @@
-// lib/core/models/siparis_urun_model.dart
-
 class SiparisUrunModel {
   final String id;
   final String urunAdi;
   final String renk;
   int adet;
   double birimFiyat;
-  final int? uretilenAdet;     // üretim ilerleme
-  final int? sevkEdilenAdet;   // KISMİ SEVKİYAT TAKİBİ (yeni)
+  final int? uretilenAdet;
+  final int? sevkEdilenAdet;
 
   SiparisUrunModel({
     required this.id,
@@ -20,14 +18,14 @@ class SiparisUrunModel {
   });
 
   SiparisUrunModel copy() => SiparisUrunModel(
-        id: id,
-        urunAdi: urunAdi,
-        renk: renk,
-        adet: adet,
-        birimFiyat: birimFiyat,
-        uretilenAdet: uretilenAdet,
-        sevkEdilenAdet: sevkEdilenAdet,
-      );
+    id: id,
+    urunAdi: urunAdi,
+    renk: renk,
+    adet: adet,
+    birimFiyat: birimFiyat,
+    uretilenAdet: uretilenAdet,
+    sevkEdilenAdet: sevkEdilenAdet,
+  );
 
   SiparisUrunModel copyWith({
     String? id,
@@ -58,16 +56,17 @@ class SiparisUrunModel {
       adet - (uretilenAdet ?? 0) < 0 ? 0 : adet - (uretilenAdet ?? 0);
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'urunAdi': urunAdi,
-        'renk': renk,
-        'adet': adet,
-        'birimFiyat': birimFiyat,
-        'uretilenAdet': uretilenAdet,
-        'sevkEdilenAdet': sevkEdilenAdet,
-      };
+    'id': id,
+    'urunAdi': urunAdi,
+    'renk': renk,
+    'adet': adet,
+    'birimFiyat': birimFiyat,
+    'uretilenAdet': uretilenAdet,
+    'sevkEdilenAdet': sevkEdilenAdet,
+  };
 
-  factory SiparisUrunModel.fromMap(Map<String, dynamic> map) => SiparisUrunModel(
+  factory SiparisUrunModel.fromMap(Map<String, dynamic> map) =>
+      SiparisUrunModel(
         id: map['id'] as String,
         urunAdi: map['urunAdi'] as String,
         renk: map['renk'] as String,

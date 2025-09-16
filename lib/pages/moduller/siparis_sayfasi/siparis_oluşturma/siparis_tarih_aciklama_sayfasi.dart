@@ -47,7 +47,6 @@ class _SiparisTarihAciklamaSayfasiState
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  // Başlık
                   Text(
                     "İşleme Alınma Tarihi Seçin",
                     style: TextStyle(
@@ -59,14 +58,14 @@ class _SiparisTarihAciklamaSayfasiState
                   const SizedBox(height: 8),
 
                   // Takvim
-                  // Takvim
+
                   Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: SizedBox(
-                      height: 300, // fazla yer kaplamasın
+                      height: 300,
                       child: Theme(
                         data: Theme.of(context).copyWith(
                           colorScheme: ColorScheme.light(
@@ -126,7 +125,7 @@ class _SiparisTarihAciklamaSayfasiState
             ),
           ),
 
-          // Butonlar
+
           Row(
             children: [
               Expanded(

@@ -10,7 +10,7 @@ class EnCokSatanUrunlerPaneli extends StatefulWidget {
 }
 
 class _EnCokSatanUrunlerPaneliState extends State<EnCokSatanUrunlerPaneli> {
-  String _filtre = 'Günlük'; // Günlük | Haftalık | Aylık | Yıllık
+  String _filtre = 'Günlük'; 
 
   DateTime _baslangic() {
     final now = DateTime.now();
@@ -79,7 +79,6 @@ class _EnCokSatanUrunlerPaneliState extends State<EnCokSatanUrunlerPaneli> {
               StreamBuilder<List<Map<String, dynamic>>>(
                 stream: IstatistikServisi.instance.enCokSatanUrunlerAkim(
                   baslangic: _baslangic(),
-                  // dahilDurumlar: {'tamamlandi'}, // default
                   limit: 15,
                 ),
                 builder: (context, snap) {
@@ -121,7 +120,6 @@ class _EnCokSatanUrunlerPaneliState extends State<EnCokSatanUrunlerPaneli> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Üst satır: Ürün adı ve sayılar
                             Row(
                               children: [
                                 Expanded(child: Text(urunAdi, style: const TextStyle(fontWeight: FontWeight.w700))),
@@ -132,7 +130,6 @@ class _EnCokSatanUrunlerPaneliState extends State<EnCokSatanUrunlerPaneli> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            // Progress bar (pay)
                             Stack(
                               children: [
                                 Container(
