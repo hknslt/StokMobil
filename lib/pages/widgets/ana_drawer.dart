@@ -296,8 +296,8 @@ const List<_DrawerItemData> _tumOgeler = [
   ),
   _DrawerItemData('/gecmis_siparis', "Geçmiş Siparişler", Icons.history_outlined),
   _DrawerItemData('/analiz', "Analizler", Icons.analytics_outlined),
+   _DrawerItemData('/hakkinda', "Hakkında", Icons.info_outline),
   _DrawerItemData('/ayarlar', "Ayarlar", Icons.settings_outlined),
-  _DrawerItemData('/hakkinda', "Hakkında", Icons.info_outline),
   
 ];
 

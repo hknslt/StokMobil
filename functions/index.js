@@ -1,3 +1,4 @@
+// functions/index.js
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp();
@@ -7,24 +8,19 @@ const db = admin.firestore();
  *  Müşteri adını farklı şemalardan çöz
  * -------------------------------- */
 async function resolveMusteriAdi(after) {
-  // 1) Düz alan adları
   const flatKeys = [
     "musteriAdi", "musteriAdı", "musteri_adi",
     "musteriIsmi", "musteriName",
     "customerName", "firmaAdi", "firmaAdı", "unvan", "title", "name",
   ];
-  for (const k of flatKeys) {
-    if (after[k]) return String(after[k]);
-  }
+  for (const k of flatKeys) if (after[k]) return String(after[k]);
 
-  // 2) Nesne içinde (musteri: { adi, ad, name, title })
   if (after.musteri && typeof after.musteri === "object") {
     const m = after.musteri;
     const nested = m.adi || m.ad || m.name || m.title || m.firmaAdi || m.firmaAdı;
     if (nested) return String(nested);
   }
 
-  // 3) ID veya Ref var ise /musteriler'den çek
   const id =
     after.musteriId ||
     after.musteriID ||
@@ -43,142 +39,140 @@ async function resolveMusteriAdi(after) {
       console.warn("Musteri adı çekilemedi:", id, e.message);
     }
   }
-
-  return ""; // bulunamazsa boş dön
+  return "";
 }
 
-/** Olay -> ayar anahtarı (düz şema) */
+/** Olay -> ayar anahtarı (flat) */
 const olayKeyMap = {
   olusturuldu: "siparisOlusturuldu",
-  stok_eksik:  "stokYetersiz",
-  sevkiyat:    "sevkiyataGitti",
-  tamamlandi:  "siparisTamamlandi",
+  stok_eksik: "stokYetersiz",
+  sevkiyat: "sevkiyataGitti",
+  tamamlandi: "siparisTamamlandi",
+  // NOT: uretimde için ayrı toggle istemezsen sevkiyat’a bağladık
+  uretimde: "sevkiyataGitti",
 };
-/** Olay -> ayar anahtarı (nested şema: ayarlar.bildirimler) */
+/** Olay -> ayar anahtarı (nested: ayarlar.bildirimler) */
 const nestedKeyMap = {
   olusturuldu: "siparis",
-  stok_eksik:  "stok",
-  sevkiyat:    "sevkiyat",
-  tamamlandi:  "tamamlandi",
+  stok_eksik: "stok",
+  sevkiyat: "sevkiyat",
+  tamamlandi: "tamamlandi",
+  uretimde: "sevkiyat",
 };
 
+// İzinli mi? (flat+nested; explicit false varsa kapalı)
+function isAllowedForUser(u, olay) {
+  const flat = (u && u.notificationSettings) || {};
+  const nested = (u && u.ayarlar && u.ayarlar.bildirimler) || {};
+  const hasFlatKey = Object.prototype.hasOwnProperty.call(olayKeyMap, olay);
+  const hasNestedKey = Object.prototype.hasOwnProperty.call(nestedKeyMap, olay);
+
+  const flatAllowed = hasFlatKey ? flat[olayKeyMap[olay]] !== false : true;
+  const nestedAllowed = hasNestedKey ? nested[nestedKeyMap[olay]] !== false : true;
+
+  return flatAllowed && nestedAllowed;
+}
+
 exports.siparisDurumBildirim = functions
-  .region("us-central1")
+  // Bölgeyi Firestore’unla aynı yap (diğer fonksiyonların europe-west1)
+  .region("europe-west1")
   .firestore.document("siparisler/{siparisId}")
   .onWrite(async (change, ctx) => {
     const after = change.after.data();
     const before = change.before.data();
-
-    // Silinme ise çık
     if (!after) return null;
 
-    // Hiç anlamlı değişiklik yoksa hızlı çıkış (opsiyonel ama maliyeti düşürür)
+    // Gereksiz tetikleri erken kes
     if (before) {
-      const beforeStr = JSON.stringify({
-        durum: before.durum,
-        stokUyarisi: before.stokUyarisi,
-      });
-      const afterStr = JSON.stringify({
-        durum: after.durum,
-        stokUyarisi: after.stokUyarisi,
-      });
+      const beforeStr = JSON.stringify({ durum: before.durum, stokUyarisi: before.stokUyarisi });
+      const afterStr = JSON.stringify({ durum: after.durum, stokUyarisi: after.stokUyarisi });
       if (beforeStr === afterStr) return null;
     }
 
-    // --- Olayı/mesajı oluştur ---
+    // --- Olayı belirle + mesajı hazırla ---
     let title = "", body = "", olay = "";
-
     if (!before) {
-      // Oluşturma
       title = "Sipariş oluşturuldu";
       const musteriAdi = await resolveMusteriAdi(after);
-      body  = `Müşteri: ${musteriAdi || "-"}`;
-      olay  = "olusturuldu";
+      body = `Müşteri: ${musteriAdi || "-"}`;
+      olay = "olusturuldu";
     } else if (before.durum !== after.durum) {
-      // Durum değişimi
       const map = {
-        uretimde:   ["Sipariş üretimde", "Sipariş üretime alındı.", "uretimde"],
-        sevkiyat:   ["Sipariş sevkiyata gitti", "Sipariş sevkiyat aşamasında.", "sevkiyat"],
+        uretimde: ["Sipariş üretimde", "Sipariş üretime alındı.", "uretimde"],
+        sevkiyat: ["Sipariş sevkiyata gitti", "Sipariş sevkiyat aşamasında.", "sevkiyat"],
         tamamlandi: ["Sipariş tamamlandı", "Sipariş teslim edildi.", "tamamlandi"],
         reddedildi: ["Sipariş reddedildi", "Sipariş onaylanmadı.", "reddedildi"],
       };
       if (map[after.durum]) {
         [title, body, olay] = map[after.durum];
-        // İstersen müşteriyi ekle
         const musteriAdi = await resolveMusteriAdi(after);
         if (musteriAdi) body = `${body} (Müşteri: ${musteriAdi})`;
       }
     }
 
-    // Stok uyarısı
     if (after.stokUyarisi === true && (!before || before.stokUyarisi !== true)) {
       title ||= "Stok yetersizliği";
-      body  ||= "Sipariş sonrası stok eksik.";
-      olay  ||= "stok_eksik";
+      body ||= "Sipariş sonrası stok eksik.";
+      olay ||= "stok_eksik";
     }
 
+    // reddedildi için toggle tanımlamadık: herkes görsün istiyorsan kalsın,
+    // aksi halde olayKeyMap/nestedKeyMap’e anahtar ekle.
     if (!title) return null;
 
-    // --- Kullanıcı ayarlarına göre filtre ---
-    // Hem düz şema (notificationSettings.*) hem nested şema (ayarlar.bildirimler.*) desteklenir.
+    // --- İzinli kullanıcıları bul ---
     const usersSnap = await db.collection("users").get();
-    const acikUid = new Set(
+    const izinliUid = new Set(
       usersSnap.docs
-        .filter((d) => {
-          const u = d.data() || {};
-
-          const flat = u.notificationSettings || {};
-          const nested = (u.ayarlar && u.ayarlar.bildirimler) || {};
-
-          // Varsayılan: true. Eğer anahtar explicit false ise kapalı say.
-          const flatAllowed =
-            olay in olayKeyMap
-              ? flat[olayKeyMap[olay]] !== false
-              : true;
-
-          const nestedAllowed =
-            olay in nestedKeyMap
-              ? nested[nestedKeyMap[olay]] !== false
-              : true;
-
-          return flatAllowed && nestedAllowed;
-        })
-        .map((d) => d.id)
+        .filter((doc) => isAllowedForUser(doc.data(), olay))
+        .map((doc) => doc.id)
     );
+    if (!izinliUid.size) return null;
 
-    // --- Cihaz tokenlarını topla (users/{uid}/cihazlar alt koleksiyonu) ---
+    // --- Cihaz tokenlarını topla (sadece izinliler) ---
     const cihazSnap = await db.collectionGroup("cihazlar").get();
-    const tokens = [];
+    const tokenSet = new Set();
     cihazSnap.docs.forEach((doc) => {
       const token = doc.get("token");
       if (!token) return;
       const uid = doc.ref.parent.parent.id; // users/{uid}/cihazlar
-      if (acikUid.has(uid)) tokens.push(token);
+      if (izinliUid.has(uid)) tokenSet.add(token);
     });
+    const tokens = Array.from(tokenSet);
 
-    console.log("BILDIRIM", {
-      olay,
-      siparisId: ctx.params.siparisId,
-      tokenSayisi: tokens.length,
-    });
-    if (!tokens.length) {
-      console.warn(
-        "Hedef token bulunamadı. users/{uid}/cihazlar altındaki 'token' alanlarını kontrol et."
-      );
-      return null;
+    // --- In-app feed'e yaz (izinlilere) ---
+    const feedPayload = {
+      type: olay,
+      title,
+      body,
+      siparisId: ctx.params.siparisId || "",
+      isRead: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await Promise.all(
+      Array.from(izinliUid).map((uid) =>
+        db.collection("users").doc(uid).collection("inapp_notifications").add(feedPayload)
+      )
+    );
+
+    // --- Push bildirimi gönder (varsa) ---
+    if (tokens.length) {
+      try {
+        const res = await admin.messaging().sendEachForMulticast({
+          tokens,
+          notification: { title, body },
+          data: { olay, siparisId: ctx.params.siparisId || "" },
+        });
+        console.log("FCM OK:", res.successCount, "FAIL:", res.failureCount);
+        res.responses.forEach((r, i) => {
+          if (!r.success) console.error("FCM ERR", i, r.error?.code, r.error?.message);
+        });
+      } catch (e) {
+        console.error("FCM send error:", e);
+      }
+    } else {
+      console.warn("Gönderilecek token yok.");
     }
-
-    // --- Bildirim gönder ---
-    const res = await admin.messaging().sendEachForMulticast({
-      tokens,
-      notification: { title, body },
-      data: { olay, siparisId: ctx.params.siparisId || "" },
-    });
-
-    console.log("FCM OK:", res.successCount, "FAIL:", res.failureCount);
-    res.responses.forEach((r, i) => {
-      if (!r.success) console.error("FCM ERR", i, r.error?.code, r.error?.message);
-    });
 
     return null;
   });
