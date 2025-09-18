@@ -14,6 +14,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
   bool _loading = true;
   bool _saving = false;
 
+  bool genelAcil = true; // <-- master
   bool siparisOlusturuldu = true;
   bool stokYetersiz = true;
   bool sevkiyataGitti = true;
@@ -29,22 +30,20 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
     _yukle();
   }
 
+  bool _b(dynamic v, {bool def = true}) =>
+      v is bool ? v : (v is num ? v != 0 : def);
+
   Future<void> _yukle() async {
     try {
       final snap = await _userDoc.get();
       final d = snap.data() ?? {};
-
-      final Map<String, dynamic> flat = Map<String, dynamic>.from(
-        d['notificationSettings'] ?? {},
-      );
-      final Map<String, dynamic> nested = Map<String, dynamic>.from(
+      final flat = Map<String, dynamic>.from(d['notificationSettings'] ?? {});
+      final nested = Map<String, dynamic>.from(
         (d['ayarlar']?['bildirimler']) ?? {},
       );
 
-      bool _b(dynamic v, {bool def = true}) =>
-          v is bool ? v : (v is num ? v != 0 : def);
-
       setState(() {
+        genelAcil = _b(flat['enabled'] ?? nested['enabled'] ?? true);
         siparisOlusturuldu = _b(
           flat['siparisOlusturuldu'] ?? nested['siparis'] ?? true,
         );
@@ -66,7 +65,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
     }
   }
 
-  Future<void> _toggleSave({
+  Future<void> _savePair({
     required String flatKey,
     required String nestedKey,
     required bool value,
@@ -92,9 +91,8 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
 
   @override
   Widget build(BuildContext context) {
-    final baseTheme = Theme.of(context);
-    final themed = baseTheme.copyWith(
-      colorScheme: baseTheme.colorScheme.copyWith(
+    final themed = Theme.of(context).copyWith(
+      colorScheme: Theme.of(context).colorScheme.copyWith(
         primary: Renkler.kahveTon,
         secondary: Renkler.kahveTon,
         primaryContainer: Renkler.kahveTon.withOpacity(.14),
@@ -131,10 +129,22 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
           children: [
-            _HintText(
-              'Hangi olaylarda bildirim almak istediğini seç. (Değişiklikler anında kaydedilir)',
-            ),
+            _HintText('Genel kapalıysa hiçbir bildirim gönderilmez.'),
             const SizedBox(height: 10),
+            _Card(
+              child: _SwitchTile(
+                icon: Icons.notifications_active_outlined,
+                title: 'Bildirimler (genel)',
+                subtitle: 'Tüm bildirimleri aç/kapat',
+                value: genelAcil,
+                onChanged: (v) {
+                  setState(() => genelAcil = v);
+                  _savePair(flatKey: 'enabled', nestedKey: 'enabled', value: v);
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
             _Card(
               child: Column(
                 children: [
@@ -143,14 +153,16 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
                     title: 'Sipariş oluşturuldu',
                     subtitle: 'Yeni sipariş eklendiğinde',
                     value: siparisOlusturuldu,
-                    onChanged: (v) {
-                      setState(() => siparisOlusturuldu = v);
-                      _toggleSave(
-                        flatKey: 'siparisOlusturuldu',
-                        nestedKey: 'siparis',
-                        value: v,
-                      );
-                    },
+                    onChanged: genelAcil
+                        ? (v) {
+                            setState(() => siparisOlusturuldu = v);
+                            _savePair(
+                              flatKey: 'siparisOlusturuldu',
+                              nestedKey: 'siparis',
+                              value: v,
+                            );
+                          }
+                        : null,
                   ),
                   const Divider(height: 0),
                   _SwitchTile(
@@ -158,14 +170,16 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
                     title: 'Stok yetersiz',
                     subtitle: 'Sipariş sonrası stok eksik uyarısı',
                     value: stokYetersiz,
-                    onChanged: (v) {
-                      setState(() => stokYetersiz = v);
-                      _toggleSave(
-                        flatKey: 'stokYetersiz',
-                        nestedKey: 'stok',
-                        value: v,
-                      );
-                    },
+                    onChanged: genelAcil
+                        ? (v) {
+                            setState(() => stokYetersiz = v);
+                            _savePair(
+                              flatKey: 'stokYetersiz',
+                              nestedKey: 'stok',
+                              value: v,
+                            );
+                          }
+                        : null,
                   ),
                   const Divider(height: 0),
                   _SwitchTile(
@@ -173,29 +187,33 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
                     title: 'Sevkiyata gitti',
                     subtitle: 'Sevkiyat aşamasına geçince',
                     value: sevkiyataGitti,
-                    onChanged: (v) {
-                      setState(() => sevkiyataGitti = v);
-                      _toggleSave(
-                        flatKey: 'sevkiyataGitti',
-                        nestedKey: 'sevkiyat',
-                        value: v,
-                      );
-                    },
+                    onChanged: genelAcil
+                        ? (v) {
+                            setState(() => sevkiyataGitti = v);
+                            _savePair(
+                              flatKey: 'sevkiyataGitti',
+                              nestedKey: 'sevkiyat',
+                              value: v,
+                            );
+                          }
+                        : null,
                   ),
                   const Divider(height: 0),
                   _SwitchTile(
                     icon: Icons.check_circle_outline,
                     title: 'Sipariş tamamlandı',
-                    subtitle: 'Teslim / tamamlandı durumunda',
+                    subtitle: 'Teslim / tamamlandı',
                     value: siparisTamamlandi,
-                    onChanged: (v) {
-                      setState(() => siparisTamamlandi = v);
-                      _toggleSave(
-                        flatKey: 'siparisTamamlandi',
-                        nestedKey: 'tamamlandi',
-                        value: v,
-                      );
-                    },
+                    onChanged: genelAcil
+                        ? (v) {
+                            setState(() => siparisTamamlandi = v);
+                            _savePair(
+                              flatKey: 'siparisTamamlandi',
+                              nestedKey: 'tamamlandi',
+                              value: v,
+                            );
+                          }
+                        : null,
                   ),
                 ],
               ),
@@ -207,7 +225,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
   }
 }
 
-/* ---------- Ortak küçük bileşenler ---------- */
+/* ---------- küçük bileşenler ---------- */
 class _GradientHeader extends StatelessWidget implements PreferredSizeWidget {
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -285,11 +303,6 @@ class _HintText extends StatelessWidget {
   final String text;
   const _HintText(this.text);
   @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-    );
-  }
+  Widget build(BuildContext context) =>
+      Text(text, style: TextStyle(fontSize: 13, color: Colors.grey.shade600));      
 }
-  
