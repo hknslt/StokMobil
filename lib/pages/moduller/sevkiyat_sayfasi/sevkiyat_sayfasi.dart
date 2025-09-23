@@ -75,7 +75,17 @@ class _SevkiyatSayfasiState extends State<SevkiyatSayfasi> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: const Text('Sevkiyat'),
         actions: [
           IconButton(

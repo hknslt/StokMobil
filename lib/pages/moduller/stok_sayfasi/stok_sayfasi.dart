@@ -40,8 +40,8 @@ class _StokSayfasiState extends State<StokSayfasi> {
       final stokFiltre = _stoktaOlanlar == null
           ? true
           : _stoktaOlanlar!
-              ? u.adet > 0
-              : u.adet == 0;
+          ? u.adet > 0
+          : u.adet == 0;
 
       final renkFiltre = (_secilenRenk == null || _secilenRenk!.isEmpty)
           ? true
@@ -69,12 +69,24 @@ class _StokSayfasiState extends State<StokSayfasi> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom; // klavye yüksekliği
+    final bottomInset = MediaQuery.of(
+      context,
+    ).viewInsets.bottom; // klavye yüksekliği
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Stok Yönetimi"),
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'PDF',
@@ -117,8 +129,13 @@ class _StokSayfasiState extends State<StokSayfasi> {
                       filled: true,
                       fillColor: Colors.white,
                       prefixIcon: const Icon(Icons.search),
-                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),
-                      borderRadius: BorderRadius.all(Radius.circular(20))),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                          color: Renkler.kahveTon,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -157,13 +174,13 @@ class _StokSayfasiState extends State<StokSayfasi> {
                 final stokFiltre = _stoktaOlanlar == null
                     ? true
                     : _stoktaOlanlar!
-                        ? u.adet > 0
-                        : u.adet == 0;
+                    ? u.adet > 0
+                    : u.adet == 0;
 
                 final renkFiltre =
                     (_secilenRenk == null || _secilenRenk!.isEmpty)
-                        ? true
-                        : u.renk.toLowerCase() == _secilenRenk!.toLowerCase();
+                    ? true
+                    : u.renk.toLowerCase() == _secilenRenk!.toLowerCase();
 
                 final aramaFiltre =
                     u.urunAdi.toLowerCase().contains(aranan) ||
@@ -208,7 +225,8 @@ class _StokSayfasiState extends State<StokSayfasi> {
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => UrunEkleSayfasi(duzenlenecekUrun: item),
+                                builder: (_) =>
+                                    UrunEkleSayfasi(duzenlenecekUrun: item),
                               ),
                             );
                             if (mounted) setState(() {});
@@ -222,7 +240,8 @@ class _StokSayfasiState extends State<StokSayfasi> {
                         // 🗑️ Sil (Onaylı)
                         SlidableAction(
                           onPressed: (_) async {
-                            final onay = await showDialog<bool>(
+                            final onay =
+                                await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
                                     title: const Text("Silinsin mi?"),
@@ -231,17 +250,21 @@ class _StokSayfasiState extends State<StokSayfasi> {
                                     ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () => Navigator.pop(ctx, false),
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, false),
                                         child: const Text(
                                           "İptal",
-                                          style: TextStyle(color: Renkler.kahveTon),
+                                          style: TextStyle(
+                                            color: Renkler.kahveTon,
+                                          ),
                                         ),
                                       ),
                                       ElevatedButton(
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.red,
                                         ),
-                                        onPressed: () => Navigator.pop(ctx, true),
+                                        onPressed: () =>
+                                            Navigator.pop(ctx, true),
                                         child: const Text(
                                           "Sil",
                                           style: TextStyle(color: Colors.white),
@@ -258,7 +281,9 @@ class _StokSayfasiState extends State<StokSayfasi> {
                             if (item.docId == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text("Kayıt bulunamadı (docId yok)."),
+                                  content: Text(
+                                    "Kayıt bulunamadı (docId yok).",
+                                  ),
                                 ),
                               );
                               return;
@@ -301,7 +326,9 @@ class _StokSayfasiState extends State<StokSayfasi> {
                         },
                         leading: _urunResmi(item),
                         title: Text(item.urunAdi),
-                        subtitle: Text("Kod: ${item.urunKodu} | Renk: ${item.renk}"),
+                        subtitle: Text(
+                          "Kod: ${item.urunKodu} | Renk: ${item.renk}",
+                        ),
                         trailing: Text("${item.adet}"),
                         onLongPress: () {
                           setState(() {

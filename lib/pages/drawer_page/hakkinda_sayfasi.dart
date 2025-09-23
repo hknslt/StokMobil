@@ -9,7 +9,17 @@ class HakkindaSayfasi extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Hakkında"),
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         centerTitle: true,
       ),
       body: Padding(
@@ -28,10 +38,7 @@ class HakkindaSayfasi extends StatelessWidget {
                 const SizedBox(height: 16),
                 const Text(
                   "Capri Stok & Sipariş Takip",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
@@ -52,7 +59,7 @@ class HakkindaSayfasi extends StatelessWidget {
                   style: TextStyle(fontSize: 14, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height:2),
+                const SizedBox(height: 2),
                 Image.asset(
                   "assets/images/dev_logo.png",
                   width: 90,

@@ -11,7 +11,9 @@ class SifreSifirlamaSayfasi extends StatefulWidget {
 
 class _SifreSifirlamaSayfasiState extends State<SifreSifirlamaSayfasi> {
   final _f = GlobalKey<FormState>();
-  final _email = TextEditingController(text: FirebaseAuth.instance.currentUser?.email ?? '');
+  final _email = TextEditingController(
+    text: FirebaseAuth.instance.currentUser?.email ?? '',
+  );
   bool _sending = false;
 
   @override
@@ -24,7 +26,9 @@ class _SifreSifirlamaSayfasiState extends State<SifreSifirlamaSayfasi> {
     if (!_f.currentState!.validate()) return;
     setState(() => _sending = true);
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: _email.text.trim());
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: _email.text.trim(),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Şifre sıfırlama e-postası gönderildi.')),
@@ -32,7 +36,9 @@ class _SifreSifirlamaSayfasiState extends State<SifreSifirlamaSayfasi> {
       Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Hata oluştu')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message ?? 'Hata oluştu')));
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -53,7 +59,20 @@ class _SifreSifirlamaSayfasiState extends State<SifreSifirlamaSayfasi> {
     return Theme(
       data: themed,
       child: Scaffold(
-        appBar: AppBar(title: const Text("Şifre sıfırlama"), flexibleSpace: _GradientHeader()),
+        appBar: AppBar(
+          title: const Text("Şifre sıfırlama"),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
+        ),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -63,23 +82,26 @@ class _SifreSifirlamaSayfasiState extends State<SifreSifirlamaSayfasi> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [
-                      Container(
-                        width: 48, height: 48,
-                        decoration: BoxDecoration(
-                          color: Renkler.kahveTon.withOpacity(.12),
-                          borderRadius: BorderRadius.circular(12),
+                    Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Renkler.kahveTon.withOpacity(.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.lock_reset, size: 28),
                         ),
-                        child: const Icon(Icons.lock_reset, size: 28),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          "Kayıtlı e-posta adresinizi girin. Size şifre sıfırlama bağlantısı gönderelim.",
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            "Kayıtlı e-posta adresinizi girin. Size şifre sıfırlama bağlantısı gönderelim.",
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ),
-                      ),
-                    ]),
+                      ],
+                    ),
                     const SizedBox(height: 16),
                     Form(
                       key: _f,
@@ -108,30 +130,18 @@ class _SifreSifirlamaSayfasiState extends State<SifreSifirlamaSayfasi> {
               child: ElevatedButton.icon(
                 onPressed: _sending ? null : _sendReset,
                 icon: _sending
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : const Icon(Icons.send),
-                label: Text(_sending ? 'Gönderiliyor…' : 'Sıfırlama postası gönder'),
+                label: Text(
+                  _sending ? 'Gönderiliyor…' : 'Sıfırlama postası gönder',
+                ),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/* Ortak stil */
-class _GradientHeader extends StatelessWidget implements PreferredSizeWidget {
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
-          colors: [Renkler.kahveTon, Renkler.kahveTon.withOpacity(.85)],
         ),
       ),
     );
@@ -148,7 +158,13 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: child,
     );

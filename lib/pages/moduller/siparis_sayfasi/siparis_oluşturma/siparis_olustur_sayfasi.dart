@@ -134,7 +134,17 @@ class _SiparisOlusturSayfasiState extends State<SiparisOlusturSayfasi> {
       appBar: AppBar(
         title: const Text("Sipariş Oluştur"),
         centerTitle: true,
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: Column(
         children: [

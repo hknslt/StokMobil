@@ -26,7 +26,7 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
   // --- Arama & filtre state ---
   final _aramaCtrl = TextEditingController();
   String _arama = '';
-  SiparisDurumu? _durumFiltre; 
+  SiparisDurumu? _durumFiltre;
 
   @override
   void dispose() {
@@ -72,7 +72,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
     }
 
     try {
-
       final ok = await siparisServis.onayla(siparis.docId!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -130,7 +129,10 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text("Vazgeç" , style: TextStyle(color: Renkler.kahveTon)),
+                child: const Text(
+                  "Vazgeç",
+                  style: TextStyle(color: Renkler.kahveTon),
+                ),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -164,9 +166,9 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
       }
     }
   }
+
   double _aktifKdv() => fiyatSvc.aktifKdv;
   double _brut(double net, double kdvOrani) => net * (1 + kdvOrani / 100);
-
 
   String _durumLabel(SiparisDurumu? d) {
     switch (d) {
@@ -192,7 +194,17 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Sipariş Listesi"),
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
@@ -512,7 +524,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-
                                     if (siparis.durum ==
                                         SiparisDurumu.beklemede) ...[
                                       if (stokYeterli)

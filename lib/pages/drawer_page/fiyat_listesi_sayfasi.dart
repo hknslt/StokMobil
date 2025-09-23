@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +24,7 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
 
   final TextEditingController _aramaCtrl = TextEditingController();
   bool _sadeceSifirFiyatli = false;
-  String _sirala = "İsim (A-Z)"; 
+  String _sirala = "İsim (A-Z)";
 
   int? _editingId;
   Timer? _sumDebounce;
@@ -255,13 +254,16 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                 suffixText: "%",
                 suffixStyle: TextStyle(color: Renkler.kahveTon),
                 border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Renkler.kahveTon),borderRadius: BorderRadius.all(Radius.circular(12))
+                  borderSide: BorderSide(color: Renkler.kahveTon),
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Renkler.kahveTon),borderRadius: BorderRadius.all(Radius.circular(12))
+                  borderSide: BorderSide(color: Renkler.kahveTon),
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Renkler.kahveTon, width: 2),borderRadius: BorderRadius.all(Radius.circular(12))
+                  borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
                 ),
               ),
             ),
@@ -413,10 +415,19 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: Text(
           "Fiyat Listeleri${_seciliListe != null ? " • ${_seciliListe!.ad}" : ""}",
         ),
@@ -512,8 +523,7 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: 
-                      TextField(
+                      child: TextField(
                         controller: _aramaCtrl,
                         decoration: const InputDecoration(
                           focusedBorder: OutlineInputBorder(
@@ -630,8 +640,7 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
                                     focusNode: focus,
 
                                     onStartEdit: () {
-                                      _editingId = urun
-                                          .id; 
+                                      _editingId = urun.id;
                                     },
                                     onEndEdit: () {
                                       _editingId = null;

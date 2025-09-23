@@ -1,9 +1,9 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/musteri_model.dart';
 import 'package:capri/services/musteri_service.dart';
+
 class SiparisMusteriWidget extends StatefulWidget {
   final TextEditingController firmaAdiController;
   final TextEditingController yetkiliController;
@@ -126,16 +126,18 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
       } else {
         sonKullanilacakModel = yeni;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Müşteri kaydedilmedi, yalnızca siparişe işlendi.")),
+          const SnackBar(
+            content: Text("Müşteri kaydedilmedi, yalnızca siparişe işlendi."),
+          ),
         );
       }
 
       widget.onMusteriSecildi?.call(sonKullanilacakModel);
       widget.onIleri();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Müşteri kaydedilemedi: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Müşteri kaydedilemedi: $e")));
     }
   }
 
@@ -165,16 +167,21 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Müşteri Bilgileri",
-                          style: tema.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700)),
+                      Text(
+                        "Müşteri Bilgileri",
+                        style: tema.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         alanlarKilitli
                             ? "Kayıtlı müşteri seçildi — bilgiler kilitli."
                             : "Kayıtlı müşteriden seç veya bilgileri elle doldur",
                         style: tema.textTheme.bodySmall?.copyWith(
-                          color: tema.textTheme.bodySmall?.color?.withOpacity(.7),
+                          color: tema.textTheme.bodySmall?.color?.withOpacity(
+                            .7,
+                          ),
                         ),
                       ),
                     ],
@@ -185,12 +192,15 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Renkler.kahveTon,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: _kayitlidanSec,
                   icon: const Icon(Icons.person_search, color: Colors.white),
-                  label: const Text("Kayıtlıdan Seç",
-                      style: TextStyle(color: Colors.white)),
+                  label: const Text(
+                    "Kayıtlıdan Seç",
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -202,20 +212,23 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
               child: Card(
                 elevation: 1.5,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Renkler.kahveTon.withOpacity(.5),
                     child: Text(
-                      ((_secilen!.firmaAdi ?? _secilen!.yetkili ?? '?').isNotEmpty)
+                      ((_secilen!.firmaAdi ?? _secilen!.yetkili ?? '?')
+                              .isNotEmpty)
                           ? (_secilen!.firmaAdi ?? _secilen!.yetkili!)![0]
                           : '?',
-                          style: TextStyle(color: Colors.black),
+                      style: TextStyle(color: Colors.black),
                     ),
                   ),
                   title: Text(_secilen!.firmaAdi ?? _secilen!.yetkili ?? '—'),
-                  subtitle:
-                      Text("${_secilen!.yetkili ?? '—'} • ${_secilen!.telefon ?? '—'}"),
+                  subtitle: Text(
+                    "${_secilen!.yetkili ?? '—'} • ${_secilen!.telefon ?? '—'}",
+                  ),
                   trailing: IconButton(
                     tooltip: "Seçimi temizle",
                     onPressed: _musteriSecimiTemizle,
@@ -231,7 +244,8 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
               child: Card(
                 elevation: 1.5,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -292,9 +306,10 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
               color: tema.scaffoldBackgroundColor,
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2))
+                  color: Colors.black.withOpacity(.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
               ],
             ),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -306,15 +321,16 @@ class _SiparisMusteriWidgetState extends State<SiparisMusteriWidget> {
                   backgroundColor: Renkler.kahveTon,
                   disabledBackgroundColor: Renkler.kahveTon.withOpacity(.5),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 icon: const Icon(Icons.arrow_forward, color: Colors.white),
                 label: Text(
                   _secilen != null
                       ? "İleri (Kayıtlı Müşteri)"
                       : _kayitliOlsun
-                          ? "İleri (Kaydet)"
-                          : "İleri (Kaydetmeden)",
+                      ? "İleri (Kaydet)"
+                      : "İleri (Kaydetmeden)",
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
@@ -384,10 +400,11 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
     // Harf filtresi (firmaAdi yoksa yetkili’yi baz al)
     if (_harfFiltre != 'Tümü') {
       veri = veri.where((m) {
-        final base = (m.firmaAdi?.trim().isNotEmpty == true
-                ? m.firmaAdi!
-                : (m.yetkili ?? ''))
-            .trim();
+        final base =
+            (m.firmaAdi?.trim().isNotEmpty == true
+                    ? m.firmaAdi!
+                    : (m.yetkili ?? ''))
+                .trim();
         return base.isNotEmpty && base.toUpperCase().startsWith(_harfFiltre);
       });
     }
@@ -422,6 +439,17 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Kayıtlı Müşteri Seç"),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: _azToZa ? "Z→A sırala" : "A→Z sırala",
@@ -447,8 +475,10 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 12,
+                ),
               ),
             ),
           ),
@@ -495,10 +525,17 @@ class _MusteriSecBottomSheetState extends State<MusteriSecBottomSheet> {
                     final harf = base.isNotEmpty ? base[0].toUpperCase() : '?';
 
                     return ListTile(
-                      leading: CircleAvatar(child: Text(harf , style: TextStyle(color: Colors.black),) , backgroundColor: Renkler.kahveTon.withOpacity(.5),),
+                      leading: CircleAvatar(
+                        child: Text(
+                          harf,
+                          style: TextStyle(color: Colors.black),
+                        ),
+                        backgroundColor: Renkler.kahveTon.withOpacity(.5),
+                      ),
                       title: Text(m.firmaAdi ?? m.yetkili ?? '—'),
-                      subtitle:
-                          Text("${m.yetkili ?? '—'} • ${m.telefon ?? '—'}"),
+                      subtitle: Text(
+                        "${m.yetkili ?? '—'} • ${m.telefon ?? '—'}",
+                      ),
                       onTap: () => Navigator.pop(context, m),
                     );
                   },
@@ -537,17 +574,20 @@ class _BosSonuc extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.person_off, size: 48),
-        const SizedBox(height: 8),
-        const Text("Eşleşen müşteri bulunamadı."),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: onKapat,
-          icon: const Icon(Icons.close),
-          label: const Text("Kapat"),
-        )
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.person_off, size: 48),
+          const SizedBox(height: 8),
+          const Text("Eşleşen müşteri bulunamadı."),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: onKapat,
+            icon: const Icon(Icons.close),
+            label: const Text("Kapat"),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -580,11 +620,11 @@ class _MetinAlani extends StatelessWidget {
         labelText: label,
         labelStyle: TextStyle(color: Renkler.kahveTon),
         prefixIcon: Icon(icon),
-        border: OutlineInputBorder(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
           borderRadius: BorderRadius.circular(14),
-   
         ),
-        focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2),borderRadius:BorderRadius.circular(14) )
       ),
     );
   }

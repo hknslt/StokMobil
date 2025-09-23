@@ -139,7 +139,17 @@ class _KullaniciBilgileriSayfasiState extends State<KullaniciBilgileriSayfasi> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Kullanıcı bilgileri"),
-          flexibleSpace: _GradientHeader(),
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
         ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -268,25 +278,6 @@ class _KullaniciBilgileriSayfasiState extends State<KullaniciBilgileriSayfasi> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/* Ortak stil */
-class _GradientHeader extends StatelessWidget implements PreferredSizeWidget {
-  @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Renkler.kahveTon, Renkler.kahveTon.withOpacity(.85)],
         ),
       ),
     );

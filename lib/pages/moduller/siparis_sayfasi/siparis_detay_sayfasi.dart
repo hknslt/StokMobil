@@ -1,3 +1,4 @@
+import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/services/siparis_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -5,7 +6,7 @@ import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/pages/moduller/siparis_sayfasi/utils/siparis_Pdf_Yazdir.dart';
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
 import 'package:capri/services/urun_service.dart';
-import 'package:capri/services/fiyat_listesi_service.dart'; 
+import 'package:capri/services/fiyat_listesi_service.dart';
 
 class SiparisDetaySayfasi extends StatefulWidget {
   final SiparisModel siparis;
@@ -20,7 +21,7 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
   final siparisServis = SiparisService();
 
   late final List<int> _urunIdleri;
-  late Future<Map<int, int>> _stokHaritasiFut; 
+  late Future<Map<int, int>> _stokHaritasiFut;
 
   double _round2(double v) => (v * 100).roundToDouble() / 100.0;
 
@@ -141,11 +142,9 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
 
     final double kdvOrani = s.kdvOrani ?? FiyatListesiService.instance.aktifKdv;
 
-    final double netToplam =
-        s.netTutar ?? s.toplamTutar;
+    final double netToplam = s.netTutar ?? s.toplamTutar;
     final double kdvTutar = s.kdvTutar ?? _round2(netToplam * kdvOrani / 100);
     final double brutToplam = s.brutTutar ?? _round2(netToplam + kdvTutar);
-
 
     final bool stokKontrollu =
         s.durum == SiparisDurumu.beklemede || s.durum == SiparisDurumu.uretimde;
@@ -153,6 +152,17 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Sipariş Detayı"),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),

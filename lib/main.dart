@@ -1,3 +1,4 @@
+// main.dart
 import 'package:capri/services/bildirim_servisi.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -55,30 +56,12 @@ Future<void> _kurBildirimAltyapisi() async {
       );
     }
   });
-
-  FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-    final u = FirebaseAuth.instance.currentUser;
-    if (u == null) return;
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(u.uid)
-        .collection('cihazlar')
-        .doc(newToken)
-        .set({
-          'uid': u.uid,
-          'token': newToken,
-          'platform': 'android',
-          'refreshedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-  });
 }
 
-Future<void> _kaydetFcmToken() async {
+// Yeni: FCM token'ını kaydetme fonksiyonu, token'ı parametre olarak alır.
+Future<void> _kaydetFcmToken(String token) async {
   final u = FirebaseAuth.instance.currentUser;
   if (u == null) return;
-
-  final token = await FirebaseMessaging.instance.getToken();
-  if (token == null) return;
 
   await FirebaseFirestore.instance
       .collection('users')
@@ -93,6 +76,19 @@ Future<void> _kaydetFcmToken() async {
       }, SetOptions(merge: true));
 }
 
+// Yeni: FCM token'ını silme fonksiyonu, token'ı parametre olarak alır.
+Future<void> _silFcmToken(String token) async {
+  final u = FirebaseAuth.instance.currentUser;
+  if (u == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(u.uid)
+      .collection('cihazlar')
+      .doc(token)
+      .delete();
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -104,12 +100,45 @@ void main() async {
 
   runApp(const MyApp());
 
-  FirebaseAuth.instance.authStateChanges().listen((user) {
-    if (user != null) _kaydetFcmToken();
+  final fcm = FirebaseMessaging.instance;
+
+  // FCM token yenilendiğinde token'ı günceller.
+  fcm.onTokenRefresh.listen((newToken) async {
+    final u = FirebaseAuth.instance.currentUser;
+    if (u == null) return;
+    await FirebaseFirestore.instance
+      .collection('users')
+      .doc(u.uid)
+      .collection('cihazlar')
+      .doc(newToken)
+      .set({
+        'uid': u.uid,
+        'token': newToken,
+        'platform': 'android',
+        'refreshedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
   });
 
+  // Kullanıcının oturum durumu değiştiğinde çalışır.
+  FirebaseAuth.instance.authStateChanges().listen((user) async {
+    final token = await fcm.getToken();
+    if (token == null) return;
+
+    if (user != null) {
+      // Kullanıcı giriş yaptığında token'ı kaydet
+      _kaydetFcmToken(token);
+    } else {
+      // Kullanıcı çıkış yaptığında token'ı sil
+      _silFcmToken(token);
+    }
+  });
+
+  // Uygulama başladığında kullanıcı zaten giriş yapmışsa token'ı kaydet
   if (FirebaseAuth.instance.currentUser != null) {
-    _kaydetFcmToken();
+    final token = await fcm.getToken();
+    if (token != null) {
+      _kaydetFcmToken(token);
+    }
   }
 }
 

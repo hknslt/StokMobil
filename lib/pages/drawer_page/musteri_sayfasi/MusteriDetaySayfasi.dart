@@ -179,7 +179,17 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: Text(_baslik(m)),
         actions: [
           IconButton(

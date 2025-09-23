@@ -206,7 +206,17 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
     return Scaffold(
       appBar: AppBar(
         title: Text(duzenleme ? 'Ürün Düzenle' : 'Yeni Ürün Ekle'),
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: AbsorbPointer(
         absorbing: _kaydediyor,
@@ -296,7 +306,12 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                         labelText: 'Adet',
                         labelStyle: TextStyle(color: Renkler.kahveTon),
                         border: OutlineInputBorder(),
-                           focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width:2 ))
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Renkler.kahveTon,
+                            width: 2,
+                          ),
+                        ),
                       ),
                       validator: (v) {
                         final n = int.tryParse((v ?? '').trim());
@@ -313,7 +328,12 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                         labelText: 'Açıklama',
                         labelStyle: TextStyle(color: Renkler.kahveTon),
                         border: OutlineInputBorder(),
-                           focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width:2 ))
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Renkler.kahveTon,
+                            width: 2,
+                          ),
+                        ),
                       ),
                       maxLines: 3,
                     ),

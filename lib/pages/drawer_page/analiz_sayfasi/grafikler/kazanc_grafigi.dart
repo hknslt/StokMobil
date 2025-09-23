@@ -150,7 +150,6 @@ class _KazancGrafigiState extends State<KazancGrafigi> {
 
                     final minX = 0.0;
                     final maxX = (spots.length - 1).toDouble();
-                    final minYRaw = spots.map((s) => s.y).reduce(math.min);
                     final maxYRaw = spots.map((s) => s.y).reduce(math.max);
                     final minY = 0.0;
                     final double yPad = (maxYRaw == 0 ? 1 : maxYRaw) * 0.15;

@@ -70,7 +70,17 @@ class _UrunDetayIcerik extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Ürün Detayı"),
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(

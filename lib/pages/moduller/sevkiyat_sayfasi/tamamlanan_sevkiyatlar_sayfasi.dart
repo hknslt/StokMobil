@@ -63,7 +63,17 @@ class _TamamlananSevkiyatlarSayfasiState
     return Scaffold(
       appBar: AppBar(
         title: const Text("Tamamlanan Sevkiyatlar"),
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
           if (_query.isNotEmpty)
             IconButton(

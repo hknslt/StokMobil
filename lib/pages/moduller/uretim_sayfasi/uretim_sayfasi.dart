@@ -252,7 +252,17 @@ class _UretimSayfasiState extends State<UretimSayfasi>
     return Scaffold(
       appBar: AppBar(
         title: const Text("Üretim"),
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: StreamBuilder<UretimViewState>(
         stream: _controller.stream,
@@ -454,7 +464,9 @@ class _UretimSayfasiState extends State<UretimSayfasi>
               decoration: InputDecoration(
                 labelText: "Eklenecek Adet (Toplam Eksik: ${grp.toplamEksik})",
                 labelStyle: TextStyle(color: Renkler.kahveTon),
-                focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon , width: 2))
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                ),
               ),
               enabled: !isBusy,
             ),

@@ -1,6 +1,7 @@
 // lib/screens/urun_duzenle_sayfasi.dart
 import 'dart:io';
 
+import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/services/urun_service.dart';
@@ -132,7 +133,20 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Ürün Düzenle")),
+      appBar: AppBar(
+        title: const Text("Ürün Düzenle"),
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(

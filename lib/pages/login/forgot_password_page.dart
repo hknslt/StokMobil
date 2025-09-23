@@ -33,7 +33,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
 
     try {
-
       await FirebaseAuth.instance.setLanguageCode('tr');
 
       final email = await _resolveEmail(raw);
@@ -51,9 +50,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Şifre sıfırlama e-postası gönderildi: $email"),
-        ),
+        SnackBar(content: Text("Şifre sıfırlama e-postası gönderildi: $email")),
       );
       Navigator.pop(context);
     } on FirebaseAuthException catch (e) {
@@ -118,7 +115,17 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Şifre Sıfırlama"),
-        backgroundColor: anaRenk,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -155,18 +162,25 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 errorText: _error,
                 suffixIcon: IconButton(
                   tooltip: "@ ekle",
-                  icon: const Icon(Icons.alternate_email, color: Renkler.kahveTon),
+                  icon: const Icon(
+                    Icons.alternate_email,
+                    color: Renkler.kahveTon,
+                  ),
                   onPressed: _loading
                       ? null
                       : () {
                           final t = _inputCtrl;
                           final sel = t.selection;
                           final text = t.text;
-                          final start = sel.start >= 0 ? sel.start : text.length;
+                          final start = sel.start >= 0
+                              ? sel.start
+                              : text.length;
                           final end = sel.end >= 0 ? sel.end : text.length;
                           t.value = t.value.copyWith(
                             text: text.replaceRange(start, end, '@'),
-                            selection: TextSelection.collapsed(offset: start + 1),
+                            selection: TextSelection.collapsed(
+                              offset: start + 1,
+                            ),
                           );
                         },
                 ),
@@ -195,7 +209,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     )
                   : const Text(
                       "Sıfırlama Maili Gönder",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
             ),
             const SizedBox(height: 12),

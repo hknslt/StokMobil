@@ -1,4 +1,3 @@
-
 import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +28,7 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
     } catch (_) {}
     return '-';
   }
+
   double _netToplam(SiparisModel s) => (s.netTutar ?? s.toplamTutar);
   double _kdvOrani(SiparisModel s) => (s.kdvOrani ?? 0.0);
   double _kdvTutar(SiparisModel s) =>
@@ -39,12 +39,26 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final svc = SiparisService();
-    final tl = NumberFormat.currency(locale: 'tr_TR', symbol: '₺', decimalDigits: 2);
+    final tl = NumberFormat.currency(
+      locale: 'tr_TR',
+      symbol: '₺',
+      decimalDigits: 2,
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sipariş Detayı'),
-        backgroundColor: Renkler.kahveTon,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Renkler.anaMavi, Renkler.kahveTon.withOpacity(.9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
       ),
       body: StreamBuilder<SiparisModel?>(
         stream: svc.tekDinle(siparisId),
@@ -68,12 +82,13 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
 
           return Column(
             children: [
-
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Card(
                   elevation: 3,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
@@ -91,14 +106,19 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black12,
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: Text(
                                 s.durum.name,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ],
@@ -113,7 +133,9 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
                               visualDensity: VisualDensity.compact,
                             ),
                             Chip(
-                              label: Text('İşlem/Tamamlandı: ${_fmt(s.islemeTarihi)}'),
+                              label: Text(
+                                'İşlem/Tamamlandı: ${_fmt(s.islemeTarihi)}',
+                              ),
                               visualDensity: VisualDensity.compact,
                             ),
                             if ((s.aciklama ?? '').isNotEmpty)
@@ -156,7 +178,10 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   itemCount: s.urunler.length,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
                     final u = s.urunler[i];
@@ -193,7 +218,9 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
 
                     return Card(
                       elevation: 1.5,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: ListTile(
                         title: Text(
                           urunAdi,
@@ -202,16 +229,23 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text([
-                              if ((urunKodu ?? '').isNotEmpty) 'Kod: $urunKodu',
-                              if ((renk ?? '').isNotEmpty) 'Renk: $renk',
-                              'Adet: $adet',
-                              'Birim: ${tl.format(birim)}',
-                            ].join(' • ')),
+                            Text(
+                              [
+                                if ((urunKodu ?? '').isNotEmpty)
+                                  'Kod: $urunKodu',
+                                if ((renk ?? '').isNotEmpty) 'Renk: $renk',
+                                'Adet: $adet',
+                                'Birim: ${tl.format(birim)}',
+                              ].join(' • '),
+                            ),
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                _miniTag("Brüt", tl.format(brutSatir), highlight: true),
+                                _miniTag(
+                                  "Brüt",
+                                  tl.format(brutSatir),
+                                  highlight: true,
+                                ),
                               ],
                             ),
                           ],
@@ -228,7 +262,8 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
     );
   }
 
-  Widget _finDivider() => const Divider(height: 0, thickness: 1, color: Color(0x11000000));
+  Widget _finDivider() =>
+      const Divider(height: 0, thickness: 1, color: Color(0x11000000));
 
   Widget _finSatir(String baslik, String deger, {bool vurgulu = false}) {
     return Padding(
@@ -257,7 +292,12 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
     );
   }
 
-  Widget _miniTag(String label, String value, {String? trailing, bool highlight = false}) {
+  Widget _miniTag(
+    String label,
+    String value, {
+    String? trailing,
+    bool highlight = false,
+  }) {
     final bg = highlight ? Colors.green.shade50 : Colors.grey.shade100;
     final fg = highlight ? Colors.green.shade800 : Colors.black87;
     return Container(
@@ -265,14 +305,21 @@ class SiparisGecmisDetaySayfasi extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: highlight ? Colors.green.shade200 : Colors.black12),
+        border: Border.all(
+          color: highlight ? Colors.green.shade200 : Colors.black12,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text("$label: ",
-              style: TextStyle(fontWeight: FontWeight.w600, color: fg)),
-          Text(value, style: TextStyle(fontWeight: FontWeight.w700, color: fg)),
+          Text(
+            "$label: ",
+            style: TextStyle(fontWeight: FontWeight.w600, color: fg),
+          ),
+          Text(
+            value,
+            style: TextStyle(fontWeight: FontWeight.w700, color: fg),
+          ),
           if (trailing != null) ...[
             const SizedBox(width: 6),
             Text(trailing, style: TextStyle(color: fg)),
