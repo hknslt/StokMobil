@@ -6,38 +6,48 @@ class BildirimServisi {
   static final FlutterLocalNotificationsPlugin _local =
       FlutterLocalNotificationsPlugin();
 
+  static const AndroidNotificationDetails _androidDetails =
+      AndroidNotificationDetails(
+    'genel',
+    'Genel Bildirimler',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+  static const DarwinNotificationDetails _iosDetails = DarwinNotificationDetails();
+  static const NotificationDetails _notifDetails =
+      NotificationDetails(android: _androidDetails, iOS: _iosDetails);
+
   static Future<void> init() async {
-    // iOS izin isteği
-    await _fcm.requestPermission();
-
-    // Android local notification ayarları
-    const AndroidInitializationSettings androidInit =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings initSettings =
-        InitializationSettings(android: androidInit);
-
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initSettings =
+        InitializationSettings(android: androidInit, iOS: DarwinInitializationSettings());
     await _local.initialize(initSettings);
 
-    // Foreground bildirim dinleme
-    FirebaseMessaging.onMessage.listen((RemoteMessage mesaj) {
-      final bildirim = mesaj.notification;
-      if (bildirim != null) {
-        _local.show(
-          bildirim.hashCode,
-          bildirim.title,
-          bildirim.body,
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'genel_kanal', 'Genel',
-              importance: Importance.max,
-              priority: Priority.high,
-            ),
-          ),
+    // Foreground: önce data, yoksa notification
+    FirebaseMessaging.onMessage.listen((RemoteMessage m) async {
+      final data = m.data;
+      final notif = m.notification;
+
+      final hasApnsAlert = notif != null &&
+          (notif.title != null || notif.body != null);
+
+      final title = (data['title'] as String?) ?? notif?.title;
+      final body  = (data['body']  as String?) ?? notif?.body;
+
+      // iOS'ta APNs alert varsa OS zaten gösterir → duplicate olmasın
+      if (hasApnsAlert) return;
+
+      if (title != null || body != null) {
+        await _local.show(
+          DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title,
+          body,
+          _notifDetails,
+          payload: data['siparisId'],
         );
       }
     });
   }
 
-  // Bu cihazın token'ını al
   static Future<String?> tokenAl() => _fcm.getToken();
 }

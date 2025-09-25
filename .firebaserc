@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "capri-stok"
-  }
+    "default": "capri-stok",
+    "Capri": "capri-stok"
+  },
+  "targets": {},
+  "etags": {}
 }

@@ -6,8 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/main.dart';
-import 'package:capri/core/models/user.dart'; 
-import 'package:capri/services/auth_service.dart'; 
+import 'package:capri/core/models/user.dart';
+import 'package:capri/services/auth_service.dart';
 
 import 'package:capri/pages/dashboards/admin_dashboard.dart';
 import 'package:capri/pages/dashboards/uretim_dashboard.dart';
@@ -63,12 +63,9 @@ class _LoginPageState extends State<LoginPage>
     final input = _kullaniciVeyaEpostaController.text.trim();
     final password = _sifreController.text;
 
-    await Future.delayed(
-      const Duration(milliseconds: 350),
-    ); 
+    await Future.delayed(const Duration(milliseconds: 350));
 
     try {
-      
       final cred = await _authService.signInWithEmailOrUsername(
         input: input,
         password: password,
@@ -264,8 +261,7 @@ class _LoginPageState extends State<LoginPage>
                                 // KULLANICI / E-POSTA
                                 TextFormField(
                                   controller: _kullaniciVeyaEpostaController,
-                                  keyboardType: TextInputType
-                                      .emailAddress,
+                                  keyboardType: TextInputType.emailAddress,
                                   textCapitalization: TextCapitalization.none,
                                   enableSuggestions: false,
                                   autocorrect: false,
@@ -470,6 +466,7 @@ class _LoginPageState extends State<LoginPage>
       ),
     );
   }
+
   Widget _bulut(Color renk, {double size = 240}) {
     return Container(
       width: size,
