@@ -28,7 +28,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
 
   // --- Flat (notificationSettings) toggles ---
   bool siparisOlusturuldu = true;
-  bool stokYetersiz = true;
+  bool uretimde = true; // <-- stokYetersiz yerine
   bool sevkiyataGitti = true;
   bool siparisTamamlandi = true;
 
@@ -36,7 +36,6 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
   bool _hasPushPermission = true;
   String? _token;
 
-  // Helpers: mark dirty + setState
   void _setDirty(VoidCallback fn) {
     fn();
     if (!_dirty) _dirty = true;
@@ -50,34 +49,26 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
   }
 
   Future<void> _yukle() async {
-    setState(() {
-      _loading = true;
-    });
+    setState(() => _loading = true);
     final u = _auth.currentUser;
     if (u == null) {
-      // Oturum yoksa varsayılanlarla aç
       _loading = false;
       setState(() {});
       return;
     }
 
     try {
-      // Kullanıcı doc'u
       final snap = await _db.collection('users').doc(u.uid).get();
       final data = snap.data() ?? {};
 
-      // Flat config
       final flat = (data['notificationSettings'] as Map?) ?? {};
-      // Nested config
       final ayarlar = (data['ayarlar'] as Map?) ?? {};
       final nested = (ayarlar['bildirimler'] as Map?) ?? {};
 
-      // Global enable: flat.enabled ve nested.enabled ikisi de false değilse açık
       final flatEnabled = !(flat['enabled'] == false);
       final nestedEnabled = !(nested['enabled'] == false);
       enabled = flatEnabled && nestedEnabled;
 
-      // Per-type: flat öncelik, yoksa nested fallback, yoksa true
       bool _pick(String flatKey, String nestedKey) {
         if (flat[flatKey] == false) return false;
         if (flat.containsKey(flatKey)) return flat[flatKey] != false;
@@ -87,11 +78,10 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
       }
 
       siparisOlusturuldu = _pick('siparisOlusturuldu', 'siparis');
-      stokYetersiz = _pick('stokYetersiz', 'stok');
+      uretimde = _pick('uretimde', 'uretimde'); // <-- yeni anahtar
       sevkiyataGitti = _pick('sevkiyataGitti', 'sevkiyat');
       siparisTamamlandi = _pick('siparisTamamlandi', 'tamamlandi');
 
-      // Push izin durumu + token
       final settings = await _fcm.getNotificationSettings();
       _hasPushPermission =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
@@ -106,11 +96,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
         ).showSnackBar(SnackBar(content: Text('Ayarlar yüklenemedi: $e')));
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -122,7 +108,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
         badge: true,
         carPlay: false,
         criticalAlert: false,
-        provisional: Platform.isIOS, // iOS için sessiz bildirim izni opsiyonu
+        provisional: Platform.isIOS,
         sound: true,
       );
       setState(() {
@@ -141,7 +127,6 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
           );
         }
       } else {
-        // Token tazele
         _token = await _fcm.getToken();
         setState(() {});
       }
@@ -158,16 +143,13 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
     final u = _auth.currentUser;
     if (u == null) return;
 
-    setState(() {
-      _saving = true;
-    });
+    setState(() => _saving = true);
 
     try {
-      // Her iki şemayı da güncelle: flat + nested
       final flatUpdate = {
         'enabled': enabled,
         'siparisOlusturuldu': siparisOlusturuldu,
-        'stokYetersiz': stokYetersiz,
+        'uretimde': uretimde, // <-- yeni anahtar
         'sevkiyataGitti': sevkiyataGitti,
         'siparisTamamlandi': siparisTamamlandi,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -176,7 +158,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
       final nestedUpdate = {
         'enabled': enabled,
         'siparis': siparisOlusturuldu,
-        'stok': stokYetersiz,
+        'uretimde': uretimde, // <-- yeni anahtar
         'sevkiyat': sevkiyataGitti,
         'tamamlandi': siparisTamamlandi,
       };
@@ -200,11 +182,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
         ).showSnackBar(SnackBar(content: Text('Kaydedilemedi: $e')));
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -239,12 +217,12 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: cs.primary.withOpacity(.12),
+                    color: Renkler.anaMavi.withOpacity(.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'Kaydedilmemiş',
-                    style: TextStyle(color: cs.primary),
+                    style: TextStyle(color: Renkler.anaMavi),
                   ),
                 ),
             ],
@@ -357,16 +335,11 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
           const Divider(height: 0),
           SwitchListTile.adaptive(
             activeColor: Renkler.kahveTon,
-            value: stokYetersiz,
-            onChanged: enabled
-                ? (v) => _setDirty(() => stokYetersiz = v)
-                : null,
-            title: const Text('Stok yetersiz'),
-            subtitle: const Text('Sipariş sonrası stok eksik olduğunda'),
-            secondary: Icon(
-              Icons.inventory_2_outlined,
-              color: Renkler.kahveTon,
-            ),
+            value: uretimde,
+            onChanged: enabled ? (v) => _setDirty(() => uretimde = v) : null,
+            title: const Text('Sipariş üretimde'),
+            subtitle: const Text('Sipariş üretime alındığında'),
+            secondary: Icon(Icons.build_outlined, color: Renkler.kahveTon),
           ),
           const Divider(height: 0),
           SwitchListTile.adaptive(
@@ -376,7 +349,7 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
                 ? (v) => _setDirty(() => sevkiyataGitti = v)
                 : null,
             title: const Text('Sevkiyat aşaması'),
-            subtitle: const Text('Sipariş sevkiyata çıktığında veya üretimde'),
+            subtitle: const Text('Sipariş sevkiyata çıktığında'),
             secondary: Icon(
               Icons.local_shipping_outlined,
               color: Renkler.kahveTon,
@@ -391,7 +364,10 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
                 : null,
             title: const Text('Sipariş tamamlandı'),
             subtitle: const Text('Teslim edildiğinde'),
-            secondary: Icon(Icons.verified_outlined, color: Renkler.kahveTon),
+            secondary: const Icon(
+              Icons.verified_outlined,
+              color: Renkler.kahveTon,
+            ),
           ),
         ],
       ),
@@ -453,19 +429,6 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
                   _buildMasterSwitch(),
                   const SizedBox(height: 12),
                   _buildEventSwitches(),
-                  const SizedBox(height: 12),
-                  Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: ListTile(
-                      leading: Icon(Icons.info_outline, color: Colors.red),
-                      title: const Text('Not'),
-                      subtitle: const Text(
-                        'Bildirim Ayarları Şuanlık Çalışmamaktadır',
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),

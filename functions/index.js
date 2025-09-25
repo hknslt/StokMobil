@@ -49,17 +49,15 @@ async function resolveMusteriAdi(after) {
 /* ---------- Toggle haritaları ---------- */
 const olayKeyMap = {
   olusturuldu: "siparisOlusturuldu",
-  stok_eksik: "stokYetersiz",
+  uretimde: "uretimde",
   sevkiyat: "sevkiyataGitti",
   tamamlandi: "siparisTamamlandi",
-  uretimde: "sevkiyataGitti",
 };
 const nestedKeyMap = {
   olusturuldu: "siparis",
-  stok_eksik: "stok",
+  uretimde: "uretimde",
   sevkiyat: "sevkiyat",
   tamamlandi: "tamamlandi",
-  uretimde: "sevkiyat",
 };
 
 /* ---------- Rol -> izinli olaylar ---------- */

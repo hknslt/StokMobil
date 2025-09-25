@@ -201,7 +201,7 @@ class _SiparisFiyatlandirmaSayfasiState
                       OutlinedButton.icon(
                         onPressed: () =>
                             _uygulaListeFiyati(fiyatMap, overrideAll: true),
-                        icon: const Icon(Icons.playlist_add_check),
+                        icon: const Icon(Icons.playlist_add_check , color:Colors.black),
                         label: const Text(
                           "Tümüne uygula",
                           style: TextStyle(color: Colors.black),
@@ -341,7 +341,7 @@ class _SiparisFiyatlandirmaSayfasiState
                                       }
                                       setState(() {});
                                     },
-                                    child: const Text("Liste fiyatı"),
+                                    child: const Text("Liste fiyatı", style: TextStyle(color: Renkler.kahveTon),),
                                   ),
                                 ],
                               ),
