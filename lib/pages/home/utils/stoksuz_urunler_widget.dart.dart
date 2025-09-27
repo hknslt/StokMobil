@@ -26,17 +26,19 @@ class _StoksuzUrunlerWidgetState extends State<StoksuzUrunlerWidget> {
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
             labelText: "Eklenecek Adet",
+            labelStyle: TextStyle(color: Renkler.kahveTon),
             border: OutlineInputBorder(),
+            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Renkler.kahveTon ,width: 2))
           ),
         ),
         actions: [
           TextButton(
-            child: const Text("İptal"),
+            child: const Text("İptal",style: TextStyle(color: Renkler.kahveTon),),
             onPressed: () => Navigator.pop(context),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Renkler.kahveTon),
-            child: const Text("Ekle"),
+            child: const Text("Ekle", style: TextStyle(color: Colors.white),),
             onPressed: () {
               final v = int.tryParse(adetController.text);
               Navigator.pop(context, (v != null && v > 0) ? v : null);
