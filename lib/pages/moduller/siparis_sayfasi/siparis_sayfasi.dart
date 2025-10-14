@@ -28,17 +28,30 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
   String _arama = '';
   SiparisDurumu? _durumFiltre;
 
+  // --- Sipariş bazlı busy kilidi (double-click koruması) ---
+  final Set<String> _busySiparisler = {};
+  bool _isBusy(String? id) => id != null && _busySiparisler.contains(id);
+  void _setBusy(String? id, bool v) {
+    if (id == null) return;
+    setState(() {
+      if (v) {
+        _busySiparisler.add(id);
+      } else {
+        _busySiparisler.remove(id);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _aramaCtrl.dispose();
     super.dispose();
   }
 
-  bool _busyOnay = false;
-
   Future<void> _uretimeOnayla(SiparisModel siparis) async {
-    if (_busyOnay) return;
-    setState(() => _busyOnay = true);
+    final id = siparis.docId;
+    if (_isBusy(id)) return;
+    _setBusy(id, true);
 
     bool devamEt = true;
     if (siparis.islemeTarihi != null &&
@@ -67,12 +80,12 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
           false;
     }
     if (!devamEt) {
-      setState(() => _busyOnay = false);
+      _setBusy(id, false);
       return;
     }
 
     try {
-      final ok = await siparisServis.onayla(siparis.docId!);
+      final ok = await siparisServis.onayla(id!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -90,13 +103,17 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
         ).showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
       }
     } finally {
-      setState(() => _busyOnay = false);
+      _setBusy(id, false);
     }
   }
 
   Future<void> _sevkiyataOnayla(SiparisModel siparis) async {
+    final id = siparis.docId;
+    if (_isBusy(id)) return; // çift tıklamayı kes
+    _setBusy(id, true);
+
     try {
-      final ok = await siparisServis.sevkiyataOnayla(siparis.docId!);
+      final ok = await siparisServis.sevkiyataOnayla(id!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -113,10 +130,15 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
           context,
         ).showSnackBar(SnackBar(content: Text("İşlem başarısız: $e")));
       }
+    } finally {
+      _setBusy(id, false);
     }
   }
 
   Future<void> _reddet(SiparisModel siparis) async {
+    final id = siparis.docId;
+    if (_isBusy(id)) return;
+
     final onay =
         await showDialog<bool>(
           context: context,
@@ -149,8 +171,9 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
 
     if (!onay) return;
 
+    _setBusy(id, true);
     try {
-      await siparisServis.reddetVeStokIade(siparis.docId!);
+      await siparisServis.reddetVeStokIade(id!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -164,6 +187,8 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
           context,
         ).showSnackBar(SnackBar(content: Text("Reddetme başarısız: $e")));
       }
+    } finally {
+      _setBusy(id, false);
     }
   }
 
@@ -221,7 +246,6 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
         ),
         backgroundColor: Renkler.kahveTon,
       ),
-
       body: Column(
         children: [
           // ---- Arama & Filtre barı ----
@@ -377,6 +401,8 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                           return mevcut >= su.adet;
                         });
 
+                        final isBusy = _isBusy(siparis.docId);
+
                         return Card(
                           elevation: 4,
                           shape: RoundedRectangleBorder(
@@ -407,17 +433,19 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                           color: Renkler.kahveTon,
                                         ),
                                         tooltip: "Detay Sayfası",
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) =>
-                                                  SiparisDetaySayfasi(
-                                                    siparis: siparis,
+                                        onPressed: isBusy
+                                            ? null
+                                            : () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        SiparisDetaySayfasi(
+                                                          siparis: siparis,
+                                                        ),
                                                   ),
-                                            ),
-                                          );
-                                        },
+                                                );
+                                              },
                                       ),
                                     ],
                                   ),
@@ -528,43 +556,66 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                         SiparisDurumu.beklemede) ...[
                                       if (stokYeterli)
                                         ElevatedButton.icon(
-                                          style: ButtonStyle(
+                                          style: const ButtonStyle(
                                             backgroundColor:
                                                 WidgetStatePropertyAll(
                                                   Colors.green,
                                                 ),
                                           ),
-                                          onPressed: () =>
-                                              _sevkiyataOnayla(siparis),
-                                          icon: const Icon(
-                                            Icons.local_shipping,
-                                            color: Colors.white,
-                                          ),
-                                          label: const Text(
-                                            "Sevkiyat Onayı",
-                                            style: TextStyle(
+                                          onPressed: (isBusy)
+                                              ? null
+                                              : () => _sevkiyataOnayla(siparis),
+                                          icon: isBusy
+                                              ? const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              : const Icon(
+                                                  Icons.local_shipping,
+                                                  color: Colors.white,
+                                                ),
+                                          label: Text(
+                                            isBusy
+                                                ? "İşleniyor..."
+                                                : "Sevkiyat Onayı",
+                                            style: const TextStyle(
                                               color: Colors.white,
                                             ),
                                           ),
                                         )
                                       else
                                         ElevatedButton.icon(
-                                          style: ButtonStyle(
+                                          style: const ButtonStyle(
                                             backgroundColor:
                                                 WidgetStatePropertyAll(
                                                   Colors.green,
                                                 ),
                                           ),
-                                          onPressed: _busyOnay
+                                          onPressed: (isBusy)
                                               ? null
                                               : () => _uretimeOnayla(siparis),
-                                          icon: const Icon(
-                                            Icons.build,
-                                            color: Colors.white,
-                                          ),
-                                          label: const Text(
-                                            "Üretim Onayı",
-                                            style: TextStyle(
+                                          icon: isBusy
+                                              ? const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              : const Icon(
+                                                  Icons.build,
+                                                  color: Colors.white,
+                                                ),
+                                          label: Text(
+                                            isBusy
+                                                ? "İşleniyor..."
+                                                : "Üretim Onayı",
+                                            style: const TextStyle(
                                               color: Colors.white,
                                             ),
                                           ),
@@ -574,21 +625,33 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                         SiparisDurumu.uretimde) ...[
                                       if (stokYeterli)
                                         ElevatedButton.icon(
-                                          style: ButtonStyle(
+                                          style: const ButtonStyle(
                                             backgroundColor:
                                                 WidgetStatePropertyAll(
                                                   Colors.green,
                                                 ),
                                           ),
-                                          onPressed: () =>
-                                              _sevkiyataOnayla(siparis),
-                                          icon: const Icon(
-                                            Icons.local_shipping,
-                                            color: Colors.white,
-                                          ),
-                                          label: const Text(
-                                            "Sevkiyat Onayı",
-                                            style: TextStyle(
+                                          onPressed: (isBusy)
+                                              ? null
+                                              : () => _sevkiyataOnayla(siparis),
+                                          icon: isBusy
+                                              ? const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                )
+                                              : const Icon(
+                                                  Icons.local_shipping,
+                                                  color: Colors.white,
+                                                ),
+                                          label: Text(
+                                            isBusy
+                                                ? "İşleniyor..."
+                                                : "Sevkiyat Onayı",
+                                            style: const TextStyle(
                                               color: Colors.white,
                                             ),
                                           ),
@@ -615,7 +678,9 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
                                         siparis.durum !=
                                             SiparisDurumu.reddedildi)
                                       IconButton(
-                                        onPressed: () => _reddet(siparis),
+                                        onPressed: isBusy
+                                            ? null
+                                            : () => _reddet(siparis),
                                         icon: const Icon(
                                           Icons.cancel,
                                           color: Colors.red,

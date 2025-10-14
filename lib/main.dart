@@ -18,28 +18,32 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 String get _platformName => Platform.isIOS ? 'ios' : 'android';
+bool get _isMobile => Platform.isAndroid || Platform.isIOS;
 
 @pragma('vm:entry-point')
 Future<void> _bgHandler(RemoteMessage message) async {
+  // Sadece mobile için kullanılacak; ama guard'ı fonksiyon çağrısında zaten yapacağız.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await BildirimServisi.init();
 
-  // iOS: APNs alert geldiyse OS gösterir → duplicate engelle
   if (message.notification != null &&
-      (message.notification!.title != null || message.notification!.body != null)) {
+      (message.notification!.title != null ||
+          message.notification!.body != null)) {
+    // iOS'ta APNs bildirimi zaten OS tarafından gösterilir; çift bildirim olmasın.
     return;
   }
 
-  // Android: data-only'den local bas
   final data = message.data;
   final title = data['title'] as String?;
-  final body  = data['body']  as String?;
+  final body = data['body'] as String?;
 
   if (title != null || body != null) {
     final fln = FlutterLocalNotificationsPlugin();
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings =
-        InitializationSettings(android: androidInit, iOS: DarwinInitializationSettings());
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: DarwinInitializationSettings(),
+    );
     await fln.initialize(initSettings);
 
     await fln.show(
@@ -47,8 +51,12 @@ Future<void> _bgHandler(RemoteMessage message) async {
       title,
       body,
       const NotificationDetails(
-        android: AndroidNotificationDetails('genel', 'Genel Bildirimler',
-            importance: Importance.max, priority: Priority.high),
+        android: AndroidNotificationDetails(
+          'genel',
+          'Genel Bildirimler',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
         iOS: DarwinNotificationDetails(),
       ),
       payload: data['siparisId'],
@@ -76,13 +84,16 @@ Future<void> _claimTokenSafe(String token, {String? platform}) async {
 }
 
 Future<void> _kurBildirimAltyapisi() async {
+  // 🔒 Sadece ANDROID + iOS
+  if (!_isMobile) return;
+
   final fcm = FirebaseMessaging.instance;
   await fcm.requestPermission(alert: true, badge: true, sound: true);
 
-  // Foreground yönetimi
+  // Foreground yönetimi (BildirimServisi içinde local notifications olabilir)
   await BildirimServisi.init();
 
-  // Background yönetimi
+  // Background mesajlar (yalnız mobile destekli)
   FirebaseMessaging.onBackgroundMessage(_bgHandler);
 }
 
@@ -93,37 +104,41 @@ void main() async {
   await intl_local.initializeDateFormatting('tr', "");
   Intl.defaultLocale = 'tr';
 
+  // 🔒 Sadece mobile için FCM kur
   await _kurBildirimAltyapisi();
 
   runApp(const MyApp());
 
-  final fcm = FirebaseMessaging.instance;
+  // 🔒 Aşağıdaki FCM token/oturum dinlemeleri de yalnız mobile
+  if (_isMobile) {
+    final fcm = FirebaseMessaging.instance;
 
-  // Token yenilenince: claim
-  fcm.onTokenRefresh.listen((newToken) async {
-    final u = FirebaseAuth.instance.currentUser;
-    if (u == null) return;
-    await _claimTokenSafe(newToken);
-  });
+    // Token yenilenince: claim
+    fcm.onTokenRefresh.listen((newToken) async {
+      final u = FirebaseAuth.instance.currentUser;
+      if (u == null) return;
+      await _claimTokenSafe(newToken);
+    });
 
-  // Oturum durumu değişince
-  FirebaseAuth.instance.authStateChanges().listen((user) async {
-    if (user != null) {
+    // Oturum durumu değişince claim / token temizleme
+    FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (user != null) {
+        final token = await fcm.getToken();
+        if (token != null) await _claimTokenSafe(token);
+      } else {
+        try {
+          await fcm.deleteToken();
+        } catch (e) {
+          debugPrint('deleteToken error: $e');
+        }
+      }
+    });
+
+    // Açılışta kullanıcı varsa claim
+    if (FirebaseAuth.instance.currentUser != null) {
       final token = await fcm.getToken();
       if (token != null) await _claimTokenSafe(token);
-    } else {
-      try {
-        await fcm.deleteToken(); // Çıkışta bu cihaz sessiz
-      } catch (e) {
-        debugPrint('deleteToken error: $e');
-      }
     }
-  });
-
-  // Açılışta kullanıcı varsa
-  if (FirebaseAuth.instance.currentUser != null) {
-    final token = await fcm.getToken();
-    if (token != null) await _claimTokenSafe(token);
   }
 }
 

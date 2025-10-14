@@ -15,6 +15,17 @@ class SiparisService {
   CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection('siparisler');
 
+  // === Stok koleksiyonu yardımcıları (şeman farklıysa burayı uyarlay) ===
+  DocumentReference<Map<String, dynamic>> _stokRef(int numericId) =>
+      _db.collection('stoklar').doc(numericId.toString());
+
+  // === Sipariş alan adları (sabitler) ===
+  static const _fldDurum = 'durum';
+  static const _fldSevkiyatHazir = 'sevkiyatHazir';
+  static const _fldSevkiyatOnayAt = 'sevkiyatOnayAt'; // Timestamp | null
+  static const _fldStokDusumYapildi = 'stokDusumYapildi'; // bool | null
+  static const _fldIadeYapildiAt = 'iadeYapildiAt'; // Timestamp | null
+
   // ------------------ GENEL AKIŞLAR ------------------
 
   Stream<List<SiparisModel>> hepsiDinle() {
@@ -193,82 +204,108 @@ class SiparisService {
   // ------------------ YENİ AKIŞ ------------------
 
   /// ✅ Onay: stok DÜŞMEDEN kontrol edilir.
-  /// - Yeterliyse: sevkiyatHazir:true, durum beklemede kalır.
+  /// - Yeterliyse: sevkiyatHazir:true, durum beklemede.
   /// - Yetersizse: durum uretimde, sevkiyatHazir:false.
   Future<bool> onayla(String docId) async {
-    final snap = await _col.doc(docId).get();
+    final ref = _col.doc(docId);
+    final snap = await ref.get();
     if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
     final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
 
     final istek = _istekHaritasi(sip);
     final stokYeterli = await UrunService().stocksSufficient(istek);
 
-    if (stokYeterli) {
-      await _col.doc(docId).update({
-        'sevkiyatHazir': true,
-        'durum': SiparisDurumu.beklemede.name,
-      });
-      await LogService.instance.logSiparis(
-        action: 'siparis_onaylandi_stok_yeterli',
-        siparisId: docId,
-        meta: {'urunler': istek},
-      );
-      return true;
-    } else {
-      await _col.doc(docId).update({
-        'sevkiyatHazir': false,
-        'durum': SiparisDurumu.uretimde.name,
-      });
-      await LogService.instance.logSiparis(
-        action: 'siparis_onaylandi_stok_yetersiz',
-        siparisId: docId,
-      );
-      return false;
-    }
+    final updates = <String, dynamic>{
+      _fldSevkiyatHazir: stokYeterli,
+      _fldDurum: stokYeterli
+          ? SiparisDurumu.beklemede.name
+          : SiparisDurumu.uretimde.name,
+      'onayAt': FieldValue.serverTimestamp(), // bilgi amaçlı
+    };
+
+    await ref.update(updates);
+
+    await LogService.instance.logSiparis(
+      action: stokYeterli
+          ? 'siparis_onaylandi_stok_yeterli'
+          : 'siparis_onaylandi_stok_yetersiz',
+      siparisId: docId,
+      meta: stokYeterli ? {'urunler': istek} : null,
+    );
+
+    return stokYeterli;
   }
 
   /// ♻️ Geriye uyum: Eski metot artık sadece ONAY davranışı yapar (stok düşmez).
   Future<bool> onaylaVeStokAyir(String docId) => onayla(docId);
 
   /// ✅ Manuel sevkiyat onayı: o anda stok yeterliyse düşer ve durum `sevkiyat` olur.
+  ///    Idempotent + transaction: ikinci çağrıda stok tekrar düşmez.
+  /// ✅ Manuel sevkiyat onayı (UrunService’i kullanır) + idempotent marker
   Future<bool> sevkiyataOnayla(String docId) async {
-    final snap = await _col.doc(docId).get();
+    final ref = _col.doc(docId);
+    final snap = await ref.get();
     if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
-    final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
 
-    final istek = _istekHaritasi(sip);
-    final ok = await UrunService().decrementStocksIfSufficient(istek);
+    final data = snap.data()!;
+    final durum = data[_fldDurum] as String?;
+    final sevkiyatOnayAt = data[_fldSevkiyatOnayAt];
+    final stokDusumYapildi = (data[_fldStokDusumYapildi] as bool?) ?? false;
 
-    await _col.doc(docId).update({
-      'durum': ok ? SiparisDurumu.sevkiyat.name : SiparisDurumu.uretimde.name,
-      'sevkiyatHazir': false,
-    });
-
-    await LogService.instance.logSiparis(
-      action: ok ? 'sevkiyat_onayi_basarili' : 'sevkiyat_onayi_stok_yetersiz',
-      siparisId: docId,
-      meta: ok ? {'urunler': istek} : null,
-    );
-
-    if (ok) {
-      // Kalem kalem stok azalışı logu
-      for (final su in sip.urunler) {
-        final uid = int.tryParse(su.id);
-        await LogService.instance.logUrun(
-          action: 'stok_azaltildi',
-          urunDocId: null,
-          urunId: uid,
-          urunAdi: su.urunAdi,
-          meta: {
-            'adet': su.adet,
-            'reason': 'sevkiyat_onayi',
-            'siparisId': docId,
-          },
-        );
-      }
+    // İdempotent: zaten sevkiyat/onay/stock düşümü varsa no-op
+    if (sevkiyatOnayAt != null ||
+        stokDusumYapildi == true ||
+        durum == SiparisDurumu.sevkiyat.name ||
+        durum == SiparisDurumu.tamamlandi.name) {
+      return true;
     }
 
-    return ok;
+    final sip = SiparisModel.fromMap(data).copyWith(docId: snap.id);
+    final istek = _istekHaritasi(sip); // {urunId(int): adet}
+
+    // 🔸 Senin mevcut stok servisinin KENDİ şemasına göre kontrol+decrement yapması
+    final ok = await UrunService().decrementStocksIfSufficient(istek);
+
+    if (!ok) {
+      // Yetersiz: üretimde tut, sevkiyatHazir=false
+      await ref.update({
+        _fldDurum: SiparisDurumu.uretimde.name,
+        _fldSevkiyatHazir: false,
+      });
+      await LogService.instance.logSiparis(
+        action: 'sevkiyat_onayi_stok_yetersiz',
+        siparisId: docId,
+      );
+      return false;
+    }
+
+    // Başarılı: durum=sevkiyat + marker’lar
+    await ref.update({
+      _fldDurum: SiparisDurumu.sevkiyat.name,
+      _fldSevkiyatHazir: false,
+      _fldSevkiyatOnayAt: FieldValue.serverTimestamp(),
+      _fldStokDusumYapildi: true,
+    });
+
+    // Kalem kalem log (opsiyonel)
+    for (final su in sip.urunler) {
+      final uid = int.tryParse(su.id);
+      await LogService.instance.logUrun(
+        action: 'stok_azaltildi',
+        urunDocId: null,
+        urunId: uid,
+        urunAdi: su.urunAdi,
+        meta: {'adet': su.adet, 'reason': 'sevkiyat_onayi', 'siparisId': docId},
+      );
+    }
+
+    await LogService.instance.logSiparis(
+      action: 'sevkiyat_onayi_basarili',
+      siparisId: docId,
+      meta: {'urunler': istek},
+    );
+
+    return true;
   }
 
   /// (Opsiyonel) Eski adlandırma ile manuel sevkiyata geçirme.
@@ -489,47 +526,53 @@ class SiparisService {
         .toList();
   }
 
+  /// ✅ Reddet: Sevkiyatta düşülen stokları **tek transaction** ile iade eder (idempotent).
   Future<void> reddetVeStokIade(String docId) async {
-    final snap = await _col.doc(docId).get();
-    if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
-    final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
+    final sipRef = _col.doc(docId);
 
-    bool iadeYapildi = false;
-    Map<int, int>? iadeHaritasi;
+    await _db.runTransaction<void>((tx) async {
+      final sipSnap = await tx.get(sipRef);
+      if (!sipSnap.exists) throw StateError('Sipariş bulunamadı: $docId');
 
-    if (sip.durum == SiparisDurumu.sevkiyat) {
-      // Sevkiyat aşamasında stok daha önce düşülmüştü → geri ekle
-      final istek = _istekHaritasi(sip); // {urunId: adet}
-      await UrunService().incrementStocksByNumericIds(istek);
-      iadeYapildi = true;
-      iadeHaritasi = istek;
+      final data = sipSnap.data()!;
+      final durum = data[_fldDurum] as String?;
+      final iadeYapildiAt = data[_fldIadeYapildiAt];
+      final stokDusumYapildi = (data[_fldStokDusumYapildi] as bool?) ?? false;
 
-      // Kalem kalem log (opsiyonel)
-      for (final su in sip.urunler) {
-        final uid = int.tryParse(su.id);
-        await LogService.instance.logUrun(
-          action: 'stok_eklendi',
-          urunDocId: null,
-          urunId: uid,
-          urunAdi: su.urunAdi,
-          meta: {
-            'adet': su.adet,
-            'reason': 'siparis_reddedildi',
-            'siparisId': docId,
-          },
-        );
+      // Zaten reddedilmiş ve iade yapılmışsa NO-OP
+      if (durum == SiparisDurumu.reddedildi.name && iadeYapildiAt != null) {
+        return;
       }
-    }
 
-    await _col.doc(docId).update({'durum': SiparisDurumu.reddedildi.name});
+      // Sevkiyatta + stok daha önce düşülmüş + henüz iade yapılmamış → iade et
+      if (durum == SiparisDurumu.sevkiyat.name &&
+          stokDusumYapildi &&
+          iadeYapildiAt == null) {
+        final sip = SiparisModel.fromMap(data).copyWith(docId: sipSnap.id);
+        final istek = _istekHaritasi(sip); // {urunId: adet}
+
+        // Tüm stokları oku ve artır
+        for (final e in istek.entries) {
+          final ref = _stokRef(e.key);
+          final s = await tx.get(ref);
+          final mevcut = (s.data()?['miktar'] as num?)?.toInt() ?? 0;
+          tx.update(ref, {'miktar': mevcut + e.value});
+        }
+
+        // İade marker
+        tx.update(sipRef, {_fldIadeYapildiAt: FieldValue.serverTimestamp()});
+      }
+
+      // Durumu reddedildi yap (her durumda)
+      tx.update(sipRef, {
+        _fldDurum: SiparisDurumu.reddedildi.name,
+        _fldSevkiyatHazir: false,
+      });
+    });
 
     await LogService.instance.logSiparis(
-      action: 'siparis_reddedildi',
+      action: 'siparis_reddedildi_tx',
       siparisId: docId,
-      meta: {
-        'oncekiDurum': sip.durum.name,
-        if (iadeYapildi) 'iade': iadeHaritasi,
-      },
     );
   }
 }

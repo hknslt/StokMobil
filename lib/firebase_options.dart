@@ -26,20 +26,14 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -58,5 +52,24 @@ class DefaultFirebaseOptions {
     messagingSenderId: '341210438642',
     projectId: 'capri-stok',
     storageBucket: 'capri-stok.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDkjhXcgVSkHltAi3cJncSPR51XzzHRa9Y',
+    appId: '1:341210438642:ios:766bb336fb5eb85cf7296b',
+    messagingSenderId: '341210438642',
+    projectId: 'capri-stok',
+    storageBucket: 'capri-stok.firebasestorage.app',
+    iosBundleId: 'com.example.capri',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBI7p4y7DWkuyZfnhk4RJjDgRnqW6m8BZk',
+    appId: '1:341210438642:web:e1900d3b43bf8501f7296b',
+    messagingSenderId: '341210438642',
+    projectId: 'capri-stok',
+    authDomain: 'capri-stok.firebaseapp.com',
+    storageBucket: 'capri-stok.firebasestorage.app',
+    measurementId: 'G-T9K7XTN5C8',
   );
 }

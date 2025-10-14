@@ -49,11 +49,10 @@ class UrunService {
     return await ref.getDownloadURL();
   }
 
-  /// Çoklu resmi yükler, kapak ve liste URL'lerini döndürür.
   Future<({String? coverUrl, List<String> urls})> _uploadImagesForDoc({
     required String docId,
     required List<File> localFiles,
-    String? coverLocalPath,
+    String? coverLocalPath, // ← YENİ
   }) async {
     if (localFiles.isEmpty) return (coverUrl: null, urls: const <String>[]);
 
@@ -65,40 +64,45 @@ class UrunService {
           '${DateTime.now().millisecondsSinceEpoch}_${f.path.split('/').last}';
       final url = await _uploadOne(docId: docId, file: f, fileName: name);
       urls.add(url);
+
+      // Eğer kullanıcı bu yerel dosyayı kapak seçtiyse → kapak URL bu olsun
       if (coverLocalPath != null && f.path == coverLocalPath) {
         coverUrl = url;
       }
     }
+
+    // Eğer spesifik kapak seçilmediyse, ilk yüklenen kapak olsun
     coverUrl ??= urls.first;
     return (coverUrl: coverUrl, urls: urls);
   }
 
   // --------------------------- CRUD ---------------------------
 
-  /// Ürün ekler. (Opsiyonel) [localFiles] gönderirsen resimler Storage'a yüklenir ve
-  /// oluşan URL'ler Firestore'a yazılır. [coverLocalPath] kapak olarak işaretlenecek yerel path.
   Future<void> ekle(
     Urun urun, {
     List<File> localFiles = const [],
-    String? coverLocalPath,
+    String? coverLocalPath, // ← UI'dan opsiyonel gelebilir
   }) async {
     final id = urun.id == 0 ? await _yeniNumericId() : urun.id;
 
-    // 1) Belgeyi (resimsiz) oluştur ve docId al
+    // 1) Önce boş belge oluştur (resimsiz)
     final ref = _col.doc();
     await ref.set(
       urun.copyWith(id: id, resimYollari: [], kapakResimYolu: null).toMap(),
     );
 
-    // 2) Resimleri yükle → URL'leri yaz
+    // 2) Resimler varsa yükle → kapak ve listeyi yaz
     if (localFiles.isNotEmpty) {
       final uploaded = await _uploadImagesForDoc(
         docId: ref.id,
         localFiles: localFiles,
-        coverLocalPath: coverLocalPath,
+        coverLocalPath: coverLocalPath, // ← KULLAN
       );
       await ref.update({
-        'resimYollari': uploaded.urls,
+        // Kapak galeriye düşmesin
+        'resimYollari': uploaded.urls
+            .where((e) => e != uploaded.coverUrl)
+            .toList(),
         'kapakResimYolu': uploaded.coverUrl,
       });
     }
@@ -123,20 +127,21 @@ class UrunService {
     Urun urun, {
     List<File> newLocalFiles = const [],
     List<String> urlsToDelete = const [],
+    String? coverLocalPath, // ← YENİ
   }) async {
-    // 1) Eski resimleri sil
+    // 1) Eski resimleri Storage’dan sil
     if (urlsToDelete.isNotEmpty) {
       for (final url in urlsToDelete) {
         try {
           final ref = _storage.refFromURL(url);
           await ref.delete();
         } catch (e) {
-          print('Silme hatası: $e');
+          print('Silme hatası: $e'); // yutuyoruz ama logluyoruz
         }
       }
     }
 
-    // 2) Yeni resimleri yükle ve URL'leri al
+    // 2) Yeni resimleri yükle
     List<String> newUrls = [];
     String? newCoverUrl;
 
@@ -144,23 +149,27 @@ class UrunService {
       final uploaded = await _uploadImagesForDoc(
         docId: docId,
         localFiles: newLocalFiles,
-        coverLocalPath: urun.kapakResimYolu,
+        coverLocalPath: coverLocalPath, // ← KULLAN
       );
       newUrls = uploaded.urls;
       newCoverUrl = uploaded.coverUrl;
     }
 
-    // 3) Firestore'daki resim yolları listesini güncelle
-    final existingUrls = urun.resimYollari ?? [];
-    final updatedUrls =
-        existingUrls.where((url) => !urlsToDelete.contains(url)).toList()
-          ..addAll(newUrls);
+    // 3) Galeri: mevcutta tutulacak HTTP’ler + yeni yüklenenlerden kapak dışındakiler
+    final existingUrlsToKeep = urun.resimYollari ?? [];
+    final updatedUrls = <String>[
+      ...existingUrlsToKeep,
+      ...newUrls.where((e) => e != newCoverUrl), // yeni kapak galeriye girmesin
+    ];
 
-    // 4) Firestore belgesini güncelle
+    // 4) Kapak: yeni kapak varsa onu, yoksa mevcut (HTTP) kapağı yaz
+    final coverToSet = newCoverUrl ?? urun.kapakResimYolu;
+
+    // 5) Patch
     await _col.doc(docId).update({
       ...urun.toMap(),
       'resimYollari': updatedUrls,
-      'kapakResimYolu': newCoverUrl ?? urun.kapakResimYolu,
+      'kapakResimYolu': coverToSet,
     });
 
     // LOG
