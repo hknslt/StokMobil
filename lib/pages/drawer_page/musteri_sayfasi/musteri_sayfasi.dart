@@ -553,10 +553,12 @@ class _MusterilerSayfasiState extends State<MusterilerSayfasi> {
                                   children: [
                                     const Icon(Icons.phone, size: 16),
                                     const SizedBox(width: 6),
-                                    Text(
-                                      m.telefon!,
-                                      style: const TextStyle(
-                                        decoration: TextDecoration.underline,
+                                    Expanded(
+                                      child: Text(
+                                        m.telefon!,
+                                        style: const TextStyle(
+                                          decoration: TextDecoration.underline,
+                                        ),
                                       ),
                                     ),
                                   ],

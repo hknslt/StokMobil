@@ -22,7 +22,7 @@ bool get _isMobile => Platform.isAndroid || Platform.isIOS;
 
 @pragma('vm:entry-point')
 Future<void> _bgHandler(RemoteMessage message) async {
-  // Sadece mobile için kullanılacak; ama guard'ı fonksiyon çağrısında zaten yapacağız.
+ 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await BildirimServisi.init();
 
