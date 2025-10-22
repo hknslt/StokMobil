@@ -1,5 +1,9 @@
+// lib/main.dart
+
 import 'dart:io' show Platform;
 
+// YENİ: SplashPage import edildi
+import 'package:capri/pages/splash_page/splash_page.dart';
 import 'package:capri/services/bildirim_servisi.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -8,7 +12,7 @@ import 'package:intl/intl.dart';
 import 'firebase_options.dart';
 import 'core/models/user.dart';
 import 'pages/login/login_page.dart';
-import 'pages/home/ana_sayfa.dart';
+// import 'pages/home/ana_sayfa.dart'; // Artık burada import edilmesine gerek yok
 import 'pages/drawer_page/ayarlar/ayarlar_sayfasi.dart';
 import 'pages/drawer_page/hakkinda_sayfasi.dart';
 
@@ -17,19 +21,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+// YENİ: Dashboard widget'ları import edildi
+import 'package:capri/pages/dashboards/admin_dashboard.dart';
+import 'package:capri/pages/dashboards/pazarlamaci_dashboard.dart';
+import 'package:capri/pages/dashboards/uretim_dashboard.dart';
+import 'package:capri/pages/dashboards/sevkiyat_dashboard.dart';
+
 String get _platformName => Platform.isIOS ? 'ios' : 'android';
 bool get _isMobile => Platform.isAndroid || Platform.isIOS;
 
+// --- Bildirim Kodları (Değişiklik Yok) ---
 @pragma('vm:entry-point')
 Future<void> _bgHandler(RemoteMessage message) async {
- 
+  // ... (Bu fonksiyonun tamamı olduğu gibi kalacak) ...
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await BildirimServisi.init();
 
   if (message.notification != null &&
       (message.notification!.title != null ||
           message.notification!.body != null)) {
-    // iOS'ta APNs bildirimi zaten OS tarafından gösterilir; çift bildirim olmasın.
     return;
   }
 
@@ -64,8 +74,8 @@ Future<void> _bgHandler(RemoteMessage message) async {
   }
 }
 
-/// Callable'ı güvenli çağır
 Future<void> _claimTokenSafe(String token, {String? platform}) async {
+  // ... (Bu fonksiyonun tamamı olduğu gibi kalacak) ...
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
@@ -84,43 +94,39 @@ Future<void> _claimTokenSafe(String token, {String? platform}) async {
 }
 
 Future<void> _kurBildirimAltyapisi() async {
-  // 🔒 Sadece ANDROID + iOS
+  // ... (Bu fonksiyonun tamamı olduğu gibi kalacak) ...
   if (!_isMobile) return;
 
   final fcm = FirebaseMessaging.instance;
   await fcm.requestPermission(alert: true, badge: true, sound: true);
 
-  // Foreground yönetimi (BildirimServisi içinde local notifications olabilir)
   await BildirimServisi.init();
 
-  // Background mesajlar (yalnız mobile destekli)
   FirebaseMessaging.onBackgroundMessage(_bgHandler);
 }
+// --- Bildirim Kodları Bitiş ---
 
 void main() async {
+  // --- Main Fonksiyonu (Değişiklik Yok) ---
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await intl_local.initializeDateFormatting('tr', "");
   Intl.defaultLocale = 'tr';
 
-  // 🔒 Sadece mobile için FCM kur
   await _kurBildirimAltyapisi();
 
   runApp(const MyApp());
 
-  // 🔒 Aşağıdaki FCM token/oturum dinlemeleri de yalnız mobile
   if (_isMobile) {
     final fcm = FirebaseMessaging.instance;
 
-    // Token yenilenince: claim
     fcm.onTokenRefresh.listen((newToken) async {
       final u = FirebaseAuth.instance.currentUser;
       if (u == null) return;
       await _claimTokenSafe(newToken);
     });
 
-    // Oturum durumu değişince claim / token temizleme
     FirebaseAuth.instance.authStateChanges().listen((user) async {
       if (user != null) {
         final token = await fcm.getToken();
@@ -134,10 +140,29 @@ void main() async {
       }
     });
 
-    // Açılışta kullanıcı varsa claim
     if (FirebaseAuth.instance.currentUser != null) {
       final token = await fcm.getToken();
       if (token != null) await _claimTokenSafe(token);
+    }
+  }
+}
+class DashboardGecis extends StatelessWidget {
+  const DashboardGecis({super.key, required this.user});
+  final UserModel user;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (user.role) {
+      case 'admin':
+        return const AdminDashboard();
+      case 'pazarlamaci':
+        return const PazarlamaciDashboard();
+      case 'uretim':
+        return const UretimDashboard();
+      case 'sevkiyat':
+        return const SevkiyatDashboard();
+      default:
+        return const LoginPage();
     }
   }
 }
@@ -151,12 +176,15 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Stok Takip',
+
       initialRoute: '/',
+
       routes: {
-        '/': (context) => const LoginPage(),
+        '/': (context) => const SplashPage(),
+        '/login': (context) => const LoginPage(),
         '/anasayfa': (context) {
           if (currentUser != null) {
-            return AnaSayfa(user: currentUser!);
+            return DashboardGecis(user: currentUser!);
           } else {
             return const LoginPage();
           }

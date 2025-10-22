@@ -196,11 +196,7 @@ class AnaDrawer extends StatelessWidget {
                       );
                     },
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "Capri Stok • v1.0",
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                  ),
+                  
                 ],
               ),
             ),

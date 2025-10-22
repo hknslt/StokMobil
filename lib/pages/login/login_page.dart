@@ -3,6 +3,7 @@ import 'package:capri/pages/login/forgot_password_page.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // YENİ: Paket import edildi
 
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/main.dart';
@@ -33,18 +34,39 @@ class _LoginPageState extends State<LoginPage>
 
   bool _sifreGizli = true;
   bool _yukleniyor = false;
+  bool _beniHatirla = false; // YENİ: "Beni Hatırla" durumu için state
 
   final _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
+    _tercihleriYukle(); // YENİ: Kayıtlı tercihleri yükle
     _anim = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
     _scaleAnim = CurvedAnimation(parent: _anim!, curve: Curves.easeOutBack);
     _anim!.forward();
+  }
+
+  // YENİ: Cihaz hafızasından "Beni Hatırla" seçimini ve e-postayı yükler
+  Future<void> _tercihleriYukle() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool hatirla = prefs.getBool('beni_hatirla') ?? false;
+
+    setState(() {
+      _beniHatirla = hatirla;
+    });
+
+    if (hatirla) {
+      final String? email = prefs.getString('kayitli_email');
+      if (email != null) {
+        setState(() {
+          _kullaniciVeyaEpostaController.text = email;
+        });
+      }
+    }
   }
 
   @override
@@ -70,6 +92,18 @@ class _LoginPageState extends State<LoginPage>
         input: input,
         password: password,
       );
+
+      // YENİ: Giriş başarılıysa "Beni Hatırla" tercihini kaydet
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('beni_hatirla', _beniHatirla);
+
+      if (_beniHatirla) {
+        // "Beni Hatırla" seçiliyse e-postayı kaydet
+        await prefs.setString('kayitli_email', input);
+      } else {
+        // Seçili değilse, kayıtlı e-postayı sil
+        await prefs.remove('kayitli_email');
+      }
 
       // Profil verisini Firestore'dan çek
       final uid = cred.user!.uid;
@@ -129,11 +163,12 @@ class _LoginPageState extends State<LoginPage>
   }
 
   String _firebaseErrToTr(FirebaseAuthException e) {
+    // DEĞİŞTİ: Firebase'in yeni hata kodları için birleştirildi
     switch (e.code) {
       case 'user-not-found':
-        return 'Kullanıcı bulunamadı.';
       case 'wrong-password':
-        return 'Şifre hatalı.';
+      case 'invalid-credential':
+        return 'E-posta veya şifre hatalı.';
       case 'invalid-email':
         return 'E-posta geçersiz.';
       case 'user-disabled':
@@ -324,8 +359,7 @@ class _LoginPageState extends State<LoginPage>
                                   controller: _sifreController,
                                   obscureText: _sifreGizli,
                                   textInputAction: TextInputAction.done,
-                                  keyboardType: TextInputType
-                                      .visiblePassword, //  şifre klavyesi
+                                  keyboardType: TextInputType.visiblePassword,
                                   enableSuggestions: false,
                                   autocorrect: false,
                                   autofillHints: const [AutofillHints.password],
@@ -354,7 +388,61 @@ class _LoginPageState extends State<LoginPage>
                                   onFieldSubmitted: (_) => _girisYap(),
                                 ),
 
-                                const SizedBox(height: 18),
+                                // DEĞİŞTİ: "Beni Hatırla" ve "Şifremi Unuttum" için yeni satır
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    // YENİ: "Beni Hatırla" CheckboxListTile
+                                    Flexible(
+                                      child: CheckboxListTile(
+                                        value: _beniHatirla,
+                                        onChanged: (bool? value) {
+                                          setState(() {
+                                            _beniHatirla = value ?? false;
+                                          });
+                                        },
+                                        title: Text(
+                                          'Beni Hatırla',
+                                          style: TextStyle(
+                                            color: Colors.grey[800],
+                                            fontSize: 13.5,
+                                          ),
+                                        ),
+                                        controlAffinity:
+                                            ListTileControlAffinity.leading,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 0,
+                                            ),
+                                        dense: true,
+                                        activeColor: anaRenk,
+                                      ),
+                                    ),
+                                    // DEĞİŞTİ: "Şifremi unuttum" butonu bu satıra taşındı
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const ForgotPasswordPage(),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        "Şifremi Unuttum",
+                                        style: TextStyle(
+                                          color: anaRenk,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 10),
 
                                 // GİRİŞ BUTONU
                                 SizedBox(
@@ -398,30 +486,8 @@ class _LoginPageState extends State<LoginPage>
                                     ),
                                   ),
                                 ),
-
-                                const SizedBox(height: 10),
-
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const ForgotPasswordPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: Text(
-                                      "Şifrenizi mi unuttunuz?",
-                                      style: TextStyle(
-                                        color: anaRenk,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                // DEĞİŞTİ: Şifremi unuttum butonu yukarı taşındığı için
+                                // buradaki Align widget'ı kaldırıldı.
                               ],
                             ),
                           ),
