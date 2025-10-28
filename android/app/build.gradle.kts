@@ -53,7 +53,6 @@ configurations.configureEach {
 flutter { source = "../.." }
 
 dependencies {
-    // <-- BURAYI 2.1.5 YAP!
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }

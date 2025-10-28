@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:capri/pages/moduller/stok_sayfasi/stok_duzenleme_sayfasi.dart';
 import 'package:capri/pages/moduller/stok_sayfasi/utils/stok_pdf.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -29,6 +30,10 @@ class _StokSayfasiState extends State<StokSayfasi> {
   void dispose() {
     _aramaCtrl.dispose();
     super.dispose();
+  }
+
+  void _sayfayiYenile() {
+    setState(() {});
   }
 
   Future<void> _exportPdf() async {
@@ -71,7 +76,7 @@ class _StokSayfasiState extends State<StokSayfasi> {
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(
       context,
-    ).viewInsets.bottom; // klavye yüksekliği
+    ).viewInsets.bottom;
 
     return Scaffold(
       appBar: AppBar(
@@ -88,6 +93,21 @@ class _StokSayfasiState extends State<StokSayfasi> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_note),
+            tooltip: 'Hızlı Stok Düzenle',
+            onPressed: () async {
+              final sonuc = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const StokDuzenlemeSayfasi(),
+                ),
+              );
+              if (sonuc == true && mounted) {
+                _sayfayiYenile();
+              }
+            },
+          ),
           IconButton(
             tooltip: 'PDF',
             icon: const Icon(Icons.picture_as_pdf),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:capri/pages/home/utils/stoksuz_urunler_widget.dart.dart';
 import 'package:capri/pages/home/utils/uretimde_olanlar_widget.dart';
-import 'package:capri/pages/moduller/uretim_sayfasi/uretim_sayfasi.dart';
+
 
 class UretimWidget extends StatelessWidget {
   const UretimWidget({super.key});

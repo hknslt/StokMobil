@@ -1,3 +1,5 @@
+import 'package:capri/services/sevkiyat_service.dart';
+import 'package:capri/services/siparis_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
@@ -7,7 +9,7 @@ import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/pages/moduller/siparis_sayfasi/siparis_detay_sayfasi.dart';
 import 'package:capri/pages/moduller/siparis_sayfasi/siparis_oluşturma/siparis_olustur_sayfasi.dart';
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
-import 'package:capri/services/siparis_service.dart';
+
 import 'package:capri/services/urun_service.dart';
 import 'package:capri/services/fiyat_listesi_service.dart';
 
@@ -20,6 +22,7 @@ class SiparisSayfasi extends StatefulWidget {
 
 class _SiparisSayfasiState extends State<SiparisSayfasi> {
   final siparisServis = SiparisService();
+  final sevkiyatServis = SevkiyatService();
   final urunServis = UrunService();
   final fiyatSvc = FiyatListesiService.instance;
 
@@ -113,7 +116,7 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
     _setBusy(id, true);
 
     try {
-      final ok = await siparisServis.sevkiyataOnayla(id!);
+      final ok = await sevkiyatServis.sevkiyataOnayla(id!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -173,7 +176,7 @@ class _SiparisSayfasiState extends State<SiparisSayfasi> {
 
     _setBusy(id, true);
     try {
-      await siparisServis.reddetVeStokIade(id!);
+      await sevkiyatServis.reddetVeStokIade(id!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

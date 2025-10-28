@@ -336,4 +336,31 @@ class UrunService {
       }
     });
   }
+  // UrunService sınıfının en altına bu metodu ekle:
+
+  /// ✅ Birden fazla ürünün stok adetini tek bir işlemde (batch) günceller.
+  /// [guncellenecekStoklar] haritası, { 'urunDocId': yeniAdet } formatında olmalıdır.
+  Future<void> topluStokGuncelle(Map<String, int> guncellenecekStoklar) async {
+    if (guncellenecekStoklar.isEmpty) return;
+
+    // _db değişkeni sınıfın başında tanımlı olmalı. Eğer yoksa ekle:
+    // final _db = FirebaseFirestore.instance;
+    final batch = FirebaseFirestore.instance.batch();
+
+    guncellenecekStoklar.forEach((docId, yeniAdet) {
+      final ref = _col.doc(docId);
+      batch.update(ref, {'adet': yeniAdet});
+    });
+
+    await batch.commit();
+
+    // İstersen burada genel bir loglama yapabilirsin.
+    await LogService.instance.logUrun(
+      action: 'toplu_stok_guncellendi',
+      urunDocId: null,
+      urunId: null,
+      urunAdi: '',
+      meta: {'guncellenen_urun_sayisi': guncellenecekStoklar.length},
+    );
+  }
 }

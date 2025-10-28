@@ -3,6 +3,8 @@ import 'package:capri/main.dart';
 import 'package:capri/pages/home/ana_sayfa.dart';
 import 'package:capri/pages/moduller/stok_sayfasi/stok_sayfasi.dart';
 import 'package:capri/pages/moduller/uretim_sayfasi/uretim_sayfasi.dart';
+import 'package:capri/pages/moduller/sevkiyat_sayfasi/sevkiyat_sayfasi.dart';
+
 import 'package:capri/pages/widgets/navbar_widget.dart';
 
 class UretimDashboard extends StatefulWidget {
@@ -19,6 +21,7 @@ class _UretimDashboardState extends State<UretimDashboard> {
     AnaSayfa(user: MyApp.currentUser!),
     StokSayfasi(),
     UretimSayfasi(),
+    SevkiyatSayfasi(),
   ];
 
   final List<BottomNavigationBarItem> _navItems = const [
@@ -30,6 +33,10 @@ class _UretimDashboardState extends State<UretimDashboard> {
     BottomNavigationBarItem(
       icon: Icon(Icons.factory_outlined),
       label: 'Üretim',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.factory_outlined),
+      label: 'sevkiyat',
     ),
   ];
 

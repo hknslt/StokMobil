@@ -1,27 +1,20 @@
-// lib/main.dart
-
 import 'dart:io' show Platform;
-
-// YENİ: SplashPage import edildi
 import 'package:capri/pages/splash_page/splash_page.dart';
 import 'package:capri/services/bildirim_servisi.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:intl/date_symbol_data_local.dart' as intl_local;
 import 'package:intl/intl.dart';
 import 'firebase_options.dart';
 import 'core/models/user.dart';
 import 'pages/login/login_page.dart';
-// import 'pages/home/ana_sayfa.dart'; // Artık burada import edilmesine gerek yok
 import 'pages/drawer_page/ayarlar/ayarlar_sayfasi.dart';
 import 'pages/drawer_page/hakkinda_sayfasi.dart';
-
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
-// YENİ: Dashboard widget'ları import edildi
 import 'package:capri/pages/dashboards/admin_dashboard.dart';
 import 'package:capri/pages/dashboards/pazarlamaci_dashboard.dart';
 import 'package:capri/pages/dashboards/uretim_dashboard.dart';
@@ -30,10 +23,9 @@ import 'package:capri/pages/dashboards/sevkiyat_dashboard.dart';
 String get _platformName => Platform.isIOS ? 'ios' : 'android';
 bool get _isMobile => Platform.isAndroid || Platform.isIOS;
 
-// --- Bildirim Kodları (Değişiklik Yok) ---
 @pragma('vm:entry-point')
 Future<void> _bgHandler(RemoteMessage message) async {
-  // ... (Bu fonksiyonun tamamı olduğu gibi kalacak) ...
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await BildirimServisi.init();
 
@@ -75,7 +67,6 @@ Future<void> _bgHandler(RemoteMessage message) async {
 }
 
 Future<void> _claimTokenSafe(String token, {String? platform}) async {
-  // ... (Bu fonksiyonun tamamı olduğu gibi kalacak) ...
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
@@ -94,7 +85,6 @@ Future<void> _claimTokenSafe(String token, {String? platform}) async {
 }
 
 Future<void> _kurBildirimAltyapisi() async {
-  // ... (Bu fonksiyonun tamamı olduğu gibi kalacak) ...
   if (!_isMobile) return;
 
   final fcm = FirebaseMessaging.instance;
@@ -104,12 +94,20 @@ Future<void> _kurBildirimAltyapisi() async {
 
   FirebaseMessaging.onBackgroundMessage(_bgHandler);
 }
-// --- Bildirim Kodları Bitiş ---
 
-void main() async {
-  // --- Main Fonksiyonu (Değişiklik Yok) ---
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await FirebaseAppCheck.instance.activate(
+
+    androidProvider: AndroidProvider.playIntegrity,
+
+    appleProvider: AppleProvider.appAttest,
+
+  );
 
   await intl_local.initializeDateFormatting('tr', "");
   Intl.defaultLocale = 'tr';
@@ -146,7 +144,9 @@ void main() async {
     }
   }
 }
+
 class DashboardGecis extends StatelessWidget {
+
   const DashboardGecis({super.key, required this.user});
   final UserModel user;
 
@@ -162,6 +162,8 @@ class DashboardGecis extends StatelessWidget {
       case 'sevkiyat':
         return const SevkiyatDashboard();
       default:
+
+        print("Geçersiz rol (${user.role}), login sayfasına yönlendiriliyor.");
         return const LoginPage();
     }
   }
@@ -176,9 +178,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Stok Takip',
-
       initialRoute: '/',
-
       routes: {
         '/': (context) => const SplashPage(),
         '/login': (context) => const LoginPage(),
@@ -186,6 +186,7 @@ class MyApp extends StatelessWidget {
           if (currentUser != null) {
             return DashboardGecis(user: currentUser!);
           } else {
+
             return const LoginPage();
           }
         },

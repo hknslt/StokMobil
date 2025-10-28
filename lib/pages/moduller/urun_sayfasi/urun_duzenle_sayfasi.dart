@@ -1,4 +1,4 @@
-// lib/screens/urun_duzenle_sayfasi.dart
+
 import 'dart:io';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
@@ -28,14 +28,16 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
   final _formKey = GlobalKey<FormState>();
 
   // --- Görsel durumları ---
-  String? _coverUrl;                   // Kapak (http url veya yerel path)
-  String? _coverLocalPathIfNew;        // Yeni eklenen yerel dosya kapak ise path'i
-  List<String> _galleryUrls = [];      // Kapak HARİÇ tüm görseller (http url veya yerel path)
+  String? _coverUrl; 
+  String? _coverLocalPathIfNew;
+  List<String> _galleryUrls =
+      []; 
 
-  // Orijinal (Firestore’daki) durum: silinecekleri hesaplamak için
-  late final Set<String> _originalHttpAll; // kapak + galeri (sadece http olanlar)
 
-  // Yeni seçilen dosyalar
+  late final Set<String>
+  _originalHttpAll; 
+
+
   final List<File> _newLocalFiles = [];
 
   @override
@@ -44,22 +46,23 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
     final u = widget.urun;
     urunKoduController = TextEditingController(text: u.urunKodu);
     urunAdiController = TextEditingController(text: u.urunAdi);
-    renkController    = TextEditingController(text: u.renk);
-    adetController    = TextEditingController(text: u.adet.toString());
-    aciklamaController= TextEditingController(text: u.aciklama ?? '');
+    renkController = TextEditingController(text: u.renk);
+    adetController = TextEditingController(text: u.adet.toString());
+    aciklamaController = TextEditingController(text: u.aciklama ?? '');
 
-    // Başlangıç: kapak + galeri ayrımı
+ 
     _coverUrl = u.kapakResimYolu;
     final galeri = List<String>.from(u.resimYollari ?? const []);
-    // Eğer kapak galeriye yanlışlıkla düşmüşse çıkar
+  
     if (_coverUrl != null) {
       galeri.removeWhere((e) => e == _coverUrl);
     }
     _galleryUrls = galeri;
 
-    // Orijinal http set (yereller dahil edilmez)
+ 
     _originalHttpAll = {
-      if (u.kapakResimYolu != null && u.kapakResimYolu!.startsWith('http')) u.kapakResimYolu!,
+      if (u.kapakResimYolu != null && u.kapakResimYolu!.startsWith('http'))
+        u.kapakResimYolu!,
       ...(u.resimYollari ?? const []).where((e) => e.startsWith('http')),
     }.toSet();
   }
@@ -83,10 +86,10 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
     setState(() {
       for (final f in files) {
         _newLocalFiles.add(f);
-        // Varsayılan: galeriye ekle
+
         _galleryUrls.add(f.path);
       }
-      // Eğer kapak yoksa ilk eklenen yereli kapak yap
+
       if (_coverUrl == null && _galleryUrls.isNotEmpty) {
         final first = _galleryUrls.removeAt(0);
         _coverUrl = first;
@@ -95,20 +98,16 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
     });
   }
 
-  // ---- Resmi sil ----
   void _removeImage(String url) {
     setState(() {
-      // Kapak silinirse:
       if (_coverUrl == url) {
-        // Yerelse newLocalFiles'tan da çıkart
         if (!url.startsWith('http')) {
           _newLocalFiles.removeWhere((f) => f.path == url);
         }
-        // Kapak'ı düşür
+
         _coverUrl = null;
         _coverLocalPathIfNew = null;
 
-        // Galeriden biri varsa onu kapak yap
         if (_galleryUrls.isNotEmpty) {
           final next = _galleryUrls.removeAt(0);
           _coverUrl = next;
@@ -117,10 +116,8 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
         return;
       }
 
-      // Galeriden silinirse:
       final ix = _galleryUrls.indexOf(url);
       if (ix >= 0) {
-        // Yerelse newLocalFiles'tan da çıkar
         if (!url.startsWith('http')) {
           _newLocalFiles.removeWhere((f) => f.path == url);
         }
@@ -129,22 +126,18 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
     });
   }
 
-  // ---- Çift dokunma ile kapak yap ----
   void _makeCover(String url) {
     setState(() {
       final prevCover = _coverUrl;
 
-      // Eğer url galerideyse çıkar
       _galleryUrls.removeWhere((e) => e == url);
 
-      // Önceki kapak farklıysa galeriye ekle
       if (prevCover != null && prevCover != url) {
         if (!_galleryUrls.contains(prevCover)) {
           _galleryUrls.insert(0, prevCover);
         }
       }
 
-      // Yeni kapak ata
       _coverUrl = url;
       _coverLocalPathIfNew = url.startsWith('http') ? null : url;
     });
@@ -161,17 +154,13 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
       );
       return;
     }
+    final finalCoverHttp = _coverUrl?.startsWith('http') == true
+        ? _coverUrl
+        : null;
+    final finalGalleryHttp = _galleryUrls
+        .where((e) => e.startsWith('http'))
+        .toList();
 
-    // Final listeler:
-    // - Kapak: _coverUrl (http ise mevcut, yerelse yeni yüklenecek)
-    // - Galeri: _galleryUrls (http olanlar mevcut, yereller yeni yüklenecek)
-    // Firestore’a yazarken urun.resimYollari sadece MEVCUT http url’lerden oluşmalı;
-    // yerel path’leri service upload edip URL olarak ekleyecek.
-    final finalCoverHttp = _coverUrl?.startsWith('http') == true ? _coverUrl : null;
-    final finalGalleryHttp = _galleryUrls.where((e) => e.startsWith('http')).toList();
-
-    // Kullanıcı eski kapak/görselleri galeriye tutmak istiyorsa zaten _galleryUrls’te var.
-    // Silinecekler = (orijinal http set) - (final cover http + final gallery http)
     final finalKeep = <String>{
       ...finalGalleryHttp,
       if (finalCoverHttp != null) finalCoverHttp,
@@ -184,31 +173,32 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
       renk: renkController.text.trim(),
       adet: int.tryParse(adetController.text.trim()) ?? widget.urun.adet,
       aciklama: aciklamaController.text.trim(),
-      resimYollari: finalGalleryHttp,        // sadece mevcut http url’ler
-      kapakResimYolu: finalCoverHttp,        // yeni kapak yerelse null yazıyoruz (service set edecek)
+      resimYollari: finalGalleryHttp,
+      kapakResimYolu: finalCoverHttp,
     );
 
     try {
       await urunService.guncelle(
         docId,
         guncelUrun,
-        newLocalFiles: _newLocalFiles,                 // yeni dosyalar
-        urlsToDelete: urlsToDelete,                    // storage’dan da sil
-        coverLocalPath: _coverLocalPathIfNew,          // yeni kapak yerel ise path
+        newLocalFiles: _newLocalFiles,
+        urlsToDelete: urlsToDelete,
+        coverLocalPath: _coverLocalPathIfNew,
       );
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Güncelleme başarısız: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Güncelleme başarısız: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final allForGrid = <String>[
-      if (_coverUrl != null) _coverUrl!, // önce kapak
+      if (_coverUrl != null) _coverUrl!,
       ..._galleryUrls,
     ];
 
@@ -266,8 +256,6 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
                 maxLines: 2,
               ),
               const SizedBox(height: 24),
-
-              // Görseller grid (double-tap = kapak yap, X = sil)
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -278,18 +266,38 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
                     child: Stack(
                       children: [
                         url.startsWith('http')
-                            ? Image.network(url, width: 100, height: 100, fit: BoxFit.cover)
-                            : Image.file(File(url), width: 100, height: 100, fit: BoxFit.cover),
+                            ? Image.network(
+                                url,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              )
+                            : Image.file(
+                                File(url),
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
                         if (isCover)
                           Positioned(
-                            left: 4, top: 4,
+                            left: 4,
+                            top: 4,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.amber,
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: const Text('Kapak', style: TextStyle(color: Colors.black, fontSize: 12)),
+                              child: const Text(
+                                'Kapak',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                           ),
                         Positioned(

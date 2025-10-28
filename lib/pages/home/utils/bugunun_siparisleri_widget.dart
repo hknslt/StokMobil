@@ -1,3 +1,4 @@
+import 'package:capri/services/sevkiyat_service.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -19,6 +20,7 @@ class BugununSiparisleriWidget extends StatefulWidget {
 class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
   final siparisServis = SiparisService();
   final urunServis = UrunService();
+  final sevkiyatServis = SevkiyatService();
 
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -99,7 +101,7 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
 
   Future<void> _sevkiyataOnayla(SiparisModel siparis) async {
     try {
-      final ok = await siparisServis.sevkiyataOnayla(siparis.docId!);
+      final ok = await sevkiyatServis.sevkiyataOnayla(siparis.docId!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -150,7 +152,7 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
     if (!onay) return;
 
     try {
-      await siparisServis.reddetVeStokIade(siparis.docId!);
+      await sevkiyatServis.reddetVeStokIade(siparis.docId!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

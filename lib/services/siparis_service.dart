@@ -1,9 +1,8 @@
-// lib/services/siparis_service.dart
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:capri/core/models/siparis_model.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/urun_service.dart'; // Stok kontrolü için (onayla metodu)
 import 'package:capri/services/log_service.dart';
 
 class SiparisService {
@@ -15,16 +14,10 @@ class SiparisService {
   CollectionReference<Map<String, dynamic>> get _col =>
       _db.collection('siparisler');
 
-  // === Stok koleksiyonu yardımcıları (şeman farklıysa burayı uyarlay) ===
-  DocumentReference<Map<String, dynamic>> _stokRef(int numericId) =>
-      _db.collection('stoklar').doc(numericId.toString());
-
   // === Sipariş alan adları (sabitler) ===
   static const _fldDurum = 'durum';
   static const _fldSevkiyatHazir = 'sevkiyatHazir';
-  static const _fldSevkiyatOnayAt = 'sevkiyatOnayAt'; // Timestamp | null
-  static const _fldStokDusumYapildi = 'stokDusumYapildi'; // bool | null
-  static const _fldIadeYapildiAt = 'iadeYapildiAt'; // Timestamp | null
+  // Diğer sevkiyat sabitleri artık SevkiyatService içinde kullanılacak.
 
   // ------------------ GENEL AKIŞLAR ------------------
 
@@ -95,9 +88,10 @@ class SiparisService {
     );
   }
 
-  // ------------------ HELPER ------------------
+  // ------------------ HELPER (SevkiyatService'e taşınmadığı için burada kaldı) ------------------
 
   /// Siparişteki ürünleri {urunId: toplamAdet} haritasına çevir.
+  /// Not: Onay metodu hala bunu kullanıyor.
   Map<int, int> _istekHaritasi(SiparisModel s) {
     final map = <int, int>{};
     for (final su in s.urunler) {
@@ -170,6 +164,9 @@ class SiparisService {
     bool islemeTarihiniAyarla = false,
     DateTime? islemeTarihi,
   }) async {
+    // Sevkiyat ve Reddedildi durumları artık SevkiyatService'in sorumluluğunda olabilir.
+    // Ancak tamamlandı ve diğer temel durumlar burada kalır.
+
     if (yeni == SiparisDurumu.tamamlandi) {
       final data = <String, dynamic>{'durum': yeni.name};
       if (islemeTarihiniAyarla) {
@@ -201,7 +198,7 @@ class SiparisService {
   Future<void> durumuGuncelle(String docId, SiparisDurumu durum) =>
       guncelleDurum(docId, durum);
 
-  // ------------------ YENİ AKIŞ ------------------
+  // ------------------ YENİ AKIŞ (ÖN ONAY - Stok kontrolü) ------------------
 
   /// ✅ Onay: stok DÜŞMEDEN kontrol edilir.
   /// - Yeterliyse: sevkiyatHazir:true, durum beklemede.
@@ -213,6 +210,7 @@ class SiparisService {
     final sip = SiparisModel.fromMap(snap.data()!).copyWith(docId: snap.id);
 
     final istek = _istekHaritasi(sip);
+    // UrunService'den kontrol edilir, stok düşülmez.
     final stokYeterli = await UrunService().stocksSufficient(istek);
 
     final updates = <String, dynamic>{
@@ -239,100 +237,10 @@ class SiparisService {
   /// ♻️ Geriye uyum: Eski metot artık sadece ONAY davranışı yapar (stok düşmez).
   Future<bool> onaylaVeStokAyir(String docId) => onayla(docId);
 
-  /// ✅ Manuel sevkiyat onayı: o anda stok yeterliyse düşer ve durum `sevkiyat` olur.
-  ///    Idempotent + transaction: ikinci çağrıda stok tekrar düşmez.
-  /// ✅ Manuel sevkiyat onayı (UrunService’i kullanır) + idempotent marker
-  Future<bool> sevkiyataOnayla(String docId) async {
-    final ref = _col.doc(docId);
-    final snap = await ref.get();
-    if (!snap.exists) throw StateError('Sipariş bulunamadı: $docId');
+  // ------------------ DİĞERLERİ (SevkiyatService'e taşınanlar silindi) ------------------
 
-    final data = snap.data()!;
-    final durum = data[_fldDurum] as String?;
-    final sevkiyatOnayAt = data[_fldSevkiyatOnayAt];
-    final stokDusumYapildi = (data[_fldStokDusumYapildi] as bool?) ?? false;
-
-    // İdempotent: zaten sevkiyat/onay/stock düşümü varsa no-op
-    if (sevkiyatOnayAt != null ||
-        stokDusumYapildi == true ||
-        durum == SiparisDurumu.sevkiyat.name ||
-        durum == SiparisDurumu.tamamlandi.name) {
-      return true;
-    }
-
-    final sip = SiparisModel.fromMap(data).copyWith(docId: snap.id);
-    final istek = _istekHaritasi(sip); // {urunId(int): adet}
-
-    // 🔸 Senin mevcut stok servisinin KENDİ şemasına göre kontrol+decrement yapması
-    final ok = await UrunService().decrementStocksIfSufficient(istek);
-
-    if (!ok) {
-      // Yetersiz: üretimde tut, sevkiyatHazir=false
-      await ref.update({
-        _fldDurum: SiparisDurumu.uretimde.name,
-        _fldSevkiyatHazir: false,
-      });
-      await LogService.instance.logSiparis(
-        action: 'sevkiyat_onayi_stok_yetersiz',
-        siparisId: docId,
-      );
-      return false;
-    }
-
-    // Başarılı: durum=sevkiyat + marker’lar
-    await ref.update({
-      _fldDurum: SiparisDurumu.sevkiyat.name,
-      _fldSevkiyatHazir: false,
-      _fldSevkiyatOnayAt: FieldValue.serverTimestamp(),
-      _fldStokDusumYapildi: true,
-    });
-
-    // Kalem kalem log (opsiyonel)
-    for (final su in sip.urunler) {
-      final uid = int.tryParse(su.id);
-      await LogService.instance.logUrun(
-        action: 'stok_azaltildi',
-        urunDocId: null,
-        urunId: uid,
-        urunAdi: su.urunAdi,
-        meta: {'adet': su.adet, 'reason': 'sevkiyat_onayi', 'siparisId': docId},
-      );
-    }
-
-    await LogService.instance.logSiparis(
-      action: 'sevkiyat_onayi_basarili',
-      siparisId: docId,
-      meta: {'urunler': istek},
-    );
-
-    return true;
-  }
-
-  /// (Opsiyonel) Eski adlandırma ile manuel sevkiyata geçirme.
-  Future<bool> sevkiyataGecir(String docId) => sevkiyataOnayla(docId);
-
-  /// (ESKİ DAVRANIŞI KULLANAN YERLER İÇİN) FIFO yardımcısı – artık UI'dan çağrılmamalı.
-  Future<int> allocateFIFOAcrossProduction() async {
-    final adaylar = await getirByDurumOnce(SiparisDurumu.uretimde)
-      ..sort((a, b) => a.tarih.compareTo(b.tarih)); // FIFO
-
-    int counter = 0;
-    for (final s in adaylar) {
-      final istek = _istekHaritasi(s);
-      final ok = await UrunService().decrementStocksIfSufficient(istek);
-      if (ok && s.docId != null) {
-        await _col.doc(s.docId!).update({'durum': SiparisDurumu.sevkiyat.name});
-        counter++;
-
-        await LogService.instance.logSiparis(
-          action: 'siparis_sevkiyata_alindi',
-          siparisId: s.docId!,
-          meta: {'urunler': istek, 'mode': 'fifo'},
-        );
-      }
-    }
-    return counter;
-  }
+  // sevkiyataOnayla, sevkiyataGecir, allocateFIFOAcrossProduction ve reddetVeStokIade
+  // metotları SevkiyatService'e taşınmıştır.
 
   /// ✅ Ekle + Tamamla: finans alanlarını garanti yaz (stokla oynamaz).
   Future<String> ekleVeTamamla(
@@ -407,7 +315,7 @@ class SiparisService {
   // ------------------ ÜRETİM İLERLEMESİ ------------------
 
   /// 🔹 Belirli bir siparişteki belirli bir ürünün üretilen miktarını günceller.
-  ///    Ürün stoğunu artırmaz (stoğa ekleme ayrı yerde yapılır).
+  ///    Ürün stoğunu artırmaz (stoğa ekleme ayrı yerde yapılır).
   Future<void> guncelleUretilenAdet(
     String siparisDocId,
     String urunId,
@@ -438,8 +346,8 @@ class SiparisService {
   }
 
   /// 🔹 Üretim ilerlemesini transaction ile günceller.
-  ///    NOT: Artık burada otomatik sevkiyat veya stok düşümü YOK.
-  ///    Tüm kalemler tamamlanmışsa `true` döner, ancak durum/stok değiştirmez.
+  ///    NOT: Artık burada otomatik sevkiyat veya stok düşümü YOK.
+  ///    Tüm kalemler tamamlanmışsa `true` döner, ancak durum/stok değiştirmez.
   Future<bool> uretilenMiktariGuncelle(
     String siparisDocId,
     String urunId,
@@ -524,55 +432,5 @@ class SiparisService {
     return qs.docs
         .map((d) => SiparisModel.fromMap(d.data()).copyWith(docId: d.id))
         .toList();
-  }
-
-  /// ✅ Reddet: Sevkiyatta düşülen stokları **tek transaction** ile iade eder (idempotent).
-  Future<void> reddetVeStokIade(String docId) async {
-    final sipRef = _col.doc(docId);
-
-    await _db.runTransaction<void>((tx) async {
-      final sipSnap = await tx.get(sipRef);
-      if (!sipSnap.exists) throw StateError('Sipariş bulunamadı: $docId');
-
-      final data = sipSnap.data()!;
-      final durum = data[_fldDurum] as String?;
-      final iadeYapildiAt = data[_fldIadeYapildiAt];
-      final stokDusumYapildi = (data[_fldStokDusumYapildi] as bool?) ?? false;
-
-      // Zaten reddedilmiş ve iade yapılmışsa NO-OP
-      if (durum == SiparisDurumu.reddedildi.name && iadeYapildiAt != null) {
-        return;
-      }
-
-      // Sevkiyatta + stok daha önce düşülmüş + henüz iade yapılmamış → iade et
-      if (durum == SiparisDurumu.sevkiyat.name &&
-          stokDusumYapildi &&
-          iadeYapildiAt == null) {
-        final sip = SiparisModel.fromMap(data).copyWith(docId: sipSnap.id);
-        final istek = _istekHaritasi(sip); // {urunId: adet}
-
-        // Tüm stokları oku ve artır
-        for (final e in istek.entries) {
-          final ref = _stokRef(e.key);
-          final s = await tx.get(ref);
-          final mevcut = (s.data()?['miktar'] as num?)?.toInt() ?? 0;
-          tx.update(ref, {'miktar': mevcut + e.value});
-        }
-
-        // İade marker
-        tx.update(sipRef, {_fldIadeYapildiAt: FieldValue.serverTimestamp()});
-      }
-
-      // Durumu reddedildi yap (her durumda)
-      tx.update(sipRef, {
-        _fldDurum: SiparisDurumu.reddedildi.name,
-        _fldSevkiyatHazir: false,
-      });
-    });
-
-    await LogService.instance.logSiparis(
-      action: 'siparis_reddedildi_tx',
-      siparisId: docId,
-    );
   }
 }

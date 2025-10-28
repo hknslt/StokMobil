@@ -5,12 +5,16 @@ import 'package:capri/core/models/siparis_model.dart';
 class SiparisSevkiyatKart extends StatelessWidget {
   final SiparisModel siparis;
   final VoidCallback? onTeslimEt;
+  final VoidCallback? onDuzenle;
   final bool kompakt;
+  final VoidCallback? onFisYazdir;
 
   const SiparisSevkiyatKart({
     super.key,
     required this.siparis,
     this.onTeslimEt,
+    this.onDuzenle,
+    this.onFisYazdir,
     this.kompakt = false,
   });
 
@@ -26,6 +30,9 @@ class SiparisSevkiyatKart extends StatelessWidget {
     final urunCesidi = s.urunler.length;
     final toplamAdet = s.urunler.fold<int>(0, (sum, u) => sum + (u.adet ?? 0));
     final aciklama = (s.aciklama ?? '').trim();
+
+    // Not: Bu kartta, onTeslimEt varsa, onDuzenle butonunu da ekliyoruz.
+    final bool showButtons = onTeslimEt != null || onDuzenle != null;
 
     return Card(
       elevation: kompakt ? 1.5 : 2,
@@ -105,40 +112,108 @@ class SiparisSevkiyatKart extends StatelessWidget {
 
                 const SizedBox(width: 8),
 
-                if (onTeslimEt != null)
+                if (showButtons)
                   Flexible(
                     fit: FlexFit.loose,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 160),
                       child: Align(
                         alignment: Alignment.topRight,
-                        child: SizedBox(
-                          height: 40,
-                          child: FittedBox(
-                            child: ElevatedButton.icon(
-                              onPressed: onTeslimEt,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 10,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (onTeslimEt != null)
+                              SizedBox(
+                                height: 40,
+                                child: FittedBox(
+                                  child: ElevatedButton.icon(
+                                    onPressed: onTeslimEt,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 10,
+                                      ),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.check_circle,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    label: const Text(
+                                      'Teslim Et',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
                                 ),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                              ),
+                            if (onTeslimEt != null && onDuzenle != null)
+                              SizedBox(height: kompakt ? 6 : 8),
+                            if (onDuzenle != null)
+                              SizedBox(
+                                height: 40,
+                                child: FittedBox(
+                                  child: ElevatedButton.icon(
+                                    onPressed: onDuzenle,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Renkler.kahveTon,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 10,
+                                      ),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    label: const Text(
+                                      'Düzenle',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
                                 ),
                               ),
-                              icon: const Icon(
-                                Icons.check_circle,
-                                color: Colors.white,
-                                size: 18,
+                            if (onFisYazdir != null && onDuzenle != null)
+                              SizedBox(height: kompakt ? 6 : 8),
+                            if (onDuzenle != null)
+                              SizedBox(
+                                height: 40,
+                                child: FittedBox(
+                                  child: ElevatedButton.icon(
+                                    onPressed: onFisYazdir,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Renkler.anaMavi,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 10,
+                                      ),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    icon: const Icon(
+                                      Icons.receipt_long,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    label: const Text(
+                                      'Fiş Yazdır',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                                ),
                               ),
-                              label: const Text(
-                                'Teslim Et',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                          ),
+                          ],
                         ),
                       ),
                     ),

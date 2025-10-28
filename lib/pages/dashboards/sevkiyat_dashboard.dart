@@ -1,3 +1,4 @@
+import 'package:capri/pages/moduller/uretim_sayfasi/uretim_sayfasi.dart';
 import 'package:flutter/material.dart';
 import 'package:capri/main.dart';
 import 'package:capri/pages/home/ana_sayfa.dart';
@@ -18,6 +19,7 @@ class _SevkiyatDashboardState extends State<SevkiyatDashboard> {
   final List<Widget> _pages = [
     AnaSayfa(user: MyApp.currentUser!),
     StokSayfasi(),
+    UretimSayfasi(),
     SevkiyatSayfasi(),
   ];
 
@@ -26,6 +28,10 @@ class _SevkiyatDashboardState extends State<SevkiyatDashboard> {
     BottomNavigationBarItem(
       icon: Icon(Icons.inventory_2_outlined),
       label: 'Stok',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.factory_outlined),
+      label: 'Üretim',
     ),
     BottomNavigationBarItem(
       icon: Icon(Icons.local_shipping_outlined),
