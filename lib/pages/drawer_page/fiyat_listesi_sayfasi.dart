@@ -63,6 +63,7 @@ class _FiyatListesiSayfasiState extends State<FiyatListesiSayfasi> {
   void initState() {
     super.initState();
     _listelerStream = _fiyatSvc.listeleriDinle();
+    _aramaCtrl.addListener(() => setState(() {}));  
   }
 
   @override

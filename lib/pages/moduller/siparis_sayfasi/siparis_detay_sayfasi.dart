@@ -1,4 +1,5 @@
 import 'package:capri/core/Color/Colors.dart';
+import 'package:capri/pages/moduller/siparis_sayfasi/utils/teklif_pdf_yazdir.dart';
 import 'package:capri/services/siparis_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -164,6 +165,11 @@ class _SiparisDetaySayfasiState extends State<SiparisDetaySayfasi> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.description), 
+            onPressed: () => teklifPdfYazdir(s),
+            tooltip: "Teklif Fişi Yazdır",
+          ),
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
             onPressed: () => siparisPdfYazdir(s),

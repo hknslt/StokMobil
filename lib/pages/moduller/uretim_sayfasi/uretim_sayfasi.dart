@@ -1,4 +1,3 @@
-// lib/pages/moduller/uretim_sayfasi/uretim_sayfasi.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
@@ -9,6 +8,22 @@ import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/services/siparis_service.dart';
 import 'package:capri/services/urun_service.dart';
+
+// YENİ EKLENDİ: Sıralama seçenekleri için enum
+enum UretimSiralama { enCokEksik, urunAdinaGore, enEskiIstek }
+
+extension UretimSiralamaExt on UretimSiralama {
+  String get displayName {
+    switch (this) {
+      case UretimSiralama.enCokEksik:
+        return 'En Çok Eksik Olan';
+      case UretimSiralama.urunAdinaGore:
+        return 'Ürün Adına Göre (A-Z)';
+      case UretimSiralama.enEskiIstek:
+        return 'En Eski İstek';
+    }
+  }
+}
 
 String fmtDate(DateTime d) =>
     "${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}";
@@ -176,35 +191,27 @@ class UretimController {
       }
     }
 
-    // Grupları oluştur
-    final List<EksikGrup> eksikGruplar =
-        gruplar.entries.map((e) {
-          final parts = e.key.split('|');
-          final urunId = int.tryParse(parts.first) ?? 0;
-          final renk = parts.length > 1 ? parts[1] : '';
-          final firmalar = e.value;
-          final toplamEksik = firmalar.fold<int>(
-            0,
-            (sum, it) => sum + it.eksikAdet,
-          );
-          final urunAdi = firmalar.isNotEmpty ? firmalar.first.urunAdi : 'Ürün';
+    // Grupları oluştur (Sıralama UI tarafında yapılacak)
+    final List<EksikGrup> eksikGruplar = gruplar.entries.map((e) {
+      final parts = e.key.split('|');
+      final urunId = int.tryParse(parts.first) ?? 0;
+      final renk = parts.length > 1 ? parts[1] : '';
+      final firmalar = e.value;
+      final toplamEksik = firmalar.fold<int>(
+        0,
+        (sum, it) => sum + it.eksikAdet,
+      );
+      final urunAdi = firmalar.isNotEmpty ? firmalar.first.urunAdi : 'Ürün';
 
-          return EksikGrup(
-            urunId: urunId,
-            urunAdi: urunAdi,
-            renk: renk,
-            toplamEksik: toplamEksik,
-            firmalar: firmalar
-              ..sort(
-                (a, b) => a.siparisTarihi.compareTo(b.siparisTarihi),
-              ), // FIFO
-          );
-        }).toList()..sort((a, b) {
-          // Önce en fazla eksik olanlar, eşitse ürün adına göre
-          final cmp = b.toplamEksik.compareTo(a.toplamEksik);
-          if (cmp != 0) return cmp;
-          return a.urunAdi.compareTo(b.urunAdi);
-        });
+      return EksikGrup(
+        urunId: urunId,
+        urunAdi: urunAdi,
+        renk: renk,
+        toplamEksik: toplamEksik,
+        firmalar: firmalar
+          ..sort((a, b) => a.siparisTarihi.compareTo(b.siparisTarihi)), // FIFO
+      );
+    }).toList();
 
     _out.add(
       UretimViewState.data(eksikListe: eksikGruplar, tumUrunler: _cacheUruns),
@@ -231,6 +238,11 @@ class _UretimSayfasiState extends State<UretimSayfasi>
     urunServis: UrunService(),
   );
 
+  // --- YENİ EKLENEN STATE'LER ---
+  final _aramaController = TextEditingController();
+  String _aramaMetni = '';
+  UretimSiralama _siralama = UretimSiralama.enCokEksik; // Varsayılan sıralama
+
   @override
   bool get wantKeepAlive => true;
 
@@ -238,11 +250,18 @@ class _UretimSayfasiState extends State<UretimSayfasi>
   void initState() {
     super.initState();
     _controller.init();
+    // Arama metni değiştikçe UI'ı güncelle
+    _aramaController.addListener(() {
+      setState(() {
+        _aramaMetni = _aramaController.text;
+      });
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _aramaController.dispose(); // Controller'ı temizle
     super.dispose();
   }
 
@@ -275,153 +294,208 @@ class _UretimSayfasiState extends State<UretimSayfasi>
           if (st.error != null) {
             return Center(child: Text('Hata: ${st.error}'));
           }
-
-          final eksikListe = st.eksikListe;
-          final tumUrunler = st.tumUrunler;
-
-          if (eksikListe.isEmpty) {
+          if (st.eksikListe.isEmpty) {
             return const Center(child: Text("Şu anda bekleyen istek yok."));
           }
 
+          // --- ARAMA VE SIRALAMA MANTIĞINI UYGULA ---
+          final sorgu = _aramaMetni.trim().toLowerCase();
+          List<EksikGrup> gorunenListe = st.eksikListe;
+
+          // 1. Arama Filtresi
+          if (sorgu.isNotEmpty) {
+            gorunenListe = gorunenListe.where((grup) {
+              // Ürün adı, renk veya müşteri adında arama yap
+              final urunAdiMatch = grup.urunAdi.toLowerCase().contains(sorgu);
+              final renkMatch = grup.renk.toLowerCase().contains(sorgu);
+              final musteriMatch = grup.firmalar.any(
+                (f) => f.musteriAdi.toLowerCase().contains(sorgu),
+              );
+              return urunAdiMatch || renkMatch || musteriMatch;
+            }).toList();
+          }
+
+          // 2. Sıralama
+          gorunenListe.sort((a, b) {
+            switch (_siralama) {
+              case UretimSiralama.urunAdinaGore:
+                return a.urunAdi.compareTo(b.urunAdi);
+              case UretimSiralama.enEskiIstek:
+                // Gruplar içindeki firmalar zaten tarihe göre sıralı
+                final tarihA = a.firmalar.first.siparisTarihi;
+                final tarihB = b.firmalar.first.siparisTarihi;
+                return tarihA.compareTo(tarihB);
+              case UretimSiralama.enCokEksik:
+              default:
+                final cmp = b.toplamEksik.compareTo(a.toplamEksik);
+                if (cmp != 0) return cmp;
+                return a.urunAdi.compareTo(b.urunAdi);
+            }
+          });
+          // --- MANTIK SONU ---
+
           return Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "İstek Listesi",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                // --- ARAMA VE SIRALAMA UI BÖLÜMÜ ---
+                TextField(
+                  controller: _aramaController,
+                  decoration: InputDecoration(
+                    labelText: 'Ürün veya Müşteri Ara',
+                    labelStyle: TextStyle(color: Renkler.kahveTon),
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _aramaMetni.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => _aramaController.clear(),
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
-
-                // ÜRÜN GRUPLARI (grup bazlı "Stok Ekle")
-                Expanded(
-                  child: ListView.builder(
-                    key: const PageStorageKey('uretim-istek-list'),
-                    padding: const EdgeInsets.only(bottom: 96),
-                    addAutomaticKeepAlives: false,
-                    addRepaintBoundaries: true,
-                    addSemanticIndexes: false,
-                    cacheExtent: 600.0,
-                    itemCount: eksikListe.length,
-                    itemBuilder: (context, i) {
-                      final grp = eksikListe[i];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 8,
-                          ),
-                          child: ExpansionTile(
-                            key: PageStorageKey<String>(
-                              'exp-${grp.urunId}-${grp.renk}',
-                            ), // ✅ benzersiz anahtar
-                            maintainState: true, // ✅ (opsiyonel) state koru
-                            tilePadding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 0,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "İstek Listesi",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    DropdownButton<UretimSiralama>(
+                      value: _siralama,
+                      onChanged: (UretimSiralama? newValue) {
+                        if (newValue != null) {
+                          setState(() => _siralama = newValue);
+                        }
+                      },
+                      items: UretimSiralama.values
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(s.displayName),
                             ),
-                            initiallyExpanded: true,
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "${grp.urunAdi} | ${grp.renk.isEmpty ? '-' : grp.renk}",
+                          )
+                          .toList(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // --- UI BÖLÜMÜ SONU ---
+                if (gorunenListe.isEmpty)
+                  const Expanded(
+                    child: Center(
+                      child: Text("Arama kriterlerine uyan sonuç bulunamadı."),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: ListView.builder(
+                      key: const PageStorageKey('uretim-istek-list'),
+                      padding: const EdgeInsets.only(bottom: 96, top: 4),
+                      itemCount: gorunenListe.length,
+                      itemBuilder: (context, i) {
+                        final grp = gorunenListe[i];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 8,
+                            ),
+                            child: ExpansionTile(
+                              key: PageStorageKey<String>(
+                                'exp-${grp.urunId}-${grp.renk}',
+                              ),
+                              maintainState: true,
+                              tilePadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 0,
+                              ),
+                              initiallyExpanded: false,
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "${grp.urunAdi} | ${grp.renk.isEmpty ? '-' : grp.renk}",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          "Toplam eksik: ${grp.toplamEksik}",
+                                          style: const TextStyle(
+                                            color: Colors.black54,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  FilledButton.icon(
+                                    icon: const Icon(Icons.add),
+                                    label: const Text("Stok Ekle"),
+                                    style: ButtonStyle(
+                                      backgroundColor:
+                                          MaterialStateProperty.all<Color>(
+                                            Renkler.kahveTon,
+                                          ),
+                                    ),
+                                    onPressed: () => _grupStokEkleDialog(
+                                      context,
+                                      grp,
+                                      st.tumUrunler,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              children: grp.firmalar
+                                  .map(
+                                    (it) => ListTile(
+                                      dense: true,
+                                      title: Text(
+                                        "Firma: ${it.musteriAdi}",
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                        ),
                                       ),
-                                      const SizedBox(height: 2),
-                                      const Text(
-                                        // Alt bilgi (subtitle yerine)
-                                        // "Toplam eksik: ..." bilgisini buraya taşıdık
-                                        // aşağıda String interpolasyonu ile yazıyoruz:
-                                        "",
-                                        style: TextStyle(color: Colors.black54),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                FilledButton.icon(
-                                  icon: const Icon(Icons.add),
-                                  label: const Text("Stok Ekle"),
-                                  style: ButtonStyle(
-                                    backgroundColor:
-                                        MaterialStateProperty.all<Color>(
-                                          Renkler.kahveTon,
-                                        ),
-                                  ),
-                                  onPressed: () => _grupStokEkleDialog(
-                                    context,
-                                    grp,
-                                    tumUrunler,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            // childrenPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 16,
-                                  right: 16,
-                                  bottom: 8,
-                                ),
-                                child: Text(
-                                  "Toplam eksik: ${grp.toplamEksik}",
-                                  style: const TextStyle(color: Colors.black54),
-                                ),
-                              ),
-                              ...grp.firmalar.map(
-                                (it) => ListTile(
-                                  dense: true,
-                                  title: Text(
-                                    "Firma: ${it.musteriAdi}",
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Sipariş tarihi: ${fmtDate(it.siparisTarihi)} • İstenen: ${it.toplamIstenen} • Eksik: ${it.eksikAdet}",
+                                      subtitle: Text(
+                                        it.aciklama,
                                         style: const TextStyle(
                                           color: Colors.black54,
                                         ),
                                       ),
-                                      if (it.aciklama.isNotEmpty)
-                                        Text(
-                                          it.aciklama,
-                                          style: const TextStyle(
-                                            color: Colors.black45,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
-                ),
               ],
             ),
           );
         },
       ),
-
-      // Opsiyonel: genel "Yeni Stok" (ürün arayarak)
       floatingActionButton: Builder(
         builder: (ctx) => FloatingActionButton.extended(
           onPressed: () => _stokEkleDialog(ctx),
