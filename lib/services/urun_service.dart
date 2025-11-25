@@ -8,6 +8,15 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../core/models/urun_model.dart';
 import 'package:capri/services/log_service.dart';
 
+enum StokDurumu { yeterli, kritik, yetersiz }
+
+class StokDetay {
+  final int mevcutStok;
+  final StokDurumu durum;
+
+  StokDetay({required this.mevcutStok, required this.durum});
+}
+
 class UrunService {
   static final UrunService _instance = UrunService._internal();
   factory UrunService() => _instance;
@@ -96,7 +105,7 @@ class UrunService {
       final uploaded = await _uploadImagesForDoc(
         docId: ref.id,
         localFiles: localFiles,
-        coverLocalPath: coverLocalPath, // ← KULLAN
+        coverLocalPath: coverLocalPath,
       );
       await ref.update({
         // Kapak galeriye düşmesin
@@ -262,6 +271,76 @@ class UrunService {
       }
     }
     return result;
+  }
+
+  Future<Map<int, StokDetay>> analizEtStokDurumu(
+    List<dynamic> buSiparisUrunleri,
+  ) async {
+    // 1. Bu siparişteki ürün ID'lerini al
+    final ids = buSiparisUrunleri
+        .map((e) => int.tryParse(e.id.toString()) ?? -1)
+        .where((e) => e >= 0)
+        .toList();
+
+    if (ids.isEmpty) return {};
+
+    // 2. Bu ürünlerin güncel stoklarını çek
+    final guncelStoklar = await getStocksByNumericIds(ids);
+
+    // 3. Veritabanındaki TÜM 'beklemede' ve 'uretimde' siparişleri çek
+    final tumAktifSiparislerSnap = await FirebaseFirestore.instance
+        .collection('siparisler')
+        .where('durum', whereIn: ['beklemede', 'uretimde'])
+        .get();
+
+    // 4. Tüm aktif siparişlerdeki toplam talebi hesapla
+    final Map<int, int> toplamTalepHaritasi = {};
+
+    for (var doc in tumAktifSiparislerSnap.docs) {
+      final data = doc.data();
+      if (data['urunler'] is List) {
+        final urunListesi = data['urunler'] as List;
+        for (var u in urunListesi) {
+          final uId = int.tryParse(u['id']?.toString() ?? '-1') ?? -1;
+          final uAdet = int.tryParse(u['adet']?.toString() ?? '0') ?? 0;
+
+          if (ids.contains(uId)) {
+            toplamTalepHaritasi[uId] = (toplamTalepHaritasi[uId] ?? 0) + uAdet;
+          }
+        }
+      }
+    }
+
+    // 5. Karşılaştırma ve Renk Belirleme
+    final Map<int, StokDetay> analizSonucu = {};
+
+    for (var urun in buSiparisUrunleri) {
+      final id = int.tryParse(urun.id.toString()) ?? -1;
+      if (id == -1) continue;
+
+      final int mevcutStok = guncelStoklar[id] ?? 0;
+      final int buSiparisIstegi = (urun.adet as num).toInt();
+
+      final int tumSiparislerdekiTalep =
+          toplamTalepHaritasi[id] ?? buSiparisIstegi;
+
+      StokDurumu durum;
+
+      if (mevcutStok < buSiparisIstegi) {
+        // Stok, sırf bu siparişe bile yetmiyor -> KIRMIZI
+        durum = StokDurumu.yetersiz;
+      } else if (mevcutStok < tumSiparislerdekiTalep) {
+        // Stok bu siparişe yetiyor AMA sırada bekleyenlerin hepsine yetmiyor -> SARI
+        durum = StokDurumu.kritik;
+      } else {
+        // Stok herkese yetiyor -> YEŞİL
+        durum = StokDurumu.yeterli;
+      }
+
+      analizSonucu[id] = StokDetay(mevcutStok: mevcutStok, durum: durum);
+    }
+
+    return analizSonucu;
   }
 
   /// 🔎 YENİ: Sadece kontrol — tüm istekler mevcut stokla karşılanabiliyor mu?

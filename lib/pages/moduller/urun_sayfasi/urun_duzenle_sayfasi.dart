@@ -1,3 +1,4 @@
+/*
 
 import 'dart:io';
 import 'package:capri/core/Color/Colors.dart';
@@ -5,6 +6,12 @@ import 'package:flutter/material.dart';
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/services/urun_service.dart';
 import 'package:image_picker/image_picker.dart';
+
+// EKLENDİ: Gerekli importlar
+import 'package:capri/services/renk_service.dart';
+import 'package:capri/services/grup_service.dart';
+import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/widgets/renk_dropdown.dart';
+import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/widgets/grup_dropdown.dart';
 
 class UrunDuzenleSayfasi extends StatefulWidget {
   final int? index;
@@ -21,24 +28,26 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
 
   late final TextEditingController urunKoduController;
   late final TextEditingController urunAdiController;
-  late final TextEditingController renkController;
+  // Renk controller'ı yerine dropdown state kullanacağız, ama eski metin tabanlı yapıyı bozmamak için
+  // controller'ı da tutuyoruz, ancak asıl değer _secilenRenkAd olacak.
+  // GÜNCELLENDİ: Renk controller kaldırıldı, yerine state kullanıldı.
+  // late final TextEditingController renkController;
+
   late final TextEditingController adetController;
   late final TextEditingController aciklamaController;
 
   final _formKey = GlobalKey<FormState>();
 
   // --- Görsel durumları ---
-  String? _coverUrl; 
+  String? _coverUrl;
   String? _coverLocalPathIfNew;
-  List<String> _galleryUrls =
-      []; 
-
-
-  late final Set<String>
-  _originalHttpAll; 
-
-
+  List<String> _galleryUrls = [];
+  late final Set<String> _originalHttpAll;
   final List<File> _newLocalFiles = [];
+
+  // --- Dropdown State'leri ---
+  String? _secilenRenkAd;
+  String? _secilenGrupAd; // EKLENDİ
 
   @override
   void initState() {
@@ -46,20 +55,25 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
     final u = widget.urun;
     urunKoduController = TextEditingController(text: u.urunKodu);
     urunAdiController = TextEditingController(text: u.urunAdi);
-    renkController = TextEditingController(text: u.renk);
+    // renkController = TextEditingController(text: u.renk); // KALDIRILDI
+
+    // Dropdown başlangıç değerleri
+    _secilenRenkAd = u.renk.isNotEmpty ? u.renk : null;
+    _secilenGrupAd = (u.grup != null && u.grup!.isNotEmpty)
+        ? u.grup
+        : null; // EKLENDİ
+
     adetController = TextEditingController(text: u.adet.toString());
     aciklamaController = TextEditingController(text: u.aciklama ?? '');
 
- 
+    // Görsel hazırlığı
     _coverUrl = u.kapakResimYolu;
     final galeri = List<String>.from(u.resimYollari ?? const []);
-  
     if (_coverUrl != null) {
       galeri.removeWhere((e) => e == _coverUrl);
     }
     _galleryUrls = galeri;
 
- 
     _originalHttpAll = {
       if (u.kapakResimYolu != null && u.kapakResimYolu!.startsWith('http'))
         u.kapakResimYolu!,
@@ -71,7 +85,7 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
   void dispose() {
     urunKoduController.dispose();
     urunAdiController.dispose();
-    renkController.dispose();
+    // renkController.dispose(); // KALDIRILDI
     adetController.dispose();
     aciklamaController.dispose();
     super.dispose();
@@ -86,7 +100,6 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
     setState(() {
       for (final f in files) {
         _newLocalFiles.add(f);
-
         _galleryUrls.add(f.path);
       }
 
@@ -129,7 +142,6 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
   void _makeCover(String url) {
     setState(() {
       final prevCover = _coverUrl;
-
       _galleryUrls.removeWhere((e) => e == url);
 
       if (prevCover != null && prevCover != url) {
@@ -141,6 +153,104 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
       _coverUrl = url;
       _coverLocalPathIfNew = url.startsWith('http') ? null : url;
     });
+  }
+
+  // Dialog yardımcıları (Ekleme sayfasından kopyalandı)
+  Future<void> _yeniRenkEkleDialog() async {
+    final adCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Yeni Renk Ekle"),
+        content: TextField(
+          controller: adCtrl,
+          decoration: const InputDecoration(
+            labelText: "Renk adı (zorunlu)",
+            hintText: "Örn: Beyaz",
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Vazgeç"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Renkler.kahveTon),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Ekle", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      final ad = adCtrl.text.trim();
+      if (ad.isEmpty) return;
+      try {
+        await RenkService.instance.ekle(ad);
+        if (!mounted) return;
+        setState(() => _secilenRenkAd = ad);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Renk eklendi: $ad")));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Renk eklenemedi: $e")));
+      }
+    }
+  }
+
+  // EKLENDİ: Grup ekleme dialogu
+  Future<void> _yeniGrupEkleDialog() async {
+    final adCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Yeni Grup Ekle"),
+        content: TextField(
+          controller: adCtrl,
+          decoration: const InputDecoration(
+            labelText: "Grup adı (zorunlu)",
+            hintText: "Örn: Mutfak",
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Vazgeç"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Renkler.kahveTon),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Ekle", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      final ad = adCtrl.text.trim();
+      if (ad.isEmpty) return;
+      try {
+        await GrupService.instance.ekle(ad);
+        if (!mounted) return;
+        setState(() => _secilenGrupAd = ad);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Grup eklendi: $ad")));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Grup eklenemedi: $e")));
+      }
+    }
   }
 
   // ---- Güncelle ----
@@ -170,7 +280,10 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
     final guncelUrun = widget.urun.copyWith(
       urunKodu: urunKoduController.text.trim(),
       urunAdi: urunAdiController.text.trim(),
-      renk: renkController.text.trim(),
+      renk: (_secilenRenkAd ?? '').trim(), // Dropdown'dan gelen değer
+      grup: (_secilenGrupAd ?? '').trim().isEmpty
+          ? null
+          : _secilenGrupAd!.trim(), // EKLENDİ: Dropdown'dan gelen değer
       adet: int.tryParse(adetController.text.trim()) ?? widget.urun.adet,
       aciklama: aciklamaController.text.trim(),
       resimYollari: finalGalleryHttp,
@@ -235,10 +348,24 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
                 validator: (v) =>
                     (v == null || v.isEmpty) ? "Ürün adı boş olamaz" : null,
               ),
-              TextFormField(
-                controller: renkController,
-                decoration: const InputDecoration(labelText: "Renk"),
+
+              // EKLENDİ: Grup Dropdown (Renk'in üzerinde)
+              const SizedBox(height: 12),
+              GrupDropdown(
+                seciliAd: _secilenGrupAd,
+                onDegisti: (ad) => setState(() => _secilenGrupAd = ad),
+                onYeniGrup: _yeniGrupEkleDialog,
               ),
+
+              // GÜNCELLENDİ: Renk Dropdown (TextFormField yerine)
+              const SizedBox(height: 12),
+              RenkDropdown(
+                seciliAd: _secilenRenkAd,
+                onDegisti: (ad) => setState(() => _secilenRenkAd = ad),
+                onYeniRenk: _yeniRenkEkleDialog,
+              ),
+
+              const SizedBox(height: 12),
               TextFormField(
                 controller: adetController,
                 keyboardType: TextInputType.number,
@@ -332,3 +459,4 @@ class _UrunDuzenleSayfasiState extends State<UrunDuzenleSayfasi> {
     );
   }
 }
+*/

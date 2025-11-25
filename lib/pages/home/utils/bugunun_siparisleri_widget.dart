@@ -1,10 +1,7 @@
 import 'package:capri/services/sevkiyat_service.dart';
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
 import 'package:capri/core/models/siparis_model.dart';
-import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
 import 'package:capri/services/siparis_service.dart';
 import 'package:capri/services/urun_service.dart';
@@ -19,8 +16,8 @@ class BugununSiparisleriWidget extends StatefulWidget {
 
 class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
   final siparisServis = SiparisService();
-  final urunServis = UrunService();
   final sevkiyatServis = SevkiyatService();
+  // UrunService artık FutureBuilder içinde static veya instance olarak kullanılacak
 
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -45,6 +42,7 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
     return s.brutTutar ?? (net * (1 + kdv / 100));
   }
 
+  // --- AKSİYONLAR ---
   Future<void> _onayla(SiparisModel siparis) async {
     bool devamEt = true;
 
@@ -79,7 +77,7 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
     if (!devamEt) return;
 
     try {
-      final ok = await siparisServis.onayla(siparis.docId!);
+      final ok = await siparisServis.onaylaVeStokAyir(siparis.docId!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -90,6 +88,7 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
           ),
         ),
       );
+      setState(() {}); // UI güncelle
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -112,6 +111,7 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
           ),
         ),
       );
+      setState(() {});
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -160,6 +160,7 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
           ),
         );
       }
+      setState(() {});
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -194,46 +195,51 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
             .toList();
 
         if (bugunBekleyen.isEmpty) return const SizedBox();
-        return StreamBuilder<List<Urun>>(
-          stream: urunServis.dinle(),
-          builder: (context, urunSnap) {
-            final urunler = urunSnap.data ?? [];
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    "Bugünün Siparişleri (Bekleyenler)",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                ...bugunBekleyen.map((siparis) {
-                  final musteriAdi =
-                      siparis.musteri.firmaAdi?.trim().isNotEmpty == true
-                      ? siparis.musteri.firmaAdi!.trim()
-                      : (siparis.musteri.yetkili ?? "-");
-                  final brutToplam = _safeBrut(siparis);
-                  final stokKontrollu =
-                      siparis.durum == SiparisDurumu.beklemede ||
-                      siparis.durum == SiparisDurumu.uretimde;
-                  bool siparisStokYeterli() {
-                    for (final su in siparis.urunler) {
-                      final stok = urunler.firstWhereOrNull(
-                        (u) => u.id.toString() == su.id,
-                      );
-                      final adet = stok?.adet ?? 0;
-                      if (adet < su.adet) return false;
-                    }
-                    return true;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                "Bugünün Siparişleri (Bekleyenler)",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ...bugunBekleyen.map((siparis) {
+              final musteriAdi =
+                  siparis.musteri.firmaAdi?.trim().isNotEmpty == true
+                  ? siparis.musteri.firmaAdi!.trim()
+                  : (siparis.musteri.yetkili ?? "-");
+
+              final brutToplam = _safeBrut(siparis);
+
+              final stokKontrollu =
+                  siparis.durum == SiparisDurumu.beklemede ||
+                  siparis.durum == SiparisDurumu.uretimde;
+
+              final sevkiyatOnayGorunur =
+                  (siparis.durum == SiparisDurumu.beklemede ||
+                      siparis.durum == SiparisDurumu.uretimde) &&
+                  (siparis.sevkiyatHazir == true);
+
+              // --- YENİ KISIM: FutureBuilder ile Stok Analizi ---
+              return FutureBuilder<Map<int, StokDetay>>(
+                future: UrunService().analizEtStokDurumu(siparis.urunler),
+                builder: (context, snapshot) {
+                  final analizSonucu = snapshot.data ?? {};
+
+                  // Genel Durum Kontrolü
+                  bool genelStokYeterli = true;
+                  if (stokKontrollu && snapshot.hasData) {
+                    genelStokYeterli = !analizSonucu.values.any(
+                      (d) => d.durum == StokDurumu.yetersiz,
+                    );
                   }
 
-                  final yeter = siparisStokYeterli();
-                  final sevkiyatOnayGorunur =
-                      (siparis.durum == SiparisDurumu.beklemede ||
-                          siparis.durum == SiparisDurumu.uretimde) &&
-                      (siparis.sevkiyatHazir == true);
+                  final bool kritikUrunVar = analizSonucu.values.any(
+                    (d) => d.durum == StokDurumu.kritik,
+                  );
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -273,13 +279,28 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                                 Text("Ürün Sayısı: ${siparis.urunler.length}"),
                                 const SizedBox(width: 8),
                                 if (stokKontrollu)
-                                  Text(
-                                    yeter ? "Stok Var" : "Stok Yetersiz",
-                                    style: TextStyle(
-                                      color: yeter ? Colors.green : Colors.red,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  snapshot.connectionState ==
+                                          ConnectionState.waiting
+                                      ? const SizedBox(
+                                          width: 12,
+                                          height: 12,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Text(
+                                          genelStokYeterli
+                                              ? "Stok Var"
+                                              : "Stok Yetersiz",
+                                          style: TextStyle(
+                                            color: genelStokYeterli
+                                                ? (kritikUrunVar
+                                                      ? Colors.orange
+                                                      : Colors.green)
+                                                : Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                               ],
                             ),
                             Text(
@@ -296,14 +317,24 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: siparis.urunler.map((su) {
-                              final stok = urunler.firstWhereOrNull(
-                                (u) => u.id.toString() == su.id,
-                              );
-                              final stokAdet = stok?.adet ?? 0;
-                              final stokYeterli = stokAdet >= su.adet;
-                              final Color renk = stokKontrollu
-                                  ? (stokYeterli ? Colors.green : Colors.red)
-                                  : Colors.grey;
+                              final id = int.tryParse(su.id) ?? -1;
+                              final detay = analizSonucu[id];
+
+                              // Renk Mantığı (Yeşil/Sarı/Kırmızı)
+                              Color renk = Colors.grey;
+                              if (stokKontrollu && detay != null) {
+                                switch (detay.durum) {
+                                  case StokDurumu.yeterli:
+                                    renk = Colors.green;
+                                    break;
+                                  case StokDurumu.kritik:
+                                    renk = Colors.orangeAccent; // SARI
+                                    break;
+                                  case StokDurumu.yetersiz:
+                                    renk = Colors.red;
+                                    break;
+                                }
+                              }
 
                               return ListTile(
                                 dense: true,
@@ -318,18 +349,26 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                                   su.urunAdi,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: renk,
+                                    color: stokKontrollu
+                                        ? renk
+                                        : Colors.black87,
                                   ),
                                 ),
                                 subtitle: Text(
-                                  "Stok: $stokAdet"
-                                  "${su.renk.isNotEmpty ? ' | ${su.renk}' : ''}"
+                                  "Stok: ${detay?.mevcutStok ?? '...'}"
+                                  "${su.renk != null && su.renk!.isNotEmpty ? ' | ${su.renk}' : ''}"
                                   " | ₺${su.birimFiyat.toStringAsFixed(2)}",
                                 ),
-                                trailing: stok == null
-                                    ? const Icon(
-                                        Icons.warning,
-                                        color: Colors.grey,
+                                trailing:
+                                    detay == null &&
+                                        snapshot.connectionState ==
+                                            ConnectionState.waiting
+                                    ? const SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
                                       )
                                     : null,
                               );
@@ -337,6 +376,7 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                           ),
                           const SizedBox(height: 10),
 
+                          // BUTONLAR
                           if (siparis.durum == SiparisDurumu.beklemede)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -372,6 +412,10 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                                     onPressed: () => _sevkiyataOnayla(siparis),
                                     icon: const Icon(Icons.local_shipping),
                                     label: const Text("Sevkiyat Onayı"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -380,10 +424,10 @@ class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
                       ),
                     ),
                   );
-                }),
-              ],
-            );
-          },
+                },
+              );
+            }),
+          ],
         );
       },
     );

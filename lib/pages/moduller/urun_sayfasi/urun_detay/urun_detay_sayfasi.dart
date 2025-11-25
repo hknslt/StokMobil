@@ -29,25 +29,17 @@ class UrunDetaySayfasi extends StatelessWidget {
         stream: stream,
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text("Ürün Detayı"),
-                backgroundColor: Renkler.kahveTon,
-                centerTitle: true,
-              ),
+            return _buildScaffold(
               body: const Center(child: CircularProgressIndicator()),
             );
           }
           if (!snap.hasData || !snap.data!.exists) {
-            return Scaffold(
-              appBar: AppBar(
-                title: const Text("Ürün Detayı"),
-                backgroundColor: Renkler.kahveTon,
-                centerTitle: true,
-              ),
-              body: const Center(child: Text("Ürün bulunamadı.")),
+            return _buildScaffold(
+              body: const Center(child: Text("Ürün bulunamadı veya silindi.")),
             );
           }
+
+          // Firestore'dan gelen güncel veriyle (Grup dahil) modeli oluştur
           final u = Urun.fromFirestore(snap.data!);
           return _UrunDetayIcerik(urun: u, srv: _srv);
         },
@@ -56,12 +48,24 @@ class UrunDetaySayfasi extends StatelessWidget {
 
     return _UrunDetayIcerik(urun: urun, srv: _srv);
   }
+
+  Scaffold _buildScaffold({required Widget body}) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Ürün Detayı"),
+        backgroundColor: Renkler.kahveTon,
+        foregroundColor: Colors.white,
+        centerTitle: true,
+      ),
+      body: body,
+    );
+  }
 }
 
 class _UrunDetayIcerik extends StatelessWidget {
   final Urun urun;
   final UrunService srv;
-  const _UrunDetayIcerik({super.key, required this.urun, required this.srv});
+  const _UrunDetayIcerik({required this.urun, required this.srv});
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +76,7 @@ class _UrunDetayIcerik extends StatelessWidget {
         title: const Text("Ürün Detayı"),
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
+        centerTitle: true,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -81,7 +86,6 @@ class _UrunDetayIcerik extends StatelessWidget {
             ),
           ),
         ),
-        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -111,39 +115,58 @@ class _UrunDetayIcerik extends StatelessWidget {
                   ),
                 ),
               ),
+
             const SizedBox(height: 20),
+
             UrunKarti(urun: urun),
+
             const SizedBox(height: 20),
+
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 "Stok Geçmişi",
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Renkler.kahveTon,
+                ),
               ),
             ),
             const SizedBox(height: 8),
+
             if (urun.docId != null)
               StokGecmisiListesi(docId: urun.docId!)
             else
               const Text("Stok geçmişi için ürün kaydı (docId) bulunamadı."),
+
             const SizedBox(height: 20),
+
+            
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Renkler.kahveTon,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   onPressed: () =>
                       gosterVeStokGuncelle(context: context, urun: urun),
                   icon: const Icon(Icons.edit, color: Colors.white),
                   label: const Text(
                     'Stok Güncelle',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 30), 
           ],
         ),
       ),

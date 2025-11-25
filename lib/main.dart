@@ -20,12 +20,12 @@ import 'package:capri/pages/dashboards/pazarlamaci_dashboard.dart';
 import 'package:capri/pages/dashboards/uretim_dashboard.dart';
 import 'package:capri/pages/dashboards/sevkiyat_dashboard.dart';
 
+
 String get _platformName => Platform.isIOS ? 'ios' : 'android';
 bool get _isMobile => Platform.isAndroid || Platform.isIOS;
 
 @pragma('vm:entry-point')
 Future<void> _bgHandler(RemoteMessage message) async {
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await BildirimServisi.init();
 
@@ -95,19 +95,17 @@ Future<void> _kurBildirimAltyapisi() async {
   FirebaseMessaging.onBackgroundMessage(_bgHandler);
 }
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await FirebaseAppCheck.instance.activate(
-
-    androidProvider: AndroidProvider.playIntegrity,
-
-    appleProvider: AppleProvider.appAttest,
-
-  );
+  if (_isMobile) {
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.playIntegrity,
+      appleProvider: AppleProvider.appAttest,
+    );
+  }
 
   await intl_local.initializeDateFormatting('tr', "");
   Intl.defaultLocale = 'tr';
@@ -146,7 +144,6 @@ Future<void> main() async {
 }
 
 class DashboardGecis extends StatelessWidget {
-
   const DashboardGecis({super.key, required this.user});
   final UserModel user;
 
@@ -162,7 +159,6 @@ class DashboardGecis extends StatelessWidget {
       case 'sevkiyat':
         return const SevkiyatDashboard();
       default:
-
         print("Geçersiz rol (${user.role}), login sayfasına yönlendiriliyor.");
         return const LoginPage();
     }
@@ -186,7 +182,6 @@ class MyApp extends StatelessWidget {
           if (currentUser != null) {
             return DashboardGecis(user: currentUser!);
           } else {
-
             return const LoginPage();
           }
         },

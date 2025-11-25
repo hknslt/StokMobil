@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/controller/image_manager.dart';
 import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/widgets/fullscreen_gallery.dart';
+import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/widgets/grup_dropdown.dart';
 import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/widgets/image_grid.dart';
 import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/widgets/image_picker_tile.dart';
 import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/widgets/renk_dropdown.dart';
@@ -10,6 +11,7 @@ import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/services/urun_service.dart';
 import 'package:capri/services/renk_service.dart';
+import 'package:capri/services/grup_service.dart';
 
 class UrunEkleSayfasi extends StatefulWidget {
   final Urun? duzenlenecekUrun;
@@ -33,6 +35,7 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
   final TextEditingController aciklamaController = TextEditingController();
 
   String? _secilenRenkAd;
+  String? _secilenGrupAd;
   late final ImageManager _im;
 
   bool _kaydediyor = false;
@@ -46,6 +49,7 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
       urunKoduController.text = u.urunKodu;
       urunAdiController.text = u.urunAdi;
       _secilenRenkAd = u.renk.isNotEmpty ? u.renk : null;
+      _secilenGrupAd = (u.grup != null && u.grup!.isNotEmpty) ? u.grup : null;
       adetController.text = u.adet.toString();
       aciklamaController.text = u.aciklama ?? '';
       _im = ImageManager(
@@ -142,6 +146,54 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Renk eklenemedi: $e")));
+      }
+    }
+  }
+
+  Future<void> _yeniGrupEkleDialog() async {
+    final adCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Yeni Grup Ekle"),
+        content: TextField(
+          controller: adCtrl,
+          decoration: const InputDecoration(
+            labelText: "Grup adı (zorunlu)",
+            hintText: "Örn: Mutfak",
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Vazgeç"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Renkler.kahveTon),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Ekle", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      final ad = adCtrl.text.trim();
+      if (ad.isEmpty) return;
+      try {
+        await GrupService.instance.ekle(ad);
+        if (!mounted) return;
+        setState(() => _secilenGrupAd = ad);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Grup eklendi: $ad")));
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Grup eklenemedi: $e")));
       }
     }
   }
@@ -291,7 +343,12 @@ class _UrunEkleSayfasiState extends State<UrunEkleSayfasi> {
                           (v == null || v.trim().isEmpty) ? 'Zorunlu' : null,
                     ),
                     const SizedBox(height: 12),
-
+                    GrupDropdown(
+                      seciliAd: _secilenGrupAd,
+                      onDegisti: (ad) => setState(() => _secilenGrupAd = ad),
+                      onYeniGrup: _yeniGrupEkleDialog,
+                    ),
+                    const SizedBox(height: 12),
                     RenkDropdown(
                       seciliAd: _secilenRenkAd,
                       onDegisti: (ad) => setState(() => _secilenRenkAd = ad),

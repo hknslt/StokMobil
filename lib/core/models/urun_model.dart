@@ -6,6 +6,7 @@ class Urun {
   final String urunKodu;
   final String urunAdi;
   final String renk;
+  final String? grup;
   final int adet;
   final String? aciklama;
   final List<String>? resimYollari;
@@ -17,6 +18,7 @@ class Urun {
     required this.urunKodu,
     required this.urunAdi,
     required this.renk,
+    this.grup,
     required this.adet,
     this.aciklama,
     this.resimYollari,
@@ -29,6 +31,7 @@ class Urun {
     String? urunKodu,
     String? urunAdi,
     String? renk,
+    String? grup,
     int? adet,
     String? aciklama,
     List<String>? resimYollari,
@@ -40,6 +43,7 @@ class Urun {
       urunKodu: urunKodu ?? this.urunKodu,
       urunAdi: urunAdi ?? this.urunAdi,
       renk: renk ?? this.renk,
+      grup: grup ?? this.grup,
       adet: adet ?? this.adet,
       aciklama: aciklama ?? this.aciklama,
       resimYollari: resimYollari ?? this.resimYollari,
@@ -53,6 +57,7 @@ class Urun {
       'urunKodu': urunKodu,
       'urunAdi': urunAdi,
       'renk': renk,
+      'grup' : grup,
       'adet': adet,
       'aciklama': aciklama,
       'resimYollari': resimYollari,
@@ -67,6 +72,7 @@ class Urun {
       urunKodu: (map['urunKodu'] ?? '') as String,
       urunAdi: (map['urunAdi'] ?? '') as String,
       renk: (map['renk'] ?? '') as String,
+      grup: (map['grup'] ?? '') as String,
       adet: (map['adet'] as num?)?.toInt() ?? 0,
       aciklama: map['aciklama'] as String?,
       resimYollari: (map['resimYollari'] as List?)?.cast<String>(),

@@ -17,72 +17,81 @@ class RenkDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final svc = RenkService.instance;
-
     return StreamBuilder<List<RenkItem>>(
-      stream: svc.dinle(),
-      builder: (context, snap) {
-        final renkler = (snap.data ?? [])
+      stream: RenkService.instance.dinle(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return const Text("Hata oluştu");
+        // Veri gelene kadar veya boşsa loading göstermek yerine boş bir dropdown gösterebiliriz
+        // ama tutarlılık için progress bar da uygun.
+        if (!snapshot.hasData) return const LinearProgressIndicator();
+
+        final renkler = snapshot.data!
             .where((r) => r.ad.trim().isNotEmpty)
             .toList();
 
+        // Tekilleştirme (Case-insensitive)
         final seen = <String>{};
-        final tekil = <RenkItem>[];
+        final tekilRenkler = <RenkItem>[];
         for (final r in renkler) {
           final key = r.ad.trim().toLowerCase();
-          if (seen.add(key)) tekil.add(RenkItem(id: r.id, ad: r.ad.trim()));
+          if (seen.add(key)) {
+            tekilRenkler.add(RenkItem(id: r.id, ad: r.ad.trim()));
+          }
         }
 
-        final seciliRaw = (seciliAd ?? '').trim();
-        final seciliLower = seciliRaw.toLowerCase();
+        // Seçili değerin listede olup olmadığını kontrol et
+        // Eğer listede yoksa (örn: silinmişse veya manuel bir değerse) null yap ki hata vermesin
+        final gecerliSecim = tekilRenkler.any((r) => r.ad == seciliAd)
+            ? seciliAd
+            : null;
 
-        String? value;
-        final match = tekil.firstWhere(
-          (r) => r.ad.trim().toLowerCase() == seciliLower,
-          orElse: () => RenkItem(id: '', ad: ''),
-        );
-        if (match.ad.isNotEmpty) {
-          value = match.ad;
-        } else if (seciliRaw.isNotEmpty) {
-          tekil.insert(0, RenkItem(id: '_local_', ad: seciliRaw));
-          value = seciliRaw;
-        }
-
-        final items = tekil
-            .map(
-              (r) => DropdownMenuItem<String>(value: r.ad, child: Text(r.ad)),
-            )
-            .toList();
-
-        if (value != null &&
-            items.where((it) => it.value == value).length != 1) {
-          value = null;
-        }
-
-        return DropdownButtonFormField<String>(
-          value: value,
-          decoration: InputDecoration(
-            labelText: 'Renk',
-            labelStyle: TextStyle(color: Renkler.kahveTon),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
+        return Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: gecerliSecim,
+                decoration: const InputDecoration(
+                  labelText: 'Renk',
+                  labelStyle: TextStyle(color: Renkler.kahveTon),
+                  border: OutlineInputBorder(),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                ),
+                items: [
+                  // Temizleme seçeneği
+                  const DropdownMenuItem<String>(
+                    value: null,
+                    child: Text(
+                      "(Renk Seçin)",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  ...tekilRenkler.map(
+                    (r) => DropdownMenuItem<String>(
+                      value: r.ad,
+                      child: Text(r.ad),
+                    ),
+                  ),
+                ],
+                onChanged: onDegisti,
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Renk zorunludur' : null,
+              ),
             ),
-            suffixIcon: IconButton(
+            const SizedBox(width: 8),
+            // Yeni renk ekleme butonu (Dışarı alındı)
+            IconButton.filled(
+              style: IconButton.styleFrom(backgroundColor: Renkler.kahveTon),
               onPressed: onYeniRenk,
-              icon: const Icon(Icons.add),
-              tooltip: 'Yeni renk ekle',
+              icon: const Icon(Icons.add, color: Colors.white),
+              tooltip: "Yeni Renk Ekle",
             ),
-            focusedBorder: OutlineInputBorder(
-              borderSide: BorderSide(color: Renkler.kahveTon, width: 2),
-            ),
-          ),
-          items: items,
-          onChanged: onDegisti,
-          validator: (v) =>
-              (v == null || v.trim().isEmpty) ? 'Renk seçiniz' : null,
-          hint: const Text('Renk seçin'),
+          ],
         );
       },
     );
