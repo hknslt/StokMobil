@@ -17,7 +17,7 @@ class BugununSiparisleriWidget extends StatefulWidget {
 class _BugununSiparisleriWidgetState extends State<BugununSiparisleriWidget> {
   final siparisServis = SiparisService();
   final sevkiyatServis = SevkiyatService();
-  // UrunService artık FutureBuilder içinde static veya instance olarak kullanılacak
+ 
 
   bool _isSameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
