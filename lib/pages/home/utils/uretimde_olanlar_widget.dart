@@ -16,6 +16,9 @@ class UretimdeOlanlarWidget extends StatefulWidget {
 class _UretimdeOlanlarWidgetState extends State<UretimdeOlanlarWidget> {
   final siparisServis = SiparisService();
   final sevkiyatServis = SevkiyatService();
+  // UrunService instance olarak aşağıda kullanılacak
+
+  // Sadece durumu 'uretimde' olanları filtrele
   bool _sadeceUretimdeOlanlar(SiparisModel s) {
     return s.durum == SiparisDurumu.uretimde;
   }
@@ -34,6 +37,7 @@ class _UretimdeOlanlarWidgetState extends State<UretimdeOlanlarWidget> {
 
         final tumSiparisler = sipSnap.data ?? [];
 
+        // Sadece 'uretimde' olanlar
         final uretimdekiSiparisler = tumSiparisler
             .where((s) => _sadeceUretimdeOlanlar(s))
             .toList();
@@ -53,23 +57,28 @@ class _UretimdeOlanlarWidgetState extends State<UretimdeOlanlarWidget> {
             ...uretimdekiSiparisler.map((siparis) {
               final musteriAdi =
                   siparis.musteri.firmaAdi?.trim().isNotEmpty == true
-                      ? siparis.musteri.firmaAdi!.trim()
-                      : (siparis.musteri.yetkili ?? "-");
+                  ? siparis.musteri.firmaAdi!.trim()
+                  : (siparis.musteri.yetkili ?? "-");
 
+              // --- YENİ KISIM: FutureBuilder ile Stok Analizi ---
               return FutureBuilder<Map<int, StokDetay>>(
                 future: UrunService().analizEtStokDurumu(siparis.urunler),
                 builder: (context, snapshot) {
                   final analizSonucu = snapshot.data ?? {};
 
-
+                  // Genel Durum Kontrolü:
+                  // Sadece KIRMIZI (Yetersiz) varsa "Yetersiz" deriz.
+                  // SARI (Kritik) varsa "Var" deriz (rengi farklı olur).
                   bool genelStokYeterli = true;
                   if (snapshot.hasData) {
-                    genelStokYeterli = !analizSonucu.values
-                        .any((d) => d.durum == StokDurumu.yetersiz);
+                    genelStokYeterli = !analizSonucu.values.any(
+                      (d) => d.durum == StokDurumu.yetersiz,
+                    );
                   }
-                  
-                  final bool kritikUrunVar = analizSonucu.values
-                      .any((d) => d.durum == StokDurumu.kritik);
+
+                  final bool kritikUrunVar = analizSonucu.values.any(
+                    (d) => d.durum == StokDurumu.kritik,
+                  );
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
@@ -104,17 +113,72 @@ class _UretimdeOlanlarWidgetState extends State<UretimdeOlanlarWidget> {
                           children: [
                             const SizedBox(height: 4),
                             Text("Yetkili: ${siparis.musteri.yetkili ?? '-'}"),
+
+                            // --- YENİ EKLENDİ: AÇIKLAMA ALANI ---
+                            if (siparis.aciklama != null &&
+                                siparis.aciklama!.trim().isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  top: 6,
+                                  bottom: 6,
+                                ),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFFFF8E1,
+                                  ), // Açık sarı (Amber 50)
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: const Color(0xFFFFE082),
+                                  ), // Amber 200
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(
+                                      Icons.note_alt_outlined,
+                                      size: 16,
+                                      color: Colors.orange,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        siparis.aciklama!,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontStyle: FontStyle.italic,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                            // -------------------------------------
                             Row(
                               children: [
                                 Text("Ürün Sayısı: ${siparis.urunler.length}"),
                                 const SizedBox(width: 8),
-                                snapshot.connectionState == ConnectionState.waiting
-                                    ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+                                // Analiz Yükleniyor mu?
+                                snapshot.connectionState ==
+                                        ConnectionState.waiting
+                                    ? const SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
                                     : Text(
-                                        genelStokYeterli ? "Stok Var" : "Stok Yetersiz",
+                                        genelStokYeterli
+                                            ? "Stok Var"
+                                            : "Stok Yetersiz",
                                         style: TextStyle(
-                                          color: genelStokYeterli 
-                                              ? (kritikUrunVar ? Colors.orange : Colors.green)
+                                          color: genelStokYeterli
+                                              ? (kritikUrunVar
+                                                    ? Colors.orange
+                                                    : Colors.green)
                                               : Colors.red,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -143,7 +207,7 @@ class _UretimdeOlanlarWidgetState extends State<UretimdeOlanlarWidget> {
                                     renk = Colors.green;
                                     break;
                                   case StokDurumu.kritik:
-                                    renk = Colors.orangeAccent; 
+                                    renk = Colors.orangeAccent; // SARI
                                     break;
                                   case StokDurumu.yetersiz:
                                     renk = Colors.red;
@@ -172,8 +236,17 @@ class _UretimdeOlanlarWidgetState extends State<UretimdeOlanlarWidget> {
                                   "${su.renk != null && su.renk!.isNotEmpty ? ' | ${su.renk}' : ''}"
                                   " | ₺${su.birimFiyat.toStringAsFixed(2)}",
                                 ),
-                                trailing: detay == null && snapshot.connectionState == ConnectionState.waiting
-                                    ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2))
+                                trailing:
+                                    detay == null &&
+                                        snapshot.connectionState ==
+                                            ConnectionState.waiting
+                                    ? const SizedBox(
+                                        width: 12,
+                                        height: 12,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
                                     : null,
                               );
                             }).toList(),

@@ -6,17 +6,32 @@ import 'package:capri/pages/home/widgets/widget_pazarlamaci.dart';
 import 'package:capri/pages/home/widgets/widget_sevkiyat.dart';
 import 'package:capri/pages/home/widgets/widget_uretim.dart';
 import 'package:capri/pages/widgets/ana_drawer.dart';
+import 'package:capri/services/update_service.dart'; 
 
-
-class AnaSayfa extends StatelessWidget {
+// StatelessWidget yerine StatefulWidget yapıyoruz
+class AnaSayfa extends StatefulWidget {
   final UserModel user;
 
   const AnaSayfa({super.key, required this.user});
 
+  @override
+  State<AnaSayfa> createState() => _AnaSayfaState();
+}
+
+class _AnaSayfaState extends State<AnaSayfa> {
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateService.kontrolEtVeGoster(context);
+    });
+  }
+
   Widget _buildIcerik() {
-    switch (user.role) {
+    switch (widget.user.role) {
       case 'admin':
-        return  AdminWidget();
+        return AdminWidget();
       case 'pazarlamaci':
         return const PazarlamaciWidget();
       case 'uretim':
@@ -48,7 +63,7 @@ class AnaSayfa extends StatelessWidget {
         title: Image.asset("assets/images/capri_logo.png", height: 50),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      drawer: AnaDrawer(user: user),
+      drawer: AnaDrawer(user: widget.user), // widget.user kullanıldı
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: _buildIcerik(),

@@ -1,7 +1,7 @@
 import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:package_info_plus/package_info_plus.dart';
 import 'sifre_sifirlama_sayfasi.dart';
 import 'kullanici_bilgileri_sayfasi.dart';
 import 'bildirim_ayarlar_sayfasi.dart';
@@ -142,11 +142,18 @@ class AyarlarSayfasi extends StatelessWidget {
             SliverToBoxAdapter(
               child: _Section(
                 title: 'Uygulama',
-                children: const [
-                  _StaticInfoTile(
-                    leading: Icons.info_outline,
-                    title: 'Sürüm',
-                    value: 'v1.0.0',
+                children: [
+                  FutureBuilder<PackageInfo>(
+                    future: PackageInfo.fromPlatform(),
+                    builder: (context, snapshot) {
+                      final version = snapshot.data?.version ?? '...';
+
+                      return _StaticInfoTile(
+                        leading: Icons.info_outline,
+                        title: 'Sürüm',
+                        value: 'v$version',
+                      );
+                    },
                   ),
                   _StaticInfoTile(
                     leading: Icons.privacy_tip_outlined,
@@ -261,33 +268,6 @@ class _Avatar extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _QuickGrid extends StatelessWidget {
-  final List<QuickItem> items;
-  const _QuickGrid({required this.items});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Row(
-      children: [
-        for (int i = 0; i < items.length; i++)
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: i == items.length - 1 ? 0 : 10),
-              child: _QuickCard(
-                icon: items[i].icon,
-                label: items[i].label,
-                onTap: items[i].onTap,
-                color: cs.primary,
-              ),
-            ),
-          ),
-      ],
     );
   }
 }
