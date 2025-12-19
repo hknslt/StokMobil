@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/siparis_urun_model.dart';
 import 'package:capri/core/models/fiyat_listesi_model.dart';
-import 'package:capri/services/fiyat_listesi_service.dart';
+import 'package:capri/services/urun_yonetimi/fiyat_listesi_service.dart';
 
 class SiparisFiyatlandirmaSayfasi extends StatefulWidget {
   final List<SiparisUrunModel> secilenUrunler;

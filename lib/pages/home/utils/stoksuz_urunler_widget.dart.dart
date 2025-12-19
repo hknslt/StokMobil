@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:capri/core/models/urun_model.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
 import 'package:capri/core/Color/Colors.dart';
 
 class StoksuzUrunlerWidget extends StatefulWidget {

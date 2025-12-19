@@ -1,12 +1,12 @@
 // lib/services/urun_service.dart
 import 'dart:io';
 
-import 'package:capri/services/fiyat_listesi_service.dart';
+import 'package:capri/services/urun_yonetimi/fiyat_listesi_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-import '../core/models/urun_model.dart';
-import 'package:capri/services/log_service.dart';
+import '../../core/models/urun_model.dart';
+import 'package:capri/services/altyapi/log_service.dart';
 
 enum StokDurumu { yeterli, kritik, yetersiz }
 

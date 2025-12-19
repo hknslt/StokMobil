@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/core/models/siparis_urun_model.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
 
 class SiparisUrunSecSayfasi extends StatefulWidget {
   final void Function(List<SiparisUrunModel>) onNext;

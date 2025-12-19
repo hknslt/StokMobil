@@ -1,7 +1,7 @@
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/pages/moduller/uretim_sayfasi/uretim_models_controller.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';

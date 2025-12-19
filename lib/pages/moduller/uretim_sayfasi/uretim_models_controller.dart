@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/core/models/urun_model.dart';
-import 'package:capri/services/siparis_service.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
 
 enum UretimSiralama { enCokEksik, urunAdinaGore, enEskiIstek }
 

@@ -4,7 +4,7 @@ import 'package:capri/core/models/siparis_urun_model.dart';
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/siparis_model.dart';
-import 'package:capri/services/siparis_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
 
 class TamamlananSevkiyatlarSayfasi extends StatefulWidget {
   const TamamlananSevkiyatlarSayfasi({super.key});

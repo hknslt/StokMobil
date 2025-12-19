@@ -1,7 +1,7 @@
 import 'package:capri/core/Color/Colors.dart';
 import 'package:flutter/material.dart';
 import 'package:capri/core/models/renk_item.dart';
-import 'package:capri/services/renk_service.dart';
+import 'package:capri/services/urun_yonetimi/renk_service.dart';
 
 class RenkDropdown extends StatelessWidget {
   final String? seciliAd;

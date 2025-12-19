@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:capri/core/models/renk_item.dart';
-import 'package:capri/services/log_service.dart';
+import 'package:capri/services/altyapi/log_service.dart';
 
 class RenkService {
   RenkService._();

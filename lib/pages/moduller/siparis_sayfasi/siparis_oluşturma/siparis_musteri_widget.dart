@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/musteri_model.dart';
-import 'package:capri/services/musteri_service.dart';
+import 'package:capri/services/musteri/musteri_service.dart';
 
 class SiparisMusteriWidget extends StatefulWidget {
   final TextEditingController firmaAdiController;

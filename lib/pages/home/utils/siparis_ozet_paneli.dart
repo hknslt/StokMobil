@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:capri/services/siparis_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
 import 'package:capri/core/models/siparis_model.dart';
 
 class SiparisOzetPaneli extends StatelessWidget {

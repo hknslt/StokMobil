@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart'; // YENİ: Paket imp
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/main.dart';
 import 'package:capri/core/models/user.dart';
-import 'package:capri/services/auth_service.dart';
+import 'package:capri/services/altyapi/auth_service.dart';
 
 import 'package:capri/pages/dashboards/admin_dashboard.dart';
 import 'package:capri/pages/dashboards/uretim_dashboard.dart';

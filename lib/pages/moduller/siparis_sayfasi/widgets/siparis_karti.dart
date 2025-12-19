@@ -2,8 +2,8 @@ import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/pages/moduller/siparis_sayfasi/siparis_detay_sayfasi.dart';
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
-import 'package:capri/services/fiyat_listesi_service.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/urun_yonetimi/fiyat_listesi_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

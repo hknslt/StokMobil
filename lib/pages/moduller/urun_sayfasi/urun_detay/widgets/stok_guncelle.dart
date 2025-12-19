@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/urun_model.dart';
-import 'package:capri/services/stock_change_service.dart';
+import 'package:capri/services/urun_yonetimi/stock_change_service.dart';
 
 
 final _stockSvc = StockChangeService();

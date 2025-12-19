@@ -11,7 +11,7 @@ import 'package:capri/pages/drawer_page/musteri_sayfasi/musteri_sayfasi.dart';
 import 'package:capri/pages/home/ana_sayfa.dart';
 
 // >> YENİ: Firebase signOut ve login'e dönüş için
-import 'package:capri/services/auth_service.dart';
+import 'package:capri/services/altyapi/auth_service.dart';
 import 'package:capri/pages/login/login_page.dart';
 
 class AnaDrawer extends StatelessWidget {

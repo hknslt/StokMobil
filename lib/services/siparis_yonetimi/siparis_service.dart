@@ -2,8 +2,8 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:capri/core/models/siparis_model.dart';
-import 'package:capri/services/urun_service.dart'; // Stok kontrolü için (onayla metodu)
-import 'package:capri/services/log_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart'; // Stok kontrolü için (onayla metodu)
+import 'package:capri/services/altyapi/log_service.dart';
 
 class SiparisService {
   static final SiparisService _instance = SiparisService._internal();
@@ -409,8 +409,18 @@ class SiparisService {
   }
 
   Stream<List<SiparisModel>> musteriSiparisleriDinle(String musteriId) {
+    Set<String> aranacakIdler = {musteriId};
+
+    try {
+      // Eğer ID sayıya çevrilebiliyorsa, sıfırları atılmış halini de ekle
+      // Örnek: "000024" -> 24 -> "24"
+      final sadeId = int.parse(musteriId).toString();
+      aranacakIdler.add(sadeId);
+    } catch (_) {
+      // ID sadece harflerden oluşuyorsa (örn: "ABC") burayı pas geç
+    }
     return _col
-        .where('musteri.id', isEqualTo: musteriId)
+        .where('musteri.id', whereIn: aranacakIdler.toList())
         .orderBy('tarih', descending: true)
         .snapshots()
         .map(

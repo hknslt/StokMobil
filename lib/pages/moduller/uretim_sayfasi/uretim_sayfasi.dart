@@ -1,6 +1,6 @@
 import 'package:capri/core/Color/Colors.dart';
-import 'package:capri/services/siparis_service.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
 import 'package:flutter/material.dart';
 
 // Dosyaları import et

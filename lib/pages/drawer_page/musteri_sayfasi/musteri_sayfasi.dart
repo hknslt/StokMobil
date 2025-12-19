@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/musteri_model.dart';
-import 'package:capri/services/musteri_service.dart';
+import 'package:capri/services/musteri/musteri_service.dart';
 
 class MusterilerSayfasi extends StatefulWidget {
   const MusterilerSayfasi({super.key});

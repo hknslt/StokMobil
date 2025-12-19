@@ -6,8 +6,8 @@ import 'package:capri/core/models/musteri_model.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/pages/moduller/siparis_sayfasi/siparis_detay_sayfasi.dart';
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
-import 'package:capri/services/musteri_service.dart';
-import 'package:capri/services/siparis_service.dart';
+import 'package:capri/services/musteri/musteri_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
 
 class MusteriDetaySayfasi extends StatefulWidget {
   final MusteriModel musteri;
@@ -176,6 +176,7 @@ class _MusteriDetaySayfasiState extends State<MusteriDetaySayfasi> {
   @override
   Widget build(BuildContext context) {
     final m = widget.musteri;
+    print("Aranan Müşteri ID: ${m.id} (Türü: ${m.id.runtimeType})");
 
     return Scaffold(
       appBar: AppBar(

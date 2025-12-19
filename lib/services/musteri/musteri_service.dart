@@ -1,7 +1,7 @@
 // lib/services/musteri_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:capri/core/models/musteri_model.dart';
-import 'package:capri/services/log_service.dart';
+import 'package:capri/services/altyapi/log_service.dart';
 
 class MusteriService {
   MusteriService._();

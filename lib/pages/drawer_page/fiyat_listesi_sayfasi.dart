@@ -5,8 +5,8 @@ import 'package:flutter/services.dart';
 
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/core/models/fiyat_listesi_model.dart';
-import 'package:capri/services/urun_service.dart';
-import 'package:capri/services/fiyat_listesi_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
+import 'package:capri/services/urun_yonetimi/fiyat_listesi_service.dart';
 
 class FiyatListesiSayfasi extends StatefulWidget {
   const FiyatListesiSayfasi({super.key});

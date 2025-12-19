@@ -28,7 +28,8 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
 
   // --- Flat (notificationSettings) toggles ---
   bool siparisOlusturuldu = true;
-  bool uretimde = true; // <-- stokYetersiz yerine
+  bool siparisGuncellendi = true;
+  bool uretimde = true;
   bool sevkiyataGitti = true;
   bool siparisTamamlandi = true;
 
@@ -78,7 +79,8 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
       }
 
       siparisOlusturuldu = _pick('siparisOlusturuldu', 'siparis');
-      uretimde = _pick('uretimde', 'uretimde'); // <-- yeni anahtar
+      siparisGuncellendi = _pick('siparisGuncellendi', 'guncelleme');
+      uretimde = _pick('uretimde', 'uretimde');
       sevkiyataGitti = _pick('sevkiyataGitti', 'sevkiyat');
       siparisTamamlandi = _pick('siparisTamamlandi', 'tamamlandi');
 
@@ -149,7 +151,8 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
       final flatUpdate = {
         'enabled': enabled,
         'siparisOlusturuldu': siparisOlusturuldu,
-        'uretimde': uretimde, // <-- yeni anahtar
+        'siparisGuncellendi': siparisGuncellendi,
+        'uretimde': uretimde,
         'sevkiyataGitti': sevkiyataGitti,
         'siparisTamamlandi': siparisTamamlandi,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -158,7 +161,8 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
       final nestedUpdate = {
         'enabled': enabled,
         'siparis': siparisOlusturuldu,
-        'uretimde': uretimde, // <-- yeni anahtar
+        'guncelleme': siparisGuncellendi,
+        'uretimde': uretimde,
         'sevkiyat': sevkiyataGitti,
         'tamamlandi': siparisTamamlandi,
       };
@@ -331,6 +335,17 @@ class _BildirimAyarSayfasiState extends State<BildirimAyarSayfasi> {
               Icons.add_shopping_cart_outlined,
               color: Renkler.kahveTon,
             ),
+          ),
+          const Divider(height: 0),
+          SwitchListTile.adaptive(
+            activeColor: Renkler.kahveTon,
+            value: siparisGuncellendi,
+            onChanged: enabled
+                ? (v) => _setDirty(() => siparisGuncellendi = v)
+                : null,
+            title: const Text('Sipariş güncellendi'),
+            subtitle: const Text('Ürün veya detay değişikliğinde'),
+            secondary: Icon(Icons.edit_note, color: Renkler.kahveTon),
           ),
           const Divider(height: 0),
           SwitchListTile.adaptive(

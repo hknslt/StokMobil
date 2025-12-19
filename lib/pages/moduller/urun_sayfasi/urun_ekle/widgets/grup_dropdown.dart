@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
-import 'package:capri/services/grup_service.dart';
+import 'package:capri/services/urun_yonetimi/grup_service.dart';
 
 class GrupDropdown extends StatelessWidget {
   final String? seciliAd;

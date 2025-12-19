@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/pages/moduller/sevkiyat_sayfasi/tamamlanan_sevkiyatlar_sayfasi.dart';
-import 'package:capri/services/siparis_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
 import 'package:capri/pages/moduller/sevkiyat_sayfasi/sevkiyat_duzenle_sayfasi.dart';
 
 class SevkiyatSayfasi extends StatefulWidget {

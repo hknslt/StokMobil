@@ -1,5 +1,5 @@
-import 'package:capri/services/sevkiyat_service.dart';
-import 'package:capri/services/siparis_service.dart';
+import 'package:capri/services/siparis_yonetimi/sevkiyat_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

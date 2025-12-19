@@ -1,13 +1,13 @@
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/pages/moduller/siparis_sayfasi/utils/teklif_pdf_yazdir.dart';
-import 'package:capri/services/siparis_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/pages/moduller/siparis_sayfasi/utils/siparis_Pdf_Yazdir.dart';
 import 'package:capri/pages/widgets/siparis_durum_etiketi.dart';
-import 'package:capri/services/urun_service.dart';
-import 'package:capri/services/fiyat_listesi_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
+import 'package:capri/services/urun_yonetimi/fiyat_listesi_service.dart';
 
 class SiparisDetaySayfasi extends StatefulWidget {
   final SiparisModel siparis;

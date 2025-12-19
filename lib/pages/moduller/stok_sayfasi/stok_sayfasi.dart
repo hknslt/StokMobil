@@ -4,11 +4,11 @@ import 'package:capri/pages/moduller/stok_sayfasi/utils/stok_pdf.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:capri/core/Color/Colors.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
 import 'package:capri/core/models/urun_model.dart';
 import 'package:capri/pages/moduller/urun_sayfasi/urun_ekle/urun_ekle_sayfasi.dart';
 import 'package:capri/pages/moduller/urun_sayfasi/urun_detay/urun_detay_sayfasi.dart';
-import 'package:capri/services/renk_service.dart';
+import 'package:capri/services/urun_yonetimi/renk_service.dart';
 
 class StokSayfasi extends StatefulWidget {
   const StokSayfasi({super.key});

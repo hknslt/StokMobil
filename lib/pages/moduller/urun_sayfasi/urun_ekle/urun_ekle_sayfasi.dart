@@ -9,9 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/urun_model.dart';
-import 'package:capri/services/urun_service.dart';
-import 'package:capri/services/renk_service.dart';
-import 'package:capri/services/grup_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
+import 'package:capri/services/urun_yonetimi/renk_service.dart';
+import 'package:capri/services/urun_yonetimi/grup_service.dart';
 
 class UrunEkleSayfasi extends StatefulWidget {
   final Urun? duzenlenecekUrun;

@@ -1,6 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:capri/pages/splash_page/splash_page.dart';
-import 'package:capri/services/bildirim_servisi.dart';
+import 'package:capri/services/altyapi/bildirim_servisi.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';

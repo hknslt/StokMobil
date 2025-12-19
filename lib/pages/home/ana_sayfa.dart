@@ -6,7 +6,7 @@ import 'package:capri/pages/home/widgets/widget_pazarlamaci.dart';
 import 'package:capri/pages/home/widgets/widget_sevkiyat.dart';
 import 'package:capri/pages/home/widgets/widget_uretim.dart';
 import 'package:capri/pages/widgets/ana_drawer.dart';
-import 'package:capri/services/update_service.dart'; 
+import 'package:capri/services/altyapi/update_service.dart'; 
 
 // StatelessWidget yerine StatefulWidget yapıyoruz
 class AnaSayfa extends StatefulWidget {
@@ -20,7 +20,7 @@ class AnaSayfa extends StatefulWidget {
 
 class _AnaSayfaState extends State<AnaSayfa> {
 
-  @override
+  @override 
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {

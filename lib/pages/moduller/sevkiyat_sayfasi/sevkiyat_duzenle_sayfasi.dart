@@ -4,8 +4,8 @@ import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/core/models/siparis_urun_model.dart';
 import 'package:capri/core/models/urun_model.dart';
-import 'package:capri/services/sevkiyat_service.dart';
-import 'package:capri/services/urun_service.dart';
+import 'package:capri/services/siparis_yonetimi/sevkiyat_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
 import 'dart:async';
 
 extension IterableX<T> on Iterable<T> {

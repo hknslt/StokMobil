@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:capri/services/renk_service.dart';
+import 'package:capri/services/urun_yonetimi/renk_service.dart';
 
 class RenkSecField extends StatefulWidget {
   final String? initialValue;

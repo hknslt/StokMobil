@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:capri/core/models/siparis_model.dart';
 import 'package:capri/core/models/siparis_urun_model.dart';
-import 'package:capri/services/urun_service.dart';
-import 'package:capri/services/log_service.dart';
+import 'package:capri/services/urun_yonetimi/urun_service.dart';
+import 'package:capri/services/altyapi/log_service.dart';
 import 'package:collection/collection.dart';
 
 class SevkiyatService {

@@ -2,7 +2,7 @@ import 'package:capri/core/Color/Colors.dart';
 import 'package:capri/pages/drawer_page/gecmis_siparis/siparis_detay_sayfasi.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:capri/services/siparis_service.dart';
+import 'package:capri/services/siparis_yonetimi/siparis_service.dart';
 import 'package:capri/core/models/siparis_model.dart';
 
 class GecmisSiparislerSayfasi extends StatefulWidget {
