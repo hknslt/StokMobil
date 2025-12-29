@@ -173,7 +173,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Stok Takip',
+      title: 'Capri',
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashPage(),
